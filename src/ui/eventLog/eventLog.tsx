@@ -1,4 +1,3 @@
-import React from 'react';
 import { h, render as preactRender, JSX } from 'preact';
 import { EventLogPanel, EventLogPanelProps } from './eventLogPanel';
 import { Event, EventLogEntry } from './eventLogHistoryPanel';
@@ -29,12 +28,12 @@ type EventHandler = {
 // (...args: EventHandlerInput) => '';
 
 class EventLog {
-  private _cfg: EventLogConfig;
-  private _history: EventLogEntry[];
-  private _defaultHandler: EventHandlerFunObj | null;
-  private _handlers: { [k: EventKey]: EventHandler };
-  private _container: HTMLDivElement;
-  private _panel: JSX.Element;
+  private cfg: EventLogConfig;
+  private history: EventLogEntry[];
+  private defaultHandler: EventHandlerFunObj | null;
+  private handlers: { [k: EventKey]: EventHandler };
+  private container: HTMLDivElement;
+  private panel: JSX.Element;
   // private element: Element | null; // TODO
 
   constructor(
@@ -42,11 +41,11 @@ class EventLog {
     config: EventLogConfig,
     handlers: { [k: string]: EventHandlerFunObj },
   ) {
-    this._cfg = config;
-    this._container = container;
-    this._history = [];
-    this._handlers = {};
-    this._defaultHandler = null;
+    this.cfg = config;
+    this.container = container;
+    this.history = [];
+    this.handlers = {};
+    this.defaultHandler = null;
 
     if (handlers) {
       for (const [eventKey, handler] of Object.entries(handlers)) {
@@ -55,7 +54,7 @@ class EventLog {
     }
 
     // we render here
-    this.log('', this._cfg.helloMsg); // show panel background imm
+    this.log('', this.cfg.helloMsg); // show panel background imm
 
     // let counter = 0;
     // setInterval(() => {
@@ -84,28 +83,28 @@ class EventLog {
       event,
       message,
     };
-    this._history.push(logEntry);
+    this.history.push(logEntry);
     this.render();
   }
 
   clear(): void {
-    while (this._history.length) {
+    while (this.history.length) {
       // TODO
-      this._history.shift();
+      this.history.shift();
     }
     this.render();
   }
 
   register(eventKey: EventKey, handler: EventHandlerFunObj): EventLog {
     if (handler.default) {
-      this._defaultHandler = handler;
+      this.defaultHandler = handler;
     } else {
       const eventHandler: EventHandler = {
         fn: handler,
         eventKey,
         config: handler.config,
       };
-      this._handlers[eventKey] = eventHandler;
+      this.handlers[eventKey] = eventHandler;
     }
     return this;
   }
@@ -114,20 +113,20 @@ class EventLog {
     const panelProps: EventLogPanelProps = {
       // config: this.config, // not used for now
       // dispatch: this.dispatch.bind(this), // not used for now
-      history: this._history,
-      parentContainer: this._container,
+      history: this.history,
+      parentContainer: this.container,
       scrollToBottom,
-      fontSize: this._cfg.fontSize,
-      lineHeight: this._cfg.lineHeight,
+      fontSize: this.cfg.fontSize,
+      lineHeight: this.cfg.lineHeight,
       updateRender: (props: EventLogPanelProps) => {
-        this._panel = <EventLogPanel {...props} />;
-        preactRender(this._panel, this._container);
+        this.panel = <EventLogPanel {...props} />;
+        preactRender(this.panel, this.container);
       },
-      prompt: this._cfg.prompt,
+      prompt: this.cfg.prompt,
     };
 
-    this._panel = <EventLogPanel {...panelProps} />;
-    preactRender(this._panel, this._container);
+    this.panel = <EventLogPanel {...panelProps} />;
+    preactRender(this.panel, this.container);
     return this;
   }
 
@@ -136,38 +135,34 @@ class EventLog {
 
     const DEF_RES: EventHandlerOutput = 'Unknown event';
     let result;
-    const handler = this._handlers[eventKey];
+    const handler = this.handlers[eventKey];
     if (handler) {
       result = handler.fn(args);
-    } else if (this._defaultHandler) {
-      result = this._defaultHandler(args);
+    } else if (this.defaultHandler) {
+      result = this.defaultHandler(args);
     }
 
     this.log(result ?? DEF_RES, event);
   }
 
   deinit(): void {
-    preactRender('', this._container);
+    preactRender('', this.container);
     // this.element = null;
   }
 
   setFontSize(fontSize: number): void {
-    this._cfg.fontSize = fontSize;
+    this.cfg.fontSize = fontSize;
     this.render();
   }
 
   setLineHeight(lineHeight: number): void {
-    this._cfg.lineHeight = lineHeight;
+    this.cfg.lineHeight = lineHeight;
     this.render();
-  }
-
-  get container(): HTMLDivElement {
-    return this._container;
   }
 
   setContainer(value: HTMLDivElement) {
     // this.deinit();
-    this._container = value;
+    this.container = value;
     this.render(true); // force a re-render
   }
 

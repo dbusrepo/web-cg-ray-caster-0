@@ -1,3 +1,4 @@
+import { Panel } from './panel';
 import { PanelGui, PanelTweakOptions } from './panelGui';
 import { ViewPanel } from './viewPanel';
 
@@ -10,21 +11,20 @@ type ViewPanelTweakOptions = PanelTweakOptions & {
 };
 
 class ViewPanelGui extends PanelGui {
+  protected panel: ViewPanel;
+  protected tweakOptions: ViewPanelTweakOptions;
+
   init(panel: ViewPanel) {
     super.init(panel);
   }
 
-  get tweakOptions() {
-    return this._tweakOptions as ViewPanelTweakOptions;
+  protected initTweakPaneOptionsObj(): void {
+    super.initTweakPaneOptionsObj();
   }
 
-  protected _initTweakPaneOptionsObj(): void {
-    super._initTweakPaneOptionsObj();
-  }
-
-  protected _addTweakPaneOptions() {
-    super._addStatsOpt();
-    super._addEventLogOpt();
+  protected addTweakPaneOptions() {
+    super.addStatsOpt();
+    super.addEventLogOpt();
   }
 }
 

@@ -29,38 +29,38 @@ type WasmRunConfig = {
 };
 
 class WasmRun {
-  protected _cfg: WasmRunConfig;
-  protected _wasmViews: WasmViews;
-  protected _wasmModules: WasmModules;
+  protected cfg: WasmRunConfig;
+  protected wasmViews: WasmViews;
+  protected wasmModules: WasmModules;
 
   public async init(
     workerCfg: WasmRunConfig,
   ): Promise<void> {
-    this._cfg = workerCfg;
-    await this._initWasm();
+    this.cfg = workerCfg;
+    await this.initWasm();
   }
 
-  private async _initWasm(): Promise<void> {
-    this._buildWasmMemViews();
+  private async initWasm(): Promise<void> {
+    this.buildWasmMemViews();
     await this.loadWasmModules();
   }
 
-  protected _buildWasmMemViews(): void {
+  protected buildWasmMemViews(): void {
     const {
       wasmMem: mem,
       wasmMemRegionsOffsets: memOffsets,
       wasmMemRegionsSizes: memSizes,
-    } = this._cfg;
+    } = this.cfg;
 
-    this._wasmViews = WasmUtils.views.buildWasmMemViews(
+    this.wasmViews = WasmUtils.views.buildWasmMemViews(
       mem,
       memOffsets,
       memSizes,
     );
 
-    const { workerIdx } = this._cfg;
-    syncStore(this._wasmViews.syncArr, workerIdx, 0);
-    syncStore(this._wasmViews.sleepArr, workerIdx, 0);
+    const { workerIdx } = this.cfg;
+    syncStore(this.wasmViews.syncArr, workerIdx, 0);
+    syncStore(this.wasmViews.sleepArr, workerIdx, 0);
   }
 
   private buildWasmImports(): WasmImports {
@@ -69,9 +69,9 @@ class WasmRun {
       wasmMemRegionsSizes: memSizes,
       wasmMemRegionsOffsets: memOffsets,
       wasmWorkerHeapSize: workerHeapSize,
-    } = this._cfg;
+    } = this.cfg;
 
-    const { frameWidth, frameHeight, mainWorkerIdx, numWorkers, numImages, workerIdx } = this._cfg;
+    const { frameWidth, frameHeight, mainWorkerIdx, numWorkers, numImages, workerIdx } = this.cfg;
 
     const logf = (f: number) =>
       console.log(`[wasm] Worker [${workerIdx}]: ${f}`);
@@ -123,15 +123,15 @@ class WasmRun {
 
   private async loadWasmModules(): Promise<void> {
     const wasmImports = this.buildWasmImports();
-    this._wasmModules = await loadWasmModules(wasmImports);
+    this.wasmModules = await loadWasmModules(wasmImports);
   }
 
-  get wasmViews(): WasmViews {
-    return this._wasmViews;
+  get WasmViews(): WasmViews {
+    return this.wasmViews;
   }
 
-  get wasmModules(): WasmModules {
-    return this._wasmModules;
+  get WasmModules(): WasmModules {
+    return this.wasmModules;
   }
 }
 

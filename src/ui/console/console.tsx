@@ -35,25 +35,25 @@ type ConsoleHandlersObjInit = { [k: string]: ConsoleHandlerFunObj };
 // const defaultHandler: ConsoleHandlerFunObj = (...args: any[]) => '';
 
 class Console {
-  private _config: ConsoleConfig;
-  private _history: ConsoleEntry[];
-  private _container: HTMLDivElement;
-  private _defaultHandler: ConsoleHandlerFunObj | null;
-  private _handlers: { [k: ConsoleStmtKey]: ConsoleHandler };
-  private _panel: ConsolePanel;
-  private _percHeight: number;
+  private cfg: ConsoleConfig;
+  private history: ConsoleEntry[];
+  private container: HTMLDivElement;
+  private defaultHandler: ConsoleHandlerFunObj | null;
+  private handlers: { [k: ConsoleStmtKey]: ConsoleHandler };
+  private panel: ConsolePanel;
+  private percHeight: number;
 
   constructor(
     container: HTMLDivElement,
     config: ConsoleConfig,
     handlers: ConsoleHandlersObjInit,
   ) {
-    this._config = config;
-    this._history = [];
-    this._handlers = {};
-    this._percHeight = config.percHeightWin; // TODO
-    this._container = container;
-    this._defaultHandler = null;
+    this.cfg = config;
+    this.history = [];
+    this.handlers = {};
+    this.percHeight = config.percHeightWin; // TODO
+    this.container = container;
+    this.defaultHandler = null;
 
     if (handlers) {
       for (const [stmtKey, handler] of Object.entries(handlers)) {
@@ -69,7 +69,7 @@ class Console {
       stmt,
       msg,
     };
-    this._history.push(consoleEntry);
+    this.history.push(consoleEntry);
     this.render();
   }
 
@@ -82,52 +82,52 @@ class Console {
     // }
 
     const panelProps: ConsolePanelProps = {
-      ...this._config,
-      container: this._container,
-      percHeight: this._percHeight,
-      history: this._history,
+      ...this.cfg,
+      container: this.container,
+      percHeight: this.percHeight,
+      history: this.history,
       dispatch: this.dispatch.bind(this),
       autoCompleteFn: this.autoComplete.bind(this),
     };
 
     const panel = (
-      <ConsolePanel ref={(p) => (this._panel = p)} {...panelProps} />
+      <ConsolePanel ref={(p) => (this.panel = p)} {...panelProps} />
     );
-    preactRender(panel, this._container);
+    preactRender(panel, this.container);
     return this;
   }
 
   // TODO not used
   setOpen(visible: boolean) {
-    this._panel.setOpen(visible);
+    this.panel.setOpen(visible);
   }
 
   clear() {
-    while (this._history.length) {
+    while (this.history.length) {
       // TODO
-      this._history.shift();
+      this.history.shift();
     }
     this.render();
   }
 
   register(stmtKey: ConsoleStmtKey, handler: ConsoleHandlerFunObj) {
     if (handler.isDefault) {
-      this._defaultHandler = handler;
+      this.defaultHandler = handler;
     } else {
       const eventHandler: ConsoleHandler = {
         fn: handler,
         stmtKey,
         config: handler.config,
       };
-      this._handlers[stmtKey] = eventHandler;
+      this.handlers[stmtKey] = eventHandler;
     }
     return this;
   }
 
   // autocomplete only on the first token (here called stmtKey)
   autoComplete(prefix: string): ConsoleStmtKey {
-    if (this._config.autoComplete) {
-      const stmtKeys = Object.keys(this._handlers);
+    if (this.cfg.autoComplete) {
+      const stmtKeys = Object.keys(this.handlers);
       const matched = stmtKeys.filter(
         (stmtKey) => stmtKey.indexOf(prefix) === 0,
       );
@@ -144,43 +144,43 @@ class Console {
 
   dispatch(stmt: string) {
     let [key, ...argsArr] = stmt.split(' ');
-    key = this._config.caseSensitive ? key : key.toLowerCase();
+    key = this.cfg.caseSensitive ? key : key.toLowerCase();
     const args = argsArr.join(' ');
 
     const DEF_RES: ConsoleHandlerOutput = 'Unknown command';
     let result;
-    const handler = this._handlers[key];
+    const handler = this.handlers[key];
     if (handler) {
       result = handler.fn(args);
-    } else if (this._defaultHandler) {
-      result = this._defaultHandler(args);
+    } else if (this.defaultHandler) {
+      result = this.defaultHandler(args);
     }
 
     this.log(stmt, '-> ' + (result ?? DEF_RES)); // TODO add -> to cfg ?
   }
 
   setFontSize(fontSize: number): void {
-    this._config.fontSize = fontSize;
+    this.cfg.fontSize = fontSize;
     this.render();
   }
 
   setLineHeight(lineHeight: number): void {
-    this._config.lineHeight = lineHeight;
+    this.cfg.lineHeight = lineHeight;
     this.render();
   }
 
   setOnWinMode() {
-    this._percHeight = this._config.percHeightWin;
+    this.percHeight = this.cfg.percHeightWin;
     this.render();
   }
 
   setOnFullMode() {
-    this._percHeight = this._config.percHeightFull;
+    this.percHeight = this.cfg.percHeightFull;
     this.render();
   }
 
   deinit() {
-    preactRender('', this._container);
+    preactRender('', this.container);
     // this.element = null; // Removed !
   }
 

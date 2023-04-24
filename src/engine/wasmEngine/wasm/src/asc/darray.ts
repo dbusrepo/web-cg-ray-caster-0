@@ -7,14 +7,14 @@ import { logi } from './importVars';
 
 // @ts-ignore: decorator
 @final @unmanaged class DArray<T> {
-  private _array: PTR_T = 0; // physical array start
-  private _dataStart: PTR_T = 0;  // where data start
-  private _dataEnd: PTR_T = 0;
-  private _next: PTR_T = 0;
-  private _capacity: SIZE_T = 0;
-  private _objSizeLg2: SIZE_T = 0;
-  private _alignMask: SIZE_T = 0;
-  // private _allocSize: SIZE_T; // not used
+  private array: PTR_T = 0; // physical array start
+  private dataStart: PTR_T = 0;  // where data start
+  private dataEnd: PTR_T = 0;
+  private next: PTR_T = 0;
+  private capacity: SIZE_T = 0;
+  private objSizeLg2: SIZE_T = 0;
+  private alignMask: SIZE_T = 0;
+  // private allocSize: SIZE_T; // not used
 
   init(initialCapacity: SIZE_T, objAlignLg2: SIZE_T = alignof<T>()): void {
     myAssert(initialCapacity > 0);
@@ -27,33 +27,33 @@ import { logi } from './importVars';
     // myAssert(isPowerOfTwo(objSizeAlign));
     const numBytesData = capacity * objSizeAlign;
     const allocSize = numBytesData + alignMask;
-    this._array = alloc(allocSize);
-    this._dataStart = (this._array + alignMask) & ~alignMask;
-    this._dataEnd = this._dataStart + numBytesData;
-    this._next = this._dataStart;
-    this._objSizeLg2 = ilog2(objSizeAlign);
-    this._alignMask = alignMask;
-    this._capacity = capacity;
-    myAssert((this._dataStart & alignMask) === 0);
-    myAssert(this.length == 0);
+    this.array = alloc(allocSize);
+    this.dataStart = (this.array + alignMask) & ~alignMask;
+    this.dataEnd = this.dataStart + numBytesData;
+    this.next = this.dataStart;
+    this.objSizeLg2 = ilog2(objSizeAlign);
+    this.alignMask = alignMask;
+    this.capacity = capacity;
+    myAssert((this.dataStart & alignMask) === 0);
+    myAssert(this.Length == 0);
   }
 
-  @inline get length(): i32 {
-    return <i32>((this._next - this._dataStart) >> this._objSizeLg2);
+  @inline get Length(): SIZE_T {
+    return <SIZE_T>((this.next - this.dataStart) >> this.objSizeLg2);
   }
 
-  @inline get capacity(): SIZE_T {
-    return <SIZE_T>(this._dataEnd - this._dataStart) >> this._objSizeLg2;
+  @inline get Capacity(): SIZE_T {
+    return <SIZE_T>(this.dataEnd - this.dataStart) >> this.objSizeLg2;
   }
 
-  @inline get arrayStart(): PTR_T {
-    return this._array;
+  @inline get ArrayStart(): PTR_T {
+    return this.array;
   }
 
   private idx2Ptr(idx: SIZE_T): PTR_T {
-    myAssert(idx < this.length);
-    const offset = idx << this._objSizeLg2;
-    return this._dataStart + offset;
+    myAssert(idx < this.Length);
+    const offset = idx << this.objSizeLg2;
+    return this.dataStart + offset;
   }
 
   at(idx: SIZE_T): T {
@@ -67,35 +67,35 @@ import { logi } from './importVars';
   }
 
   private checkMem(): void {
-    if (this._next >= this._dataEnd) {
-      myAssert(this._next == this._dataEnd);
-      const newCapacity = 2 * this._capacity;
-      const newNumBytesData = newCapacity << this._objSizeLg2; 
-      const newAllocSize = newNumBytesData + this._alignMask;
+    if (this.next >= this.dataEnd) {
+      myAssert(this.next == this.dataEnd);
+      const newCapacity: SIZE_T = 2 * this.capacity;
+      const newNumBytesData = newCapacity << this.objSizeLg2; 
+      const newAllocSize = newNumBytesData + this.alignMask;
       const newArray = alloc(newAllocSize);
-      const newDataStart = (newArray + this._alignMask) & ~this._alignMask;
+      const newDataStart = (newArray + this.alignMask) & ~this.alignMask;
       const newArrayEnd = newDataStart + newNumBytesData;
-      const numSrcBytes = this._next - this._dataStart;
+      const numSrcBytes = this.next - this.dataStart;
       const newNext = newDataStart + numSrcBytes;
-      memory.copy(newDataStart, this._dataStart, numSrcBytes);
-      dealloc(this.arrayStart);
-      this._array = newArray;
-      this._dataStart = newDataStart;
-      this._dataEnd = newArrayEnd;
-      this._next = newNext;
-      this._capacity = newCapacity;
+      memory.copy(newDataStart, this.dataStart, numSrcBytes);
+      dealloc(this.array);
+      this.array = newArray;
+      this.dataStart = newDataStart;
+      this.dataEnd = newArrayEnd;
+      this.next = newNext;
+      this.capacity = newCapacity;
     }
   }
 
-  private get objSize(): SIZE_T {
-    return 1 << this._objSizeLg2;
+  private get ObjSize(): SIZE_T {
+    return 1 << this.objSizeLg2;
   }
 
   // add a new uninitialized element at the end and returns a pointer to it
   private alloc(): PTR_T {
     this.checkMem();
-    const ptr = this._next;
-    this._next += this.objSize;
+    const ptr = this.next;
+    this.next += this.ObjSize;
     return ptr;
   }
 
@@ -105,8 +105,8 @@ import { logi } from './importVars';
   }
 
   pop(): void {
-    myAssert(this.length > 0);
-    this._next -= this.objSize;
+    myAssert(this.Length > 0);
+    this.next -= this.ObjSize;
   }
 }
 
@@ -128,7 +128,7 @@ function newDArray<T>(initialCapacity: SIZE_T, alignLg2: SIZE_T = alignof<T>()):
 }
 
 function deleteDArray<T>(arr: DArray<T>): void {
-  dealloc(arr.arrayStart);
+  dealloc(arr.ArrayStart);
   arrayArena.dealloc(changetype<PTR_T>(arr));
 }
 

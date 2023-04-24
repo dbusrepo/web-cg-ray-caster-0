@@ -24,26 +24,26 @@ const enum ViewMode {
 }
 
 abstract class Panel {
-  private static _panels: Panel[] = [];
+  private static panelList: Panel[] = [];
 
-  private _config: PanelConfig;
+  private cfg: PanelConfig;
 
-  private _board: HTMLDivElement; // used to append the panel in full win/screen
-  private _parentNode: HTMLDivElement;
+  private board: HTMLDivElement; // used to append the panel in full win/screen
+  private parentNode: HTMLDivElement;
 
-  private _panelContainer: HTMLDivElement;
-  private _panel: HTMLDivElement;
+  private panelContainer: HTMLDivElement;
+  private panelDiv: HTMLDivElement;
 
-  private _panelContainerWinFull: HTMLDivElement;
+  private panelContainerWinFull: HTMLDivElement;
   // eslint-disable-next-line max-len
-  private _panelContainerWinFullHeight: number; // cached to avoid fs -> fw errors
+  private panelContainerWinFullHeight: number; // cached to avoid fs -> fw errors
 
-  private _canvasContainer: HTMLDivElement;
-  private _canvas: HTMLCanvasElement;
+  private canvasContainer: HTMLDivElement;
+  private canvas: HTMLCanvasElement;
 
   // perc wrt to panel container when in full win/screen to allow the vis of
   // event log below
-  private _canvasDisplayHeightPercFull: number; // TODO check use
+  private canvasDisplayHeightPercFull: number; // TODO check use
 
   // note: the event log can be rendered on the main panel or on a separate own
   // panel when in full (win) mode the event log uses _eventLogMainContainer
@@ -55,60 +55,59 @@ abstract class Panel {
   // when in win mode it uses its own panel _eventLogContainer which is
   // displayed always under the main panel container
 
-  private _eventLog?: EventLog;
-  private _eventLogBottomPanel?: HTMLDivElement;
-  private _eventLogMainPanel?: HTMLDivElement;
+  protected eventLog: EventLog;
+  private eventLogBottomPanel: HTMLDivElement;
+  private eventLogMainPanel: HTMLDivElement;
 
-  private _console: Console;
+  private console: Console;
 
-  protected _menuGui: PanelGui;
-  // used with console cmd handler. not used for now.
+  protected abstract menuGui: PanelGui;
 
-  protected _stats: Stats;
+  protected stats: Stats;
 
-  protected _viewMode: ViewMode;
-  protected _preViewMode: ViewMode;
+  protected viewMode: ViewMode;
+  protected preViewMode: ViewMode;
 
   constructor(board: HTMLDivElement, parentNode: HTMLDivElement) {
-    this._board = board;
-    this._parentNode = parentNode;
+    this.board = board;
+    this.parentNode = parentNode;
   }
 
   init(panelConfig: PanelConfig, stats: Stats) {
-    this._config = structuredClone(panelConfig);
-    this._stats = stats;
+    this.cfg = structuredClone(panelConfig);
+    this.stats = stats;
     this.initPanel();
     this.initCanvas();
     this.initEventLog();
     this.initConsole();
     this.initFullScreenMode();
-    Panel._panels.push(this);
+    Panel.panelList.push(this);
   }
 
   private initPanel(): void {
-    this._panelContainer = document.createElement('div');
-    this._panelContainer.classList.add('panel-container');
-    this._panelContainerWinFull = document.createElement('div');
-    this._panelContainerWinFull.classList.add('panel-container-win-full');
-    this._board.appendChild(this._panelContainerWinFull); // TODO in init
-    this._panelContainerWinFullHeight =
-      this._panelContainerWinFull.offsetHeight;
-    this._panel = document.createElement('div');
-    this._panel.tabIndex = -1; // TODO call this before focus() !
+    this.panelContainer = document.createElement('div');
+    this.panelContainer.classList.add('panel-container');
+    this.panelContainerWinFull = document.createElement('div');
+    this.panelContainerWinFull.classList.add('panel-container-win-full');
+    this.board.appendChild(this.panelContainerWinFull); // TODO in init
+    this.panelContainerWinFullHeight =
+      this.panelContainerWinFull.offsetHeight;
+    this.panelDiv = document.createElement('div');
+    this.panelDiv.tabIndex = -1; // TODO call this before focus() !
     // this._panelContainer.appendChild(this._panel); // done before run
-    this._parentNode.appendChild(this._panelContainer);
+    this.parentNode.appendChild(this.panelContainer);
     this.addListeners();
   }
 
   private setPanelWinStyle(): void {
-    resetClassName(this._panel);
-    this._panel.classList.add('panel', 'panel-win');
-    this._panelContainer.style.marginTop = '0';
-    this._panel.style.marginTop = '0';
-    this._panel.style.width = `auto`;
-    this._panel.style.height = `auto`;
-    this._panelContainerWinFull.style.display = 'none';
-    if (!(this.isInit() || this._preViewMode === ViewMode.WIN)) {
+    resetClassName(this.panelDiv);
+    this.panelDiv.classList.add('panel', 'panel-win');
+    this.panelContainer.style.marginTop = '0';
+    this.panelDiv.style.marginTop = '0';
+    this.panelDiv.style.width = `auto`;
+    this.panelDiv.style.height = `auto`;
+    this.panelContainerWinFull.style.display = 'none';
+    if (!(this.isInit() || this.preViewMode === ViewMode.WIN)) {
       this.setAllPanelsToWinMode();
     }
   }
@@ -116,23 +115,23 @@ abstract class Panel {
   private setPanelFullStyle(): void {
     assert(
       this.isFullScreen ||
-        this._panel.parentNode === this._panelContainerWinFull,
+        this.panelDiv.parentNode === this.panelContainerWinFull,
     );
-    resetClassName(this._panel);
-    this._panel.classList.add('panel', 'panel-full');
+    resetClassName(this.panelDiv);
+    this.panelDiv.classList.add('panel', 'panel-full');
     const menuBarHeight = 25; // see guify guify theme.js
-    this._panel.style.marginTop = `${menuBarHeight}px`;
+    this.panelDiv.style.marginTop = `${menuBarHeight}px`;
     const panelFullHeight = this.isFullScreen
       ? screen.height
-      : this._panelContainerWinFullHeight;
-    this._panel.style.height = `${panelFullHeight - 25}px`;
+      : this.panelContainerWinFullHeight;
+    this.panelDiv.style.height = `${panelFullHeight - 25}px`;
     this.hideOtherPanels();
-    this._panelContainerWinFull.style.display = 'block';
+    this.panelContainerWinFull.style.display = 'block';
   }
 
   private setViewMode(viewMode: ViewMode): void {
-    this._preViewMode = this._viewMode;
-    this._viewMode = viewMode;
+    this.preViewMode = this.viewMode;
+    this.viewMode = viewMode;
   }
 
   private canStartInFullWin(): boolean {
@@ -150,12 +149,12 @@ abstract class Panel {
 
   private initFullWinMode(): void {
     // console.log('start view mode: ' + this._config.startViewMode);
-    if (this._config.startViewMode === StartViewMode.FULL_WIN) {
+    if (this.cfg.startViewMode === StartViewMode.FULL_WIN) {
       // console.log('Can start in fw: ' + this.canStartInFullWin());
       if (this.canStartInFullWin()) {
         this.setFullWin(true);
       } else {
-        this._config.startViewMode = StartViewMode.WIN;
+        this.cfg.startViewMode = StartViewMode.WIN;
         this.initWinMode();
       }
     }
@@ -201,7 +200,7 @@ abstract class Panel {
     }
     if (enable) {
       this.enableFullScreenMode();
-      await screenfull.request(this._panelContainer, { navigationUI: 'hide' });
+      await screenfull.request(this.panelContainer, { navigationUI: 'hide' });
     } else {
       assert(screenfull.isFullscreen);
       await screenfull.exit();
@@ -211,11 +210,11 @@ abstract class Panel {
 
   private enableFullScreenMode(): void {
     // if in full win go to win mode first and then to fullscreen
-    if (this._viewMode === ViewMode.FULL_WIN) {
+    if (this.viewMode === ViewMode.FULL_WIN) {
       this.setFullWin(false);
       // eslint-disable-next-line max-len
       // to have preViewMode set to fullwin with setViewMode(ViewMode.FULL_SCREEN)
-      this._viewMode = ViewMode.FULL_WIN;
+      this.viewMode = ViewMode.FULL_WIN;
     }
     this.setViewMode(ViewMode.FULL_SCREEN);
     this.resetGui();
@@ -224,11 +223,11 @@ abstract class Panel {
 
   private resetModeAfterFullScreen() {
     assert(
-      this._viewMode === ViewMode.FULL_SCREEN &&
-        (this._preViewMode === ViewMode.WIN ||
-          this._preViewMode === ViewMode.FULL_WIN),
+      this.viewMode === ViewMode.FULL_SCREEN &&
+        (this.preViewMode === ViewMode.WIN ||
+          this.preViewMode === ViewMode.FULL_WIN),
     );
-    const fromFullWin = this._preViewMode === ViewMode.FULL_WIN;
+    const fromFullWin = this.preViewMode === ViewMode.FULL_WIN;
     this.setFullWin(false);
     if (fromFullWin) {
       this.setFullWin(true);
@@ -238,9 +237,9 @@ abstract class Panel {
   private addListeners(): void {
     this.initKeyHandlers();
     const onPanelFocus = (event: FocusEvent) => {
-      this._canvasContainer.focus();
+      this.canvasContainer.focus();
     };
-    this._panel.addEventListener('focus', onPanelFocus);
+    this.panelDiv.addEventListener('focus', onPanelFocus);
   }
 
   protected initKeyHandlers(): void {
@@ -272,29 +271,29 @@ abstract class Panel {
       // }
     };
     // last arg true to capture events from top
-    this._panel.addEventListener('keydown', onPanelKeyDown, true);
+    this.panelDiv.addEventListener('keydown', onPanelKeyDown, true);
   }
 
   private initCanvas(): void {
-    this._canvasContainer = document.createElement('div');
-    this._canvas = document.createElement('canvas');
-    this._canvas.width = Number(this._config.canvasWidth);
-    this._canvas.height = Number(this._config.canvasHeight);
+    this.canvasContainer = document.createElement('div');
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = Number(this.cfg.canvasWidth);
+    this.canvas.height = Number(this.cfg.canvasHeight);
     // other init elements could change canvas props (event log?) so we start
     // hidden
     // this._panelContainer.appendChild(this._canvas);
-    this._canvasContainer.appendChild(this._canvas);
-    this._canvasContainer.tabIndex = -1; // make it focusable
-    this._panel.appendChild(this._canvasContainer);
+    this.canvasContainer.appendChild(this.canvas);
+    this.canvasContainer.tabIndex = -1; // make it focusable
+    this.panelDiv.appendChild(this.canvasContainer);
   }
 
   private setCanvasWinStyle(): void {
-    resetClassName(this._canvas);
-    this._canvas.classList.add('canvas', 'canvas-win');
-    this._canvasContainer.style.width = `${this._config.canvasDisplayWidthWinMode}px`;
-    this._canvasContainer.style.height = `${this._config.canvasDisplayHeightWinMode}px`;
-    resetClassName(this._canvasContainer);
-    this._canvasContainer.classList.add(
+    resetClassName(this.canvas);
+    this.canvas.classList.add('canvas', 'canvas-win');
+    this.canvasContainer.style.width = `${this.cfg.canvasDisplayWidthWinMode}px`;
+    this.canvasContainer.style.height = `${this.cfg.canvasDisplayHeightWinMode}px`;
+    resetClassName(this.canvasContainer);
+    this.canvasContainer.classList.add(
       'canvas-container',
       'canvas-container-win',
     );
@@ -303,13 +302,13 @@ abstract class Panel {
   private setCanvasFullStyle(): void {
     assert(!this.isWinMode);
     // update canvas
-    resetClassName(this._canvas);
-    this._canvas.classList.add('canvas', 'canvas-full');
-    this._canvasContainer.style.width = '100%';
-    this._canvasContainer.style.height = '100%';
+    resetClassName(this.canvas);
+    this.canvas.classList.add('canvas', 'canvas-full');
+    this.canvasContainer.style.width = '100%';
+    this.canvasContainer.style.height = '100%';
     // update canvas container
-    resetClassName(this._canvasContainer);
-    this._canvasContainer.classList.add(
+    resetClassName(this.canvasContainer);
+    this.canvasContainer.classList.add(
       'canvas-container',
       'canvas-container-full',
     );
@@ -317,29 +316,29 @@ abstract class Panel {
   }
 
   private initEventLog(): void {
-    if (!this.config.enableEventLog) {
-      return;
-    }
-    this._eventLogMainPanel = document.createElement('div');
-    this._eventLogMainPanel.classList.add('event-log-main-panel');
-    this._eventLogBottomPanel = document.createElement('div');
+    // if (!this.config.enableEventLog) {
+    //   return;
+    // }
+    this.eventLogMainPanel = document.createElement('div');
+    this.eventLogMainPanel.classList.add('event-log-main-panel');
+    this.eventLogBottomPanel = document.createElement('div');
     this.moveOutEventLogBottomPanel();
     this.moveOutEventLogMainPanel();
     let eventContainer;
     if (this.isEventLogBelowCanvas) {
       // this.showEventLogOnBottomPanel(true);
-      eventContainer = this._eventLogBottomPanel;
+      eventContainer = this.eventLogBottomPanel;
     } else {
       // this.showEventLogOnMainPanel(true);
-      eventContainer = this._eventLogMainPanel;
+      eventContainer = this.eventLogMainPanel;
     }
     const eventLogConfig: EventLogConfig = {
-      ...this._config.eventLogConfig,
-      fontSize: this._config.eventLogConfig.fontSize,
-      lineHeight: this._config.eventLogConfig.lineHeight,
+      ...this.cfg.eventLogConfig,
+      fontSize: this.cfg.eventLogConfig.fontSize,
+      lineHeight: this.cfg.eventLogConfig.lineHeight,
     };
     const eventHandlers = {};
-    this._eventLog = new EventLog(
+    this.eventLog = new EventLog(
       eventContainer,
       eventLogConfig,
       eventHandlers,
@@ -347,11 +346,11 @@ abstract class Panel {
   }
 
   protected initConsole(): void {
-    if (!this.config.enableConsole) {
-      return;
-    }
+    // if (!this.config.enableConsole) {
+    //   return;
+    // }
     const consoleConfig: ConsoleConfig = {
-      ...this._config.consoleConfig,
+      ...this.cfg.consoleConfig,
       caseSensitive: true,
       autoComplete: true,
       onOpening: () => {
@@ -367,12 +366,12 @@ abstract class Panel {
         this.onConsoleHidden();
       },
       prompt: this.config.consoleConfig.prompt,
-      fontSize: this._config.consoleConfig.fontSize,
-      lineHeight: this._config.consoleConfig.lineHeight,
+      fontSize: this.cfg.consoleConfig.fontSize,
+      lineHeight: this.cfg.consoleConfig.lineHeight,
     };
     const consoleHandlers = this.buildConsoleHandlers();
-    this._console = new Console(
-      this._canvasContainer,
+    this.console = new Console(
+      this.canvasContainer,
       consoleConfig,
       consoleHandlers,
     );
@@ -385,7 +384,7 @@ abstract class Panel {
   // TODO refactor ?
   protected buildConsoleHandlers(): ConsoleHandlersObjInit {
     const clear = () => {
-      this._console.clear();
+      this.console.clear();
     };
     const defaultHandler = () => 'Unrecognized command';
     defaultHandler.isDefault = true;
@@ -421,13 +420,13 @@ abstract class Panel {
   }
 
   focus(): void {
-    this._panel.focus(); // onFocus called
+    this.panelDiv.focus(); // onFocus called
   }
 
   protected setAllPanelsToWinMode(): void {
     for (const panel of Panel.getPanelList()) {
-      panel._panelContainerWinFull.style.display = 'none';
-      panel._panelContainer.style.display = 'block';
+      panel.panelContainerWinFull.style.display = 'none';
+      panel.panelContainer.style.display = 'block';
       // force all panels to win mode
       panel.setViewMode(ViewMode.WIN);
       if (panel !== this) {
@@ -445,8 +444,8 @@ abstract class Panel {
   }
 
   protected hide(): void {
-    this._panelContainerWinFull.style.display = 'none';
-    this._panelContainer.style.display = 'none';
+    this.panelContainerWinFull.style.display = 'none';
+    this.panelContainer.style.display = 'none';
   }
 
   // used to check some event log invariants
@@ -455,28 +454,28 @@ abstract class Panel {
     // console.log('inv');
     if (this.isEventLogVisible) {
       if (this.isEventLogBelowCanvas) {
-        assert(this._panel.lastChild === this._eventLogBottomPanel);
+        assert(this.panelDiv.lastChild === this.eventLogBottomPanel);
       } else {
-        assert(this._panelContainer.lastChild === this._eventLogBottomPanel);
+        assert(this.panelContainer.lastChild === this.eventLogBottomPanel);
       }
     } else {
-      assert(this._panelContainer.lastChild === this._eventLogBottomPanel);
+      assert(this.panelContainer.lastChild === this.eventLogBottomPanel);
     }
   }
 
   private isPanelInsideParentContainer(): boolean {
-    return this._panel.parentNode === this._panelContainer;
+    return this.panelDiv.parentNode === this.panelContainer;
   }
 
   private appendPanelTo(element: HTMLDivElement): void {
-    this._panel.parentNode?.removeChild(this._panel);
-    element.appendChild(this._panel);
+    this.panelDiv.parentNode?.removeChild(this.panelDiv);
+    element.appendChild(this.panelDiv);
   }
 
   protected toWinStyle(): void {
     assert(this.isWinMode);
     if (!this.isPanelInsideParentContainer()) {
-      this.appendPanelTo(this._panelContainer);
+      this.appendPanelTo(this.panelContainer);
     }
     this.setWinStyle();
     this.resetGui();
@@ -486,50 +485,48 @@ abstract class Panel {
   protected setWinStyle(): void {
     this.setPanelWinStyle();
     this.setCanvasWinStyle();
-    this._console.setOnWinMode();
-    if (this._eventLog) {
-      this.setEventLogBottomPanelWinStyle();
-      this.moveEventLogBottomPanelOutOfPanel();
-      this.setEventLogVisibility(this.isEventLogVisible);
-      // if (this.isEventLogVisible) {
-      //   this._eventLog.render(true); // TODO check double render ?
-      //   if (!this.isEventLogOnBottomPanel) {
-      //     this.moveEventLogAfterPanel();
-      //   }
-      // } else {
-      //   this.moveEventLogAfterPanel();
-      // }
-      this.eventLogCheckInv();
-    }
+    this.console.setOnWinMode();
+    this.setEventLogBottomPanelWinStyle();
+    this.moveEventLogBottomPanelOutOfPanel();
+    this.setEventLogVisibility(this.isEventLogVisible);
+    // if (this.isEventLogVisible) {
+    //   this._eventLog.render(true); // TODO check double render ?
+    //   if (!this.isEventLogOnBottomPanel) {
+    //     this.moveEventLogAfterPanel();
+    //   }
+    // } else {
+    //   this.moveEventLogAfterPanel();
+    // }
+    this.eventLogCheckInv();
     this.updateStatsParent(this.boardEl);
   }
 
   private initWinMode(): void {
-    if (this._config.startViewMode === StartViewMode.WIN) {
+    if (this.cfg.startViewMode === StartViewMode.WIN) {
       this.setViewMode(ViewMode.WIN);
       this.toWinStyle();
     }
   }
 
   private isInit(): boolean {
-    return this._preViewMode === undefined;
+    return this.preViewMode === undefined;
   }
 
   protected resetGui(): void {
-    this._menuGui?.removefromDom();
+    this.menuGui?.removefromDom();
     this.initGui();
   }
 
   private toFullWinStyle(): void {
     assert(this.isFullWin);
-    if (this.isInit() || this._preViewMode === ViewMode.WIN) {
+    if (this.isInit() || this.preViewMode === ViewMode.WIN) {
       assert(this.isInit() || this.isPanelInsideParentContainer());
-      this.appendPanelTo(this._panelContainerWinFull);
+      this.appendPanelTo(this.panelContainerWinFull);
       this.setEventLogVisibility(this.isEventLogVisible);
       this.setFullStyle();
       this.resetGui();
     }
-    assert(this._panel.parentNode === this._panelContainerWinFull);
+    assert(this.panelDiv.parentNode === this.panelContainerWinFull);
   }
 
   private updateStatsParent(parent: HTMLDivElement): void {
@@ -541,41 +538,39 @@ abstract class Panel {
       // to avoid setting an incorrect parent node
       return;
     }
-    this._stats.setParentNode(parent);
+    this.stats.setParentNode(parent);
     this.setStatsVisible(this.isStatsVisible);
   }
 
   protected setFullStyle(): void {
     this.setPanelFullStyle();
     this.setCanvasFullStyle();
-    this._console.setOnFullMode(); // TODO check from here...
-    if (this._eventLog) {
-      this.setEventLogBottomPanelFullStyle(); // TODO not necessary?
-      this._eventLog.render(true);
-    }
+    this.console.setOnFullMode(); // TODO: check from here...
+    this.setEventLogBottomPanelFullStyle(); // TODO: not necessary?
+    this.eventLog.render(true);
     this.updateStatsParent(this.panelEl);
   }
 
   private setEventLogBottomPanelWinStyle(): void {
-    assert(this._eventLogBottomPanel);
-    assert(this._eventLog);
-    resetClassName(this._eventLogBottomPanel);
-    this._eventLogBottomPanel.classList.add(
+    assert(this.eventLogBottomPanel);
+    // assert(this.eventLog);
+    resetClassName(this.eventLogBottomPanel);
+    this.eventLogBottomPanel.classList.add(
       'event-log-bottom-panel',
       'event-log-bottom-panel-win',
     );
     // width alread 100% see css
-    this._eventLogBottomPanel.style.height = `${
+    this.eventLogBottomPanel.style.height = `${
       this.config.eventLogConfig.percHeightWin *
-      this._config.canvasDisplayHeightWinMode
+      this.cfg.canvasDisplayHeightWinMode
     }px`; // height in px here
   }
 
   private setEventLogBottomPanelFullStyle(): void {
-    assert(this._eventLogBottomPanel);
-    assert(this._eventLog);
-    resetClassName(this._eventLogBottomPanel);
-    this._eventLogBottomPanel.classList.add(
+    assert(this.eventLogBottomPanel);
+    // assert(this.eventLog);
+    resetClassName(this.eventLogBottomPanel);
+    this.eventLogBottomPanel.classList.add(
       'event-log-bottom-panel',
       'event-log-bottom-panel-full',
     );
@@ -587,26 +582,26 @@ abstract class Panel {
   // complementary states
 
   private moveEventLogBottomPanelInsidePanel(): void {
-    assert(this._eventLogBottomPanel);
-    this._eventLogBottomPanel.parentNode?.removeChild(
-      this._eventLogBottomPanel,
+    assert(this.eventLogBottomPanel);
+    this.eventLogBottomPanel.parentNode?.removeChild(
+      this.eventLogBottomPanel,
     );
     // pushed as last el
-    this._panel.appendChild(this._eventLogBottomPanel);
+    this.panelDiv.appendChild(this.eventLogBottomPanel);
   }
 
   private moveEventLogBottomPanelOutOfPanel(): void {
-    const eventLogBottomPanel = this._eventLogBottomPanel!;
+    const eventLogBottomPanel = this.eventLogBottomPanel!;
     eventLogBottomPanel.parentNode?.removeChild(eventLogBottomPanel);
     // we move the log below the panel to keep the same height with main
     // container and the canvas otherwise without the event panel below the
     // canvas would be recentered...
-    this._panelContainer.appendChild(eventLogBottomPanel);
+    this.panelContainer.appendChild(eventLogBottomPanel);
   }
 
   private moveOutEventLogBottomPanel(): void {
-    assert(this._eventLogBottomPanel);
-    this._eventLogBottomPanel!.style.visibility = 'hidden';
+    assert(this.eventLogBottomPanel);
+    this.eventLogBottomPanel!.style.visibility = 'hidden';
     this.moveEventLogBottomPanelOutOfPanel();
     if (!this.isWinMode) {
       this.updateCanvasContainerHeightFullMode();
@@ -615,39 +610,39 @@ abstract class Panel {
 
   // private hideEventsLogMainPanel(showOnBottomPanel: boolean): void {
   private moveOutEventLogMainPanel(): void {
-    assert(this._eventLogMainPanel);
+    assert(this.eventLogMainPanel);
     // assert(!this.isEventLogOnBottomPanel);
     // this.isEventLogOnBottomPanel = showOnBottomPanel;
     // this._eventLogMainPanel.style.visibility = 'hidden';
-    this._eventLogMainPanel.style.visibility = 'hidden';
-    this._canvas.style.visibility = 'visible'; // display block/none ?
-    this._eventLogMainPanel.parentNode?.removeChild(this._eventLogMainPanel);
+    this.eventLogMainPanel.style.visibility = 'hidden';
+    this.canvas.style.visibility = 'visible'; // display block/none ?
+    this.eventLogMainPanel.parentNode?.removeChild(this.eventLogMainPanel);
   }
 
   private moveInEventLogBottomPanel(): void {
-    assert(this._eventLog);
-    assert(this._eventLogBottomPanel);
+    // assert(this.eventLog);
+    assert(this.eventLogBottomPanel);
     assert(this.isEventLogBelowCanvas);
     assert(this.isEventLogVisible);
     this.moveEventLogBottomPanelInsidePanel();
-    this._eventLogBottomPanel.style.visibility = 'visible';
+    this.eventLogBottomPanel.style.visibility = 'visible';
     if (!this.isWinMode) {
       this.updateCanvasContainerHeightFullMode();
       this.updateEventLogBottomPanelHeightPercFullMode();
     }
-    this._eventLog.setContainer(this._eventLogBottomPanel);
+    this.eventLog.setContainer(this.eventLogBottomPanel);
     this.eventLogCheckInv();
   }
 
   private moveInEventLogMainPanel(): void {
-    assert(this._eventLog);
-    assert(this._eventLogMainPanel);
+    // assert(this.eventLog);
+    assert(this.eventLogMainPanel);
     assert(!this.isEventLogBelowCanvas);
     assert(this.isEventLogVisible);
-    this._canvas.style.visibility = 'hidden';
-    this._eventLogMainPanel.style.visibility = 'visible';
-    this._canvasContainer.appendChild(this._eventLogMainPanel);
-    this._eventLog.setContainer(this._eventLogMainPanel);
+    this.canvas.style.visibility = 'hidden';
+    this.eventLogMainPanel.style.visibility = 'visible';
+    this.canvasContainer.appendChild(this.eventLogMainPanel);
+    this.eventLog.setContainer(this.eventLogMainPanel);
     this.eventLogCheckInv();
   }
 
@@ -668,21 +663,21 @@ abstract class Panel {
   }
 
   private updateCanvasContainerHeightFullMode(): void {
-    this._canvasDisplayHeightPercFull = 1;
+    this.canvasDisplayHeightPercFull = 1;
     if (this.isEventLogVisible && this.isEventLogBelowCanvas) {
-      this._canvasDisplayHeightPercFull =
+      this.canvasDisplayHeightPercFull =
         1 - this.config.eventLogConfig.percHeightFull;
     }
     // set the css value for the canvas container
-    this._canvasContainer.style.height = `${
-      this._canvasDisplayHeightPercFull * 100
+    this.canvasContainer.style.height = `${
+      this.canvasDisplayHeightPercFull * 100
     }%`;
   }
 
   private updateEventLogBottomPanelHeightPercFullMode(): void {
-    assert(this._eventLogBottomPanel);
-    this._eventLogBottomPanel.style.height = `${
-      (1 - this._canvasDisplayHeightPercFull) * 100
+    assert(this.eventLogBottomPanel);
+    this.eventLogBottomPanel.style.height = `${
+      (1 - this.canvasDisplayHeightPercFull) * 100
     }%`;
   }
 
@@ -694,7 +689,7 @@ abstract class Panel {
     if (!this.isFullScreen) {
       this.setFullWin(!this.isFullWin);
     } else {
-      this._preViewMode = ViewMode.FULL_WIN;
+      this.preViewMode = ViewMode.FULL_WIN;
       this.setFullScreen(false);
     }
   }
@@ -716,40 +711,40 @@ abstract class Panel {
   }
 
   public setStatsVisible(visible: boolean): void {
-    assert(this._stats);
+    assert(this.stats);
     this.isStatsVisible = visible;
     if (visible) {
-      this._stats.show();
+      this.stats.show();
     } else {
-      this._stats.hide();
+      this.stats.hide();
     }
   }
 
   setEventLogFontSize(fontSize: number): void {
-    assert(this._eventLog);
-    this._eventLog.setFontSize(fontSize);
+    // assert(this.eventLog);
+    this.eventLog.setFontSize(fontSize);
   }
 
   setEventLogLineHeight(lineHeight: number): void {
-    assert(this._eventLog);
-    this._eventLog.setLineHeight(lineHeight);
+    // assert(this.eventLog);
+    this.eventLog.setLineHeight(lineHeight);
   }
 
   setConsoleFontSize(fontSize: number): void {
-    assert(this._console);
-    this._console.setFontSize(fontSize);
+    // assert(this.console);
+    this.console.setFontSize(fontSize);
   }
 
   setConsoleLineHeight(lineHeight: number): void {
-    assert(this._eventLog);
-    this._console.setLineHeight(lineHeight);
+    // assert(this.eventLog);
+    this.console.setLineHeight(lineHeight);
   }
 
   protected initGui(): void {
-    if (!this._menuGui) {
-      this._menuGui = this.createPanelGui();
+    if (!this.menuGui) {
+      this.menuGui = this.createPanelGui();
     }
-    this._menuGui.init(this);
+    this.menuGui.init(this);
   }
 
   protected abstract createPanelGui(): PanelGui;
@@ -758,11 +753,11 @@ abstract class Panel {
     // if a previous panel has starting focus, ignore start focus for this
     let panel;
     for (panel of Panel.getPanelList()) {
-      if (panel === this || panel._config.focusOnStart) {
+      if (panel === this || panel.cfg.focusOnStart) {
         break;
       }
     }
-    if (panel === this && this._config.focusOnStart) {
+    if (panel === this && this.cfg.focusOnStart) {
       this.focus();
     }
   }
@@ -776,31 +771,31 @@ abstract class Panel {
   protected destroy() {}
 
   get isWinMode(): boolean {
-    return this._viewMode === ViewMode.WIN;
+    return this.viewMode === ViewMode.WIN;
   }
 
   get canvasContainerEl(): HTMLDivElement {
-    return this._canvasContainer;
+    return this.canvasContainer;
   }
 
   get panelContainerFullWinEl(): HTMLDivElement {
-    return this._panelContainerWinFull;
+    return this.panelContainerWinFull;
   }
 
   get panelContainerEl(): HTMLDivElement {
-    return this._panelContainer;
+    return this.panelContainer;
   }
 
   get panelEl(): HTMLDivElement {
-    return this._panel;
+    return this.panelDiv;
   }
 
   get boardEl(): HTMLDivElement {
-    return this._board;
+    return this.board;
   }
 
   get canvasEl(): HTMLCanvasElement {
-    return this._canvas;
+    return this.canvas;
   }
 
   get menuGuiContainer(): HTMLDivElement {
@@ -818,12 +813,12 @@ abstract class Panel {
   }
 
   get isFullWin(): boolean {
-    return this._viewMode === ViewMode.FULL_WIN;
+    return this.viewMode === ViewMode.FULL_WIN;
   }
 
   get isFullScreen(): boolean {
     // screenfull.isEnabled
-    return this._viewMode === ViewMode.FULL_SCREEN;
+    return this.viewMode === ViewMode.FULL_SCREEN;
   }
 
   get title(): string {
@@ -831,59 +826,47 @@ abstract class Panel {
   }
 
   get config(): PanelConfig {
-    return this._config;
-  }
-
-  get console(): Console {
-    return this._console;
-  }
-
-  get menuGui(): PanelGui {
-    return this._menuGui;
-  }
-
-  protected set menuGui(menuGui: PanelGui) {
-    this._menuGui = menuGui;
-  }
-
-  get eventLog(): EventLog | null {
-    return this._eventLog ?? null;
+    return this.cfg;
   }
 
   static getPanelList(): Panel[] {
-    return Panel._panels;
+    return Panel.panelList;
   }
 
   public get isStatsVisible(): boolean {
-    return this._stats.isVisible;
+    return this.stats.isVisible;
   }
 
   private set isStatsVisible(value: boolean) {
-    this._stats.isVisible = value;
+    this.stats.isVisible = value;
+  }
+
+  public get Stats(): Stats {
+    return this.stats;
   }
 
   get isConsoleOpen(): boolean {
-    return this._config.consoleConfig.isOpen;
+    return this.cfg.consoleConfig.isOpen;
   }
 
   set isConsoleOpen(value: boolean) {
-    this._config.consoleConfig.isOpen = value;
+    this.cfg.consoleConfig.isOpen = value;
   }
 
   get isEventLogVisible(): boolean {
-    return this._config.eventLogConfig.isVisible;
+    return this.cfg.eventLogConfig.isVisible;
   }
 
   set isEventLogVisible(value: boolean) {
-    this._config.eventLogConfig.isVisible = value;
+    this.cfg.eventLogConfig.isVisible = value;
   }
 
   get isEventLogBelowCanvas(): boolean {
-    return this._config.eventLogConfig.isBelowCanvas;
+    return this.cfg.eventLogConfig.isBelowCanvas;
   }
 
   private set isEventLogBelowCanvas(value: boolean) {
-    this._config.eventLogConfig.isBelowCanvas = value;
+    this.cfg.eventLogConfig.isBelowCanvas = value;
   }
 }
 

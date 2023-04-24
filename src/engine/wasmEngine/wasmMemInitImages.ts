@@ -29,13 +29,12 @@ function writeImages(
   let imgOffset = 0;
   for (let i = 0; i < images.length; ++i) {
     // Atomics.store(imageIndex, i, imagesOffsets[i]);
-    const { width } = images[i];
-    const { height } = images[i];
-    wasmImagesIndex[WIDTHS_OFFS + i] = width;
-    wasmImagesIndex[HEIGHTS_OFFS + i] = height;
+    const image = images[i];
+    wasmImagesIndex[WIDTHS_OFFS + i] = image.Width;
+    wasmImagesIndex[HEIGHTS_OFFS + i] = image.Height;
     wasmImagesIndex[PTR_2_IMGS_OFFS + i] = imgOffset;
-    wasmImagesPixels.set(images[i].pixels, imgOffset);
-    imgOffset += images[i].pixels.length;
+    wasmImagesPixels.set(image.Pixels, imgOffset);
+    imgOffset += image.Pixels.length;
   }
 }
 

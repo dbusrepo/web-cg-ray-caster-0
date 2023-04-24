@@ -58,8 +58,8 @@ function init(): void {
     initSharedHeap();
   }
   initMemManager();
-  // 
   images = initImages();
+  // test();
 }
 
 function render(): void {

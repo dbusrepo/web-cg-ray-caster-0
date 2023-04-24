@@ -10,24 +10,24 @@ import { logi } from './importVars';
 // @ts-ignore: decorator
 @final @unmanaged class ArenaAlloc {
 
-  private _blockPtr: PTR_T; // block ptr
-  private _nextPtr: PTR_T; // next allocation in block
-  private _freePtr: PTR_T; // free list head ptr
-  private _numLeft: SIZE_T; // number of remaining allocable objs in cur block
-  private _numPerBlock: SIZE_T; // number of allocable objs per block
-  private _blockSize: SIZE_T; // tot bytes allocated per block
-  private _objSize: SIZE_T; // total bytes (obj+align pad) per obj, obj are aligned
-  private _alignMask: SIZE_T; // objects align mask
+  private blockPtr: PTR_T; // block ptr
+  private nextPtr: PTR_T; // next allocation in block
+  private freePtr: PTR_T; // free list head ptr
+  private numLeft: SIZE_T; // number of remaining allocable objs in cur block
+  private numPerBlock: SIZE_T; // number of allocable objs per block
+  private blockSize: SIZE_T; // tot bytes allocated per block
+  private objSize: SIZE_T; // total bytes (obj+align pad) per obj, obj are aligned
+  private alignMask: SIZE_T; // objects align mask
 
   private constructor() { 
-    this._blockPtr = NULL_PTR;
-    this._freePtr = NULL_PTR;
-    this._nextPtr = NULL_PTR;
-    this._blockSize = 0;
-    this._objSize = 0;
-    this._numPerBlock = 0;
-    this._numLeft = 0;
-    this._alignMask = 0;
+    this.blockPtr = NULL_PTR;
+    this.freePtr = NULL_PTR;
+    this.nextPtr = NULL_PTR;
+    this.blockSize = 0;
+    this.objSize = 0;
+    this.numPerBlock = 0;
+    this.numLeft = 0;
+    this.alignMask = 0;
   }
 
   init(objSize: SIZE_T, numObjsPerBlock: u32, objAlignLg2: SIZE_T): void {
@@ -50,48 +50,48 @@ import { logi } from './importVars';
       blockSize = (objSizeAlign * numObjsPerBlock) + alignMask;
     }
     myAssert(objSizeAlign <= MAX_ALLOC_SIZE);
-    this._blockSize = blockSize;
-    this._objSize = objSizeAlign;
-    this._alignMask = alignMask;
-    this._numPerBlock = numObjsPerBlock;
-    this._blockPtr = NULL_PTR;
-    this._freePtr = NULL_PTR;
-    this._nextPtr = NULL_PTR;
-    this._numLeft = 0;
+    this.blockSize = blockSize;
+    this.objSize = objSizeAlign;
+    this.alignMask = alignMask;
+    this.numPerBlock = numObjsPerBlock;
+    this.blockPtr = NULL_PTR;
+    this.freePtr = NULL_PTR;
+    this.nextPtr = NULL_PTR;
+    this.numLeft = 0;
   }
 
   @inline private allocBlock(): void {
     // Note: the previous block ptr is lost, its objs are allocable with the free list
-    this._blockPtr = alloc(this._blockSize);
-    this._nextPtr = this._blockPtr;
-    this._numLeft = this._numPerBlock;
+    this.blockPtr = alloc(this.blockSize);
+    this.nextPtr = this.blockPtr;
+    this.numLeft = this.numPerBlock;
   }
 
   public alloc(): PTR_T {
     let dataPtr: PTR_T;
-    if (this._freePtr != NULL_PTR) {
-      dataPtr = this._freePtr;
-      this._freePtr = load<PTR_T>(this._freePtr);
-      myAssert((this._freePtr == NULL_PTR) || ((this._freePtr & this._alignMask) == 0));
+    if (this.freePtr != NULL_PTR) {
+      dataPtr = this.freePtr;
+      this.freePtr = load<PTR_T>(this.freePtr);
+      myAssert((this.freePtr == NULL_PTR) || ((this.freePtr & this.alignMask) == 0));
     } else {
-      if (this._numLeft == 0) {
+      if (this.numLeft == 0) {
         this.allocBlock();
       }
-      myAssert(this._numLeft > 0 && this._nextPtr !== NULL_PTR);
-      dataPtr = (this._nextPtr + this._alignMask) & ~this._alignMask;
-      this._nextPtr += this._objSize;
-      this._numLeft--;
+      myAssert(this.numLeft > 0 && this.nextPtr !== NULL_PTR);
+      dataPtr = (this.nextPtr + this.alignMask) & ~this.alignMask;
+      this.nextPtr += this.objSize;
+      this.numLeft--;
     }
-    myAssert((dataPtr & this._alignMask) == 0);
+    myAssert((dataPtr & this.alignMask) == 0);
     return dataPtr;
   }
 
   @inline public dealloc(ptr: PTR_T): void {
     if (ptr != NULL_PTR) {
       assertPtrLowerBound(ptr);
-      myAssert((ptr & this._alignMask) == 0); // add other checks ?
-      store<PTR_T>(ptr, this._freePtr);
-      this._freePtr = ptr;
+      myAssert((ptr & this.alignMask) == 0); // add other checks ?
+      store<PTR_T>(ptr, this.freePtr);
+      this.freePtr = ptr;
     }
   }
 

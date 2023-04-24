@@ -27,13 +27,12 @@ class PngDecoderRGBA implements PngDecoder {
     const { width, height, data: sourcePixels } = metadata;
     // console.log(sourcePixels);
     output.setSize(width, height);
-    const { pixels } = output;
     switch (metadata.colorType) {
       case COLOR_TYPES.TRUE_COLOR_WITH_ALPHA:
       case COLOR_TYPES.TRUE_COLOR: // alpha = 255 in sourcePixels
         {
           // console.log(metdata.colorType);
-          pixels.set(sourcePixels);
+          output.Pixels.set(sourcePixels);
         }
         break;
       // TODO other color types ?

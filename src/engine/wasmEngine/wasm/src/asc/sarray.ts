@@ -12,9 +12,9 @@ import { logi } from './importVars';
 
 // @ts-ignore: decorator
 @final @unmanaged class Header {
-  _arrayPtr: PTR_T = NULL_PTR; // address returned by alloc (used for dealloc only)
-  _objSizeLg2: SIZE_T = 0; // lg2 of the array elements size (includes padding for the alignment)
-  _length: SIZE_T = 0; // to do some checks
+  arrayPtr: PTR_T = NULL_PTR; // address returned by alloc (used for dealloc only)
+  objSizeLg2: SIZE_T = 0; // lg2 of the array elements size (includes padding for the alignment)
+  length: SIZE_T = 0; // to do some checks
 }
 
 const HEADER_SIZE = getTypeSize<Header>();
@@ -36,14 +36,14 @@ const HEADER_SIZE = getTypeSize<Header>();
 
   private idx2Ptr(idx: SIZE_T): PTR_T {
     const header = getHeader(this);
-    myAssert(idx < header._length);
-    const offset = idx << header._objSizeLg2;
+    myAssert(idx < header.length);
+    const offset = idx << header.objSizeLg2;
     const ptr = changetype<PTR_T>(this) + offset;
     return ptr;
   }
 
   @inline length(): SIZE_T {
-    return getHeader(this)._length;
+    return getHeader(this).length;
   }
 
   @inline dataPtr(): PTR_T {
@@ -88,15 +88,15 @@ function newSArray<T>(length: SIZE_T, objAlignLg2: SIZE_T = alignof<T>()): SArra
   const dataPtr = (arrayPtr + HEADER_SIZE + alignMask) & ~alignMask;
   const sarray = changetype<SArray<T>>(dataPtr);
   const header = getHeader(sarray);
-  header._arrayPtr = arrayPtr;
-  header._objSizeLg2 = ilog2(objSizeAlign);
-  header._length = length;
+  header.arrayPtr = arrayPtr;
+  header.objSizeLg2 = ilog2(objSizeAlign);
+  header.length = length;
   return sarray;
 }
 
 function deleteSArray<T>(arr: SArray<T>): void {
   const header = getHeader(arr);
-  dealloc(header._arrayPtr);
+  dealloc(header.arrayPtr);
 }
 
 export { SArray, newSArray, deleteSArray };

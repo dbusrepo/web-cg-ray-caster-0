@@ -1,29 +1,29 @@
 abstract class BitImage {
-  protected _width: number;
-  protected _height: number;
-  protected _pixels: Uint8Array;
+  protected width: number;
+  protected height: number;
+  protected pixels: Uint8Array;
 
   // constructor() {}
 
   // call it before insert data
   setSize(w: number, h: number) {
-    this._width = w;
-    this._height = h;
-    this._allocPixels();
+    this.width = w;
+    this.height = h;
+    this.allocPixels();
   }
 
-  protected abstract _allocPixels(): void;
+  protected abstract allocPixels(): void;
 
-  get width() {
-    return this._width;
+  get Width() {
+    return this.width;
   }
 
-  get height() {
-    return this._height;
+  get Height() {
+    return this.height;
   }
 
-  get pixels() {
-    return this._pixels;
+  get Pixels() {
+    return this.pixels;
   }
 }
 

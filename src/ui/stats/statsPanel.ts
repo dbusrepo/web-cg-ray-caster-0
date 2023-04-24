@@ -4,8 +4,8 @@ const PR = Math.round(window.devicePixelRatio || 1); // #pixels per col
 
 // const CSS_WIDTH = 80 * 5;
 // const CSS_HEIGHT = 48 * 5;
-const CSS_WIDTH = 80 * 1.3;
-const CSS_HEIGHT = 48 * 1.3;
+const CSS_WIDTH = 80 * 1.1;
+const CSS_HEIGHT = 48 * 1.1;
 
 const WIDTH = 80 * PR;
 const HEIGHT = 48 * PR;
@@ -30,85 +30,86 @@ type StatsPanelConfig = {
 };
 
 class StatsPanel {
-  private _cfg: StatsPanelConfig;
-  private _canvas: HTMLCanvasElement;
-  private _context: CanvasRenderingContext2D;
-  private _title: string;
-  private _fgCol: string;
-  private _bgCol: string;
-  private _values: number[]; // as a circular array store last N values
-  private _nextIdx: number; // next value index
-  private _min = Infinity;
-  private _max = 0;
-  private _heightScaleFactor: number;
-  private _heightRescaleThreshold: number;
-  private _curIdx: number; // cur update index, inc at every update
-  private _maxDeque: number[]; // deque values to impl max of last N values
-  private _maxDequeIdx: number[]; // deque indices
+  private cfg: StatsPanelConfig;
+  private canvas: HTMLCanvasElement;
+  private context: CanvasRenderingContext2D;
+  private title: string;
+  private fgCol: string;
+  private bgCol: string;
+  private values: number[]; // as a circular array store last N values
+  private nextIdx: number; // next value index
+  private min = Infinity;
+  private max = 0;
+  private heightScaleFactor: number;
+  // private heightRescaleThreshold: number;
+  private curIdx: number; // cur update index, inc at every update
 
   constructor(cfg: StatsPanelConfig) {
-    this._cfg = cfg;
-    this._canvas = document.createElement('canvas');
-    this._canvas.width = WIDTH;
-    this._canvas.height = HEIGHT;
-    this._canvas.style.width = `${CSS_WIDTH}px`;
-    this._canvas.style.height = `${CSS_HEIGHT}px`;
-    this._title = this._cfg.title;
-    this._fgCol = this._cfg.fg;
-    this._bgCol = this._cfg.bg;
+    this.cfg = cfg;
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = WIDTH;
+    this.canvas.height = HEIGHT;
+    this.canvas.style.width = `${CSS_WIDTH}px`;
+    this.canvas.style.height = `${CSS_HEIGHT}px`;
+    this.canvas.style.display = 'inline-block';
+    this.title = this.cfg.title;
+    this.fgCol = this.cfg.fg;
+    this.bgCol = this.cfg.bg;
 
-    const context = this._canvas.getContext('2d');
+    const context = this.canvas.getContext('2d');
     assert(context);
-    this._context = context;
-    this._context.font = 'bold ' + 9 * PR + 'px Helvetica,Arial,sans-serif';
-    this._context.textBaseline = 'top';
+    this.context = context;
+    this.context.font = 'bold ' + 9 * PR + 'px Helvetica,Arial,sans-serif';
+    this.context.textBaseline = 'top';
 
     // draw the entire canvas background
-    this._context.fillStyle = this._cfg.bg;
-    this._context.fillRect(0, 0, WIDTH, HEIGHT);
+    this.context.fillStyle = this.cfg.bg;
+    this.context.fillRect(0, 0, WIDTH, HEIGHT);
 
     // draw the title
-    this._context.fillStyle = this._cfg.fg;
-    this._context.fillText(this._cfg.title, TEXT_X, TEXT_Y);
+    this.context.fillStyle = this.cfg.fg;
+    this.context.fillText(this.cfg.title, TEXT_X, TEXT_Y);
 
     // draw the graph area
     this.drawGraphBackground();
 
     // alloc mem for panel values and the threshold for scaling heights
-    this._values = new Array(CSS_GRAPH_WIDTH).fill(0);
+    this.values = new Array(CSS_GRAPH_WIDTH).fill(0);
     // normalization factor to scale value to col heights in pixels
-    this._heightScaleFactor = this._cfg.graphHeight;
-    this._heightRescaleThreshold = 0;
-    this._nextIdx = 0;
-    this._curIdx = 0;
-    this._maxDeque = [];
-    this._maxDequeIdx = [];
+    this.heightScaleFactor = this.cfg.graphHeight;
+    // this.heightRescaleThreshold = 0;
+    this.nextIdx = 0;
+    this.curIdx = 0;
   }
 
-  get title(): string {
-    return this._title;
+  get Title(): string {
+    return this.title;
   }
 
-  get dom(): HTMLCanvasElement {
-    return this._canvas;
+  appendAsChild(parent: HTMLElement): void {
+    parent.appendChild(this.canvas);
   }
+
+  // get dom(): HTMLCanvasElement {
+  //   return this.canvas;
+  // }
 
   private drawGraphBackground(): void {
-    this._context.fillStyle = this._fgCol;
-    this._context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    this.context.fillStyle = this.fgCol;
+    this.context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
 
-    this._context.fillStyle = this._bgCol;
-    this._context.globalAlpha = BG_ALPHA;
-    this._context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
+    this.context.fillStyle = this.bgCol;
+    this.context.globalAlpha = BG_ALPHA;
+    this.context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
   }
 
   // private downScaleBound(): number {
-  //   return ((this._heightRescaleThreshold / 3) * 2) / 3;
+  //   return ((this.heightRescaleThreshold / 3) * 2) / 3;
   // }
 
   // private checkDownRescale(): boolean {
   //   // downscale if max value is less than 2/3 of the first third of the graph height
-  //   const res = this._maxDeque[0] < this.downScaleBound();
+  //   const res = this.maxDeque[0] < this.downScaleBound();
   //   // return res;
   //   return false;
   // }
@@ -123,21 +124,21 @@ class StatsPanel {
   //   // this._redrawThreshold = CSS_GRAPH_HEIGHT * (factor + RESCALE_FACTOR);
   //   console.log(source);
   //   this._heightScaleFactor = source * 3; // bound scaled values to 2/3 of the graph height
-  //   this._heightRescaleThreshold = (this._heightScaleFactor * 3);
+  //   this.heightRescaleThreshold = (this._heightScaleFactor * 3);
   //   assert(this._heightScaleFactor >= source);
-  //   console.log(this._heightScaleFactor, this._heightRescaleThreshold);
+  //   console.log(this._heightScaleFactor, this.heightRescaleThreshold);
   // }
 
   update(value = 0) {
     value = Math.max(value, 0);
 
-    this._min = Math.min(this._min, value);
-    this._max = Math.max(this._max, value);
+    this.min = Math.min(this.min, value);
+    this.max = Math.max(this.max, value);
 
     // draw the text background
-    this._context.fillStyle = this._bgCol;
-    this._context.globalAlpha = 1;
-    this._context.fillRect(0, 0, WIDTH, GRAPH_Y);
+    this.context.fillStyle = this.bgCol;
+    this.context.globalAlpha = 1;
+    this.context.fillRect(0, 0, WIDTH, GRAPH_Y);
 
     // draw the text
     const text = Math.round(value) + ' ' + this.title;
@@ -147,8 +148,8 @@ class StatsPanel {
     // + Math.round(this._max)
     // + ')';
 
-    this._context.fillStyle = this._fgCol;
-    this._context.fillText(
+    this.context.fillStyle = this.fgCol;
+    this.context.fillText(
       text,
       TEXT_X,
       TEXT_Y,
@@ -159,7 +160,7 @@ class StatsPanel {
     // this.updateMaxDeque(value);
     // let downScale = false;
     // if (
-    //   value > this._heightRescaleThreshold ||
+    //   value > this.heightRescaleThreshold ||
     //   (downScale = this.checkDownRescale())
     // ) {
     //   console.log('rescaling');
@@ -187,13 +188,13 @@ class StatsPanel {
     //   }
     // }
 
-    this._values[this._nextIdx++] = value;
-    this._nextIdx %= this._values.length;
+    this.values[this.nextIdx++] = value;
+    this.nextIdx %= this.values.length;
 
     // draw the current graph shifted left one col (PR)
-    this._context.globalAlpha = 1;
-    this._context.drawImage(
-      this._canvas,
+    this.context.globalAlpha = 1;
+    this.context.drawImage(
+      this.canvas,
       GRAPH_X + PR,
       GRAPH_Y,
       GRAPH_WIDTH - PR,
@@ -207,9 +208,9 @@ class StatsPanel {
     /* DRAW THE LAST COL (value): two steps: full col with fg col + upper part with bg col */
 
     // draw the last (new) col: first draw the entire col with the fg background
-    this._context.fillStyle = this._fgCol;
-    this._context.globalAlpha = 1;
-    this._context.fillRect(
+    this.context.fillStyle = this.fgCol;
+    this.context.globalAlpha = 1;
+    this.context.fillRect(
       GRAPH_X + GRAPH_WIDTH - PR,
       GRAPH_Y,
       PR,
@@ -218,29 +219,14 @@ class StatsPanel {
 
     // then draw the upper part with the bg color
     const hUpper = Math.round(
-      (1 - value / this._heightScaleFactor) * GRAPH_HEIGHT,
+      (1 - value / this.heightScaleFactor) * GRAPH_HEIGHT,
     );
     // console.log('Last col: ' + (1 - value / this._redrawThreshold));
-    this._context.fillStyle = this._bgCol;
-    this._context.globalAlpha = BG_ALPHA;
-    this._context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, hUpper);
+    this.context.fillStyle = this.bgCol;
+    this.context.globalAlpha = BG_ALPHA;
+    this.context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, hUpper);
 
-    this._curIdx++;
-  }
-
-  private updateMaxDeque(value: number): void {
-    const deque = this._maxDeque;
-    const dequeIdx = this._maxDequeIdx;
-    while (dequeIdx.length && dequeIdx[0] < this._curIdx - CSS_GRAPH_WIDTH) {
-      deque.shift();
-      dequeIdx.shift();
-    }
-    while (deque.length && deque[deque.length - 1] <= value) {
-      deque.pop();
-      dequeIdx.pop();
-    }
-    deque.push(value);
-    dequeIdx.push(this._curIdx);
+    this.curIdx++;
   }
 }
 

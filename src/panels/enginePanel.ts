@@ -12,7 +12,8 @@ const buildEngineWorker = () =>
   new Worker(new URL('../engine/engine.ts', import.meta.url));
 
 class EnginePanel extends Panel {
-  private _engineWorker: Worker;
+  protected menuGui: EnginePanelGui;
+  private engineWorker: Worker;
 
   init(config: EnginePanelConfig, stats: Stats): EnginePanel {
     super.init(
@@ -24,18 +25,14 @@ class EnginePanel extends Panel {
     return this;
   }
 
-  get menuGui(): EnginePanelGui {
-    return this._menuGui as EnginePanelGui;
-  }
-
   initEngineWorker(): void {
-    this._engineWorker = buildEngineWorker();
+    this.engineWorker = buildEngineWorker();
 
     let enginePanel = this;
 
     const commands = {
       [Commands.UPDATE_STATS]: (values: StatsValues) => {
-        enginePanel._stats.update(values);
+        enginePanel.stats.update(values);
         enginePanel.menuGui.updateFps(values[StatsNames.UFPS]);
       },
       [Commands.EVENT]: (msg: string) => {
@@ -47,7 +44,7 @@ class EnginePanel extends Panel {
           if (event.code !== key) {
             return;
           }
-          enginePanel._engineWorker.postMessage({
+          enginePanel.engineWorker.postMessage({
             command: 'keydown',
             params: key,
           });
@@ -58,7 +55,7 @@ class EnginePanel extends Panel {
           if (event.code !== key) {
             return;
           }
-          enginePanel._engineWorker.postMessage({
+          enginePanel.engineWorker.postMessage({
             command: 'keyup',
             params: key,
           });
@@ -66,7 +63,7 @@ class EnginePanel extends Panel {
       },
     };
 
-    this._engineWorker.onmessage = ({ data: { command, params } }) => {
+    this.engineWorker.onmessage = ({ data: { command, params } }) => {
       if (commands.hasOwnProperty(command)) {
         try {
           commands[command as keyof typeof commands]!(params);
@@ -89,10 +86,10 @@ class EnginePanel extends Panel {
     const offCanvas = this.canvasEl.transferControlToOffscreen();
     const engineConfig: EngineConfig = {
       canvas: offCanvas,
-      sendStats: !!this._stats,
+      sendStats: !!this.stats,
       // usePalette: false,
     };
-    this._engineWorker.postMessage(
+    this.engineWorker.postMessage(
       {
         command: 'run',
         params: engineConfig,

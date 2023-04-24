@@ -21,24 +21,24 @@ const imageDataPtr: PTR_T = imagesDataPtr;
 // @ts-ignore: decorator
 @final @unmanaged class BitImage {
 
-  private _imgIdx: usize = 0;
+  private imgIdx: usize = 0;
 
   init(idx: usize): void {
     myAssert(idx >= 0 && idx < numImages);
-    this._imgIdx = idx;
+    this.imgIdx = idx;
   }
 
   @inline get pixels(): PTR_T {
     // logi(load<IMG_OFF_T>(imgPtrsPtr + <usize>this._imgIdx * IMG_OFF_SIZE));
-    return imageDataPtr + load<IMG_OFF_T>(imgPtrsPtr + <usize>this._imgIdx * IMG_OFF_SIZE);
+    return imageDataPtr + load<IMG_OFF_T>(imgPtrsPtr + <usize>this.imgIdx * IMG_OFF_SIZE);
   }
 
   @inline get width(): SIZE_T {
-    return load<IMG_SIZE_T>(imgWidths + <usize>this._imgIdx * IMG_WH_SIZE);
+    return load<IMG_SIZE_T>(imgWidths + <usize>this.imgIdx * IMG_WH_SIZE);
   }
 
   @inline get height(): SIZE_T {
-    return load<IMG_SIZE_T>(imgHeights + <usize>this._imgIdx * IMG_WH_SIZE);
+    return load<IMG_SIZE_T>(imgHeights + <usize>this.imgIdx * IMG_WH_SIZE);
   }
 }
 

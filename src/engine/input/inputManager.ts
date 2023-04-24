@@ -9,14 +9,14 @@ type KeyHandlersMap = {
 };
 
 class InputManager {
-  private _keyDownHandlers: KeyHandlersMap = {};
-  private _keyUpHandlers: KeyHandlersMap = {};
+  private keyDownHandlers: KeyHandlersMap = {};
+  private keyUpHandlers: KeyHandlersMap = {};
 
   public init() {}
 
   public addKeyDownHandler(key: KeyCode, keyHandler: KeyHandler) {
-    this._keyDownHandlers[key] = this._keyDownHandlers[key] ?? [];
-    this._keyDownHandlers[key].push(keyHandler);
+    this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? [];
+    this.keyDownHandlers[key].push(keyHandler);
     postMessage({
       command: Commands.REGISTER_KEYDOWN_HANDLER,
       params: key,
@@ -24,8 +24,8 @@ class InputManager {
   }
 
   public addKeyUpHandler(key: KeyCode, keyHandler: KeyHandler) {
-    this._keyUpHandlers[key] = this._keyUpHandlers[key] ?? [];
-    this._keyUpHandlers[key].push(keyHandler);
+    this.keyUpHandlers[key] = this.keyUpHandlers[key] ?? [];
+    this.keyUpHandlers[key].push(keyHandler);
     postMessage({
       command: Commands.REGISTER_KEYUP_HANDLER,
       params: key,
@@ -33,12 +33,12 @@ class InputManager {
   }
 
   public onKeyDown(key: KeyCode) {
-    const hs = this._keyDownHandlers[key] ?? [];
+    const hs = this.keyDownHandlers[key] ?? [];
     hs.forEach((h) => h());
   }
 
   public onKeyUp(key: KeyCode) {
-    const hs = this._keyUpHandlers[key] ?? [];
+    const hs = this.keyUpHandlers[key] ?? [];
     hs.forEach((h) => h());
   }
 }

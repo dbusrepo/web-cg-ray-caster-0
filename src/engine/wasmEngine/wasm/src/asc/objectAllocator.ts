@@ -7,18 +7,18 @@ import { logi } from './importVars';
 
 // @ts-ignore: decorator
 @final @unmanaged class ObjectAllocator<T> {
-  private _arena: ArenaAlloc;
+  private arena: ArenaAlloc;
 
   init(numObjPerBlock: SIZE_T): void {
-    this._arena = newArena(getTypeSize<T>(), numObjPerBlock);
+    this.arena = newArena(getTypeSize<T>(), numObjPerBlock);
   }
 
   new(): T {
-    return changetype<T>(this._arena.alloc());
+    return changetype<T>(this.arena.alloc());
   }
 
   delete(v: T): void {
-    this._arena.dealloc(changetype<PTR_T>(v));
+    this.arena.dealloc(changetype<PTR_T>(v));
   }
 }
 

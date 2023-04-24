@@ -6,32 +6,32 @@ import { logi } from './importVars';
 
 // @ts-ignore: decorator
 @final @unmanaged class Ref<T> {
-  private _ptr: Pointer<T>;
+  private ptr: Pointer<T>;
 
   init(ptr: PTR_T = NULL_PTR): void {
-    this.ptr = ptr;
+    this.Ptr = ptr;
   }
 
-  @inline get ptr(): PTR_T {
-    return this._ptr.offset;
+  @inline get Ptr(): PTR_T {
+    return this.ptr.offset;
   }
 
-  set ptr(ptr: PTR_T) {
-    this._ptr = new Pointer<T>(ptr);
+  set Ptr(ptr: PTR_T) {
+    this.ptr = new Pointer<T>(ptr);
   }
 
   @inline get deref(): T {
     myAssert(!this.isNull);
-    return this._ptr.value;
+    return this.ptr.value;
   }
 
   set deref(v: T) {
     myAssert(!this.isNull);
-    this._ptr.value = v;
+    this.ptr.value = v;
   }
 
   @inline get isNull(): boolean {
-    return this.ptr == NULL_PTR;
+    return this.Ptr == NULL_PTR;
   }
 }
 

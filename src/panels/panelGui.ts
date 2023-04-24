@@ -25,31 +25,32 @@ type PanelTweakOptions = {
 };
 
 abstract class PanelGui {
-  private static _panelsStatsOpt: PanelGui[] = [];
-  private _cfg: PanelGuiConfig;
-  private _panel: Panel;
-  private _topBar: GUI;
-  protected _tweakPane: TweakPane;
-  protected _tweakOptions: PanelTweakOptions;
-  private _statsInput: InputBindingApi<unknown, boolean>;
+  protected abstract panel: Panel;
+  protected abstract tweakOptions: PanelTweakOptions;
+  protected tweakPane: TweakPane;
+  private cfg: PanelGuiConfig;
+  private topBar: GUI;
+  private statsInput: InputBindingApi<unknown, boolean>;
+
+  private static panelGuiList: PanelGui[] = [];
 
   init(panel: Panel): void {
     assert(panel, 'panel is null or undefined');
 
-    if (!this._cfg) {
-      this._cfg = {
+    if (!this.cfg) {
+      this.cfg = {
         isTweakPaneExpanded: false, // start closed
       };
-      PanelGui._panelsStatsOpt.push(this);
+      PanelGui.panelGuiList.push(this);
     }
 
-    this._panel = panel;
+    this.panel = panel;
 
-    if (!this._tweakPane) {
+    if (!this.tweakPane) {
       this.initTweakPane();
     }
 
-    this._topBar = new GUI({
+    this.topBar = new GUI({
       root: panel.menuGuiContainer,
       // root: panel.panelEl,
       title: panel.title,
@@ -61,85 +62,96 @@ abstract class PanelGui {
       opacity: 1.0, // 0.95,
       open: false,
       toggleFullScreen: () => {
-        this._panel.toggleFullscreen();
+        this.panel.toggleFullscreen();
       },
       toggleFullWin: () => {
-        this._panel.toggleFullWin();
+        this.panel.toggleFullWin();
       },
       toggleControls: () => {
-        this._tweakPane.expanded = !this._tweakPane.expanded;
-        this._cfg.isTweakPaneExpanded = this._tweakPane.expanded;
-        this._panel.focus();
+        this.tweakPane.expanded = !this.tweakPane.expanded;
+        this.cfg.isTweakPaneExpanded = this.tweakPane.expanded;
+        this.panel.focus();
       },
     }); // as unknown as typeof Guify;
   }
 
   private initTweakPane(): void {
-    const container = this._panel.canvasContainerEl;
-    this._tweakPane = new TweakPane({
+    const container = this.panel.canvasContainerEl;
+    this.tweakPane = new TweakPane({
       container,
-      expanded: this._cfg.isTweakPaneExpanded,
+      expanded: this.cfg.isTweakPaneExpanded,
     });
-    this._tweakPane.registerPlugin(EssentialsPlugin);
-    this._initTweakPaneStyle(container);
+    this.tweakPane.registerPlugin(EssentialsPlugin);
+    this.initTweakPaneStyle(container);
     // when (reinit) keep obj opts
-    this._initTweakPaneOptionsObj();
-    this._addTweakPaneOptions();
+    this.initTweakPaneOptionsObj();
+    this.addTweakPaneOptions();
   }
 
-  _initTweakPaneStyle(container: HTMLDivElement) {
-    this._tweakPane.element.style.position = 'absolute';
-    this._tweakPane.element.style.borderRadius = '0px';
-    this._tweakPane.element.style.top = '0px';
-    this._tweakPane.element.style.right = '0px';
-    this._tweakPane.element.style.overflow = 'scroll';
-    this._tweakPane.element.style.zIndex = '999999';
+  private initTweakPaneStyle(container: HTMLDivElement) {
+    this.tweakPane.element.style.position = 'absolute';
+    this.tweakPane.element.style.borderRadius = '0px';
+    this.tweakPane.element.style.top = '0px';
+    this.tweakPane.element.style.right = '0px';
+    this.tweakPane.element.style.overflow = 'scroll';
+    this.tweakPane.element.style.zIndex = '999999';
     // tweakPane.controller_.view.buttonElement.disabled = true;
     // tweakPane.controller_.view.buttonElement.style.display = 'none';
 
     // to make overflow scroll work
-    if (this._tweakPane.element.clientHeight > container.clientHeight) {
-      this._tweakPane.element.style.height = container.clientHeight + 'px';
+    if (this.tweakPane.element.clientHeight > container.clientHeight) {
+      this.tweakPane.element.style.height = container.clientHeight + 'px';
     }
   }
 
   protected getEventLogVisState(): EventLogVis {
-    if (this._panel.isEventLogVisible) {
-      return this._panel.isEventLogBelowCanvas
+    if (this.panel.isEventLogVisible) {
+      return this.panel.isEventLogBelowCanvas
         ? EventLogVis.BELOW_CANVAS
         : EventLogVis.OVER_CANVAS;
     }
     return EventLogVis.INVISIBLE;
   }
 
-  protected _initTweakPaneOptionsObj(): void {
-    this._tweakOptions = {
+  protected initTweakPaneOptionsObj(): void {
+    this.tweakOptions = {
       [PanelTweakOptionsKeys.STATS]: this.panel.isStatsVisible,
       [PanelTweakOptionsKeys.EVENTS]: this.getEventLogVisState(),
     };
   }
 
-  protected abstract _addTweakPaneOptions(): void;
+  protected abstract addTweakPaneOptions(): void;
 
-  protected _addStatsOpt(): void {
-    this._statsInput = this._tweakPane.addInput(
-      this._tweakOptions,
+  protected addStatsOpt(): void {
+    const statsFolder = this.tweakPane.addFolder({
+      title: 'Stats',
+      expanded: false,
+    });
+    this.statsInput = statsFolder.addInput(
+      this.tweakOptions,
       PanelTweakOptionsKeys.STATS,
     );
-    this._statsInput.on('change', (ev) => {
+    this.statsInput.on('change', (ev) => {
       this.panel.setStatsVisible(ev.value);
       PanelGui.updateStatsOptPanels(this);
     });
+    const btn = statsFolder.addButton({
+      title: 'Move top-left',
+      // label: '',   // optional
+    });
+    btn.on('click', () => {
+      this.panel.Stats.setPos(0, 0);
+    });
   }
 
-  protected _addEventLogOpt(): void {
-    const eventsFolder = this._tweakPane.addFolder({
+  protected addEventLogOpt(): void {
+    const eventsFolder = this.tweakPane.addFolder({
       title: 'Events',
       expanded: false,
     });
 
     const eventLogPosInput = eventsFolder.addInput(
-      this._tweakOptions,
+      this.tweakOptions,
       PanelTweakOptionsKeys.EVENTS,
       {
         options: {
@@ -153,26 +165,26 @@ abstract class PanelGui {
     eventLogPosInput.on('change', (ev) => {
       switch (ev.value) {
         case EventLogVis.BELOW_CANVAS:
-          this._panel.setEventLogBelowCanvas();
-          this._panel.setEventLogVisibility(true);
+          this.panel.setEventLogBelowCanvas();
+          this.panel.setEventLogVisibility(true);
           break;
         case EventLogVis.OVER_CANVAS:
-          this._panel.setEventLogOnCanvas();
-          this._panel.setEventLogVisibility(true);
+          this.panel.setEventLogOnCanvas();
+          this.panel.setEventLogVisibility(true);
           break;
         case EventLogVis.INVISIBLE:
-          this._panel.setEventLogVisibility(false);
+          this.panel.setEventLogVisibility(false);
           break;
       }
     });
   }
 
   public static updateStatsOptPanels(originPanel: PanelGui): void {
-    for (let panelGui of PanelGui._panelsStatsOpt) {
+    for (let panelGui of PanelGui.panelGuiList) {
       if (panelGui !== originPanel) {
-        panelGui._tweakOptions.stats = originPanel._tweakOptions.stats;
+        panelGui.tweakOptions.stats = originPanel.tweakOptions.stats;
         // panelGui._tweakPane.refresh();
-        panelGui._statsInput.refresh();
+        panelGui.statsInput.refresh();
       }
     }
   }
@@ -383,12 +395,12 @@ abstract class PanelGui {
   //   return this._tweakPaneOptions;
   // }
 
-  protected get panel(): Panel {
-    return this._panel;
-  }
+  // protected get panel(): Panel {
+  //   return this._panel;
+  // }
 
   removefromDom() {
-    this._topBar.removefromDom();
+    this.topBar.removefromDom();
     // this._tweakPane.dispose();
   }
 }

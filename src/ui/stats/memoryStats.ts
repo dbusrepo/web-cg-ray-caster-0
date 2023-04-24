@@ -10,17 +10,17 @@ declare global {
 }
 
 class MemoryStats {
-  private _stats: Stats;
-  private _panel: MemoryStatsPanel;
+  private stats: Stats;
+  private panel: MemoryStatsPanel;
 
   constructor(stats: Stats) {
     if (!performance.measureUserAgentSpecificMemory) {
       console.log('performance.measureUserAgentSpecificMemory is not available.');
       return; // TODO ?
     }
-    this._stats = stats;
-    this._panel = new MemoryStatsPanel();
-    this._stats.addPanel(this._panel);
+    this.stats = stats;
+    this.panel = new MemoryStatsPanel();
+    this.stats.addPanel(this.panel);
     this.scheduleMeasurement();
   }
 
@@ -46,7 +46,7 @@ class MemoryStats {
     // 2. Record the result.
     // console.log(`Memory usage: ${result.bytes} bytes`);
     // console.log('Memory breakdown: ', result.breakdown);
-    this._panel.update(result.bytes);
+    this.panel.update(result.bytes);
     // 3. Schedule the next measurement.
     this.scheduleMeasurement();
   };

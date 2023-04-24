@@ -3,9 +3,11 @@ import { ViewPanelConfig } from '../config/mainConfig';
 import { Panel } from './panel';
 import { Stats } from '../ui/stats/stats';
 import { ViewPanelGui } from './viewPanelGui';
+import { PanelGui } from './panelGui';
 // import { Console, ConsoleHandlersObjInit } from '../ui/console/console';
 
 class ViewPanel extends Panel {
+  protected menuGui: ViewPanelGui;
   // constructor(board: HTMLDivElement, parentNode: HTMLDivElement) {
   //   super(board, parentNode);
   // }

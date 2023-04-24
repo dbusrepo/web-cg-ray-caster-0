@@ -20,9 +20,6 @@ const panelConfig = {
   // canvasDisplayWidthWinMode: 320,
   // canvasDisplayHeightWinMode: 200,
 
-  enableConsole: true,
-  enableEventLog: true,
-
   startViewMode: StartViewMode.WIN as StartViewMode,
 
   // FULL_WIN_KEY: 'F1',

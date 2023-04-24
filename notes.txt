@@ -1,4 +1,4 @@
-random info...
+https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
 
 to add an image:
 under src/assets/images

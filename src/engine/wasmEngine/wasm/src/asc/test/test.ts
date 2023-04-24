@@ -8,7 +8,7 @@ function test(): void {
   // memManagerTest();
   // arenaAllocTest();
   // refTest();
-  // sarrayTest();
+  sarrayTest();
   darrayTest();
 }
 
