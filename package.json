@@ -6,6 +6,7 @@
   "scripts": {
     "v": "node -v",
     "type-check": "tsc --noemit",
+    "install-dependencies": "npm i",
     "lint": "eslint src/**/*.{ts,tsx}",
     "lint:fix": "eslint src/**/*.{ts,tsx} --fix",
     "prettify": "prettier --config .prettierrc src/**/*.{ts,tsx} --write",
@@ -20,14 +21,15 @@
     "build:wat": "cd src/engine/wasmEngine/wasm && make build_wat",
     "build:wasm": "npm run build:asc && npm run build:wat",
     "webpack": "webpack --config ./webpack.config.ts",
-    "build": "npm run build:assets && npm run build:wasm && webpack",
+    "build_proj": "npm run build:assets && npm run build:wasm && webpack",
     "serve": "webpack-dev-server",
-    "launch": "npm run cleandist && npm run build && npm run serve",
-    "start": "run-p --race launch onchange:wasm onchange:assets",
+    "launch": "npm run cleandist && npm run build_proj && npm run serve",
     "prod": "webpack --production",
     "clean": "rimraf dist/ && cd src/engine/wasmEngine/wasm && make clean",
     "cleandist": "rimraf dist/",
-    "ascv": "asc --version"
+    "ascv": "asc --version",
+    "build": "npm run install-dependencies && npm run build_proj",
+    "start": "npm run install-dependencies && run-p --race launch onchange:wasm onchange:assets"
   },
   "keywords": [],
   "author": "",
