@@ -476,7 +476,7 @@ class ConsolePanel extends React.Component<
       // to become hidden only after transition when closing
       // visibility: state.visible ? 'visible' : 'hidden', // not used here
       marginTop,
-      zIndex: Number(props.container.style.zIndex) + 1,
+      // zIndex: Number(props.container.style.zIndex) + 1,
     };
 
     return labelStyle;

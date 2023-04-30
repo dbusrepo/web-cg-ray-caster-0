@@ -1,7 +1,6 @@
 import { myAssert } from './myAssert';
 import { initSharedHeap } from './heapAlloc';
 import {
-  WORKER_MEM_COUNTER_PTR,
   initMemManager,
   alloc,
   dealloc,
@@ -22,6 +21,7 @@ import {
   frameBufferPtr,
   syncArrayPtr,
   sleepArrayPtr,
+  hrTimerPtr,
 } from './importVars';
 import { BitImage } from './bitImage';
 import { initImages } from './initImages';
@@ -29,7 +29,7 @@ import { initImages } from './initImages';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
 import { test } from './test/test';
-import { PTR_T } from './memUtils';
+import { PTR_T, SIZE_T } from './memUtils';
 import { MYIMG, IMG1 } from './importImages';
 
 import {
@@ -43,8 +43,8 @@ import {
 import { stringsDataPtr, stringsDataSize } from './importVars';
 import { FONT_Y_SIZE, fontCharsPtr, fontCharsSize } from './importVars';
 import * as strings from './importStrings';
-import { workersMemCountersPtr, workersMemCountersSize } from './importVars';
 import { inputKeysPtr } from './importVars';
+// import { memCountersPtr, memCountersSize } from './importVars';
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -53,9 +53,19 @@ const MAIN_THREAD_IDX = mainWorkerIdx;
 
 let images: SArray<BitImage> | null = null;
 
+@inline function align<T>(): SIZE_T {
+  return alignof<T>();
+}
+
 function init(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     initSharedHeap();
+    // logi(align<u64>());
+    // logi(hrTimerPtr);
+    // const t0 = <u64>process.hrtime();
+    // draw.clearBg(0, frameHeight, 0xff_00_00_00);
+    // const t1 = <u64>process.hrtime();
+    // store<u64>(hrTimerPtr, t1 - t0);
   }
   initMemManager();
   images = initImages();
@@ -68,7 +78,11 @@ function render(): void {
   const s = <u32>(r >> 32);
   const e = <u32>r;
 
+  // const t0 = <u64>process.hrtime();
   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
+  // const t1 = <u64>process.hrtime();
+  // store<u64>(hrTimerPtr, t1 - t0);
+
   // draw.clearBg(s, e, 0xff_ff_00_00); // ABGR
 
   // logi(workerIdx);

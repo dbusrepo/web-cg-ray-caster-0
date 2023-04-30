@@ -43,12 +43,16 @@ class WasmEngine {
     this.initGfx();
     await this.initAssetManager();
     await this.initWasm();
+    await this.initWorkers();
     this.initInputManager();
   }
 
   private initGfx() {
     this.ctx = <OffscreenCanvasRenderingContext2D>(
-      this.cfg.canvas.getContext('2d', { alpha: false })
+      this.cfg.canvas.getContext('2d', { 
+        alpha: false,
+        desynchronized: true, // TODO:
+      })
     );
     this.ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
     // this.ctx.imageSmoothingQuality = "low"; // for this, imageSmoothingEnabled must be true
@@ -86,14 +90,19 @@ class WasmEngine {
     // this.inputManager.addKeyUpHandler(keyB, keyHandler(keyB, 0));
   }
 
+  private async initWorkers() {
+    console.log('#workers: ', 1 + this.cfg.numAuxWorkers);
+    this.workers = [];
+    if (this.cfg.numAuxWorkers >= 1) {
+      await this.launchWorkers();
+    }
+  }
+
   private async initWasm(): Promise<void> {
     this.initWasmMemConfig();
     this.allocWasmMem();
     await this.initWasmRun();
     this.initWasmAssets();
-    if (this.cfg.numAuxWorkers >= 1) {
-      await this.launchWasmWorkers();
-    }
   }
 
   private allocWasmMem(): void {
@@ -140,6 +149,7 @@ class WasmEngine {
       // TODO use 64bit/8 byte counter for mem counters? see wasm workerHeapManager
       workersMemCountersSize: numWorkers * Uint32Array.BYTES_PER_ELEMENT,
       inputKeysSize: 4 * Uint8Array.BYTES_PER_ELEMENT,
+      hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
     };
 
     this.wasmMemConfig = wasmMemConfig;
@@ -207,9 +217,9 @@ class WasmEngine {
     this.wasmRunCfg = wasmRunCfg;
   }
 
-  private async launchWasmWorkers() {
+  private async launchWorkers() {
+    assert(this.cfg.numAuxWorkers >= 1);
     console.log('Launching workers...');
-    this.workers = [];
     let workerCount = this.cfg.numAuxWorkers;
     const initStart = Date.now();
     try {
@@ -296,6 +306,8 @@ class WasmEngine {
     }
     this.waitWorkers();
     this.drawFrame();
+    // const views = this.wasmRun.WasmViews;
+    // console.log(views.hrTimer[0]);
   }
 
   public onKeyDown(key: KeyCode) {

@@ -2,13 +2,13 @@ import { myAssert } from './myAssert';
 import { heapAlloc, heapDealloc } from './heapAlloc';
 import { logi, workerIdx, workersHeapPtr, workerHeapSize } from './importVars';
 import { MEM_BLOCK_USAGE_BIT_MASK, SIZE_T, MAX_ALLOC_SIZE, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, } from './memUtils';
-import { workersMemCountersPtr } from './importVars';
+// import { memCountersPtr } from './importVars';
 
 // Mem mananger: worker (private) heap mem handling:
 // list of blocks
 // uses the shared heap (see heapAlloc) when no blocks are available
 
-const WORKER_MEM_COUNTER_PTR: PTR_T = workersMemCountersPtr + workerIdx * Uint32Array.BYTES_PER_ELEMENT;
+// const MEM_COUNTER_PTR: PTR_T = memCountersPtr + workerIdx * Uint32Array.BYTES_PER_ELEMENT;
 
 const WORKER_HEAP_BASE: PTR_T = workersHeapPtr + workerIdx * workerHeapSize;
 const WORKER_HEAP_LIMIT: PTR_T = WORKER_HEAP_BASE + workerHeapSize;
@@ -240,18 +240,18 @@ function dealloc(ptr: PTR_T): void {
 
 // @ts-ignore: decorator
 // TODO: not used
-@inline function incMemCounter(value: usize): void {
-  // TODO: use 64-bit counter ?
-  const counter = load<i32>(WORKER_MEM_COUNTER_PTR);
-  store<u32>(WORKER_MEM_COUNTER_PTR, counter + (value as u32));
-}
+// @inline function incMemCounter(value: usize): void {
+//   // TODO: use 64-bit counter ?
+//   const counter = load<i32>(MEM_COUNTER_PTR);
+//   store<u32>(MEM_COUNTER_PTR, counter + (value as u32));
+// }
 
 // @ts-ignore: decorator
 // TODO: not used
-@inline function decMemCounter(value: usize): void {
-  const counter = load<i32>(WORKER_MEM_COUNTER_PTR);
-  store<u32>(WORKER_MEM_COUNTER_PTR, counter - (value as u32));
-}
+// @inline function decMemCounter(value: usize): void {
+//   const counter = load<i32>(MEM_COUNTER_PTR);
+//   store<u32>(MEM_COUNTER_PTR, counter - (value as u32));
+// }
 
 // pre: ptr != NULL_PTR
 // @ts-ignore: decorator
@@ -287,4 +287,4 @@ function initMemManager(): void {
 //   logi(WORKER_HEAP_LIMIT);
 // }
 
-export { WORKER_MEM_COUNTER_PTR, initMemManager, alloc, dealloc, assertPtrLowerBound };
+export { initMemManager, alloc, dealloc, assertPtrLowerBound };

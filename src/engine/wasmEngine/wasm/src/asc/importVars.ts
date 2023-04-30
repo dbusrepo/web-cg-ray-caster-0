@@ -32,8 +32,10 @@ export declare const stringsDataSize: usize;
 export declare const fontCharsPtr: usize;
 export declare const fontCharsSize: usize;
 
-export declare const workersMemCountersPtr: usize
-export declare const workersMemCountersSize: usize
+export declare const hrTimerPtr: usize;
+
+// export declare const memCountersPtr: usize
+// export declare const memCountersSize: usize
 
 export declare const inputKeysPtr: usize
 export declare const inputKeysSize: usize

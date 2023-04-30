@@ -4,7 +4,8 @@ const NANO_IN_MS: i64 = 1000000;
 
 // @ts-ignore: decorator
 @inline function getArrElPtr<T>(base: PTR_T, idx: SIZE_T): PTR_T {
-  return base + idx * getTypeSize<T>();
+  // return base + idx * getTypeSize<T>();
+  return base + (idx << alignof<T>());
 }
 
 // @ts-ignore: decorator

@@ -80,7 +80,7 @@ class Main {
     // parentNode.style.zIndex = '1'; // TODO:
     const panelConfig: EnginePanelConfig = {
       ...enginePanelConfig,
-      // startViewMode: StartViewMode.FULL_WIN,
+      startViewMode: StartViewMode.FULL_WIN,
       // startViewMode: StartViewMode.WIN,
       title,
       focusOnStart: true,

@@ -302,7 +302,7 @@ body {
 
 .console-label {
   position: absolute;
-  /* z-index: 999999; */
+  z-index: 10001;
   top: 0;
   left: 0;
   box-sizing: border-box;

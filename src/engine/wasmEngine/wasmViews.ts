@@ -11,6 +11,7 @@ type WasmViews = {
   imagesPixels: Uint8Array;
   workersMemCounters: Uint32Array;
   inputKeys: Uint8Array;
+  hrTimer: BigUint64Array;
 };
 
 function buildWasmMemViews(
@@ -67,8 +68,8 @@ function buildWasmMemViews(
 
   const workersMemCounters = new Uint32Array(
     wasmMem.buffer,
-    memOffsets[MemRegions.WORKERS_MEM_COUNTERS],
-    memSizes[MemRegions.WORKERS_MEM_COUNTERS],
+    memOffsets[MemRegions.MEM_COUNTERS],
+    memSizes[MemRegions.MEM_COUNTERS],
   );
 
   const inputKeys = new Uint8Array(
@@ -77,17 +78,24 @@ function buildWasmMemViews(
     memSizes[MemRegions.INPUT_KEYS],
   );
 
+  const hrTimer = new BigUint64Array(
+    wasmMem.buffer,
+    memOffsets[MemRegions.HR_TIMER],
+    memSizes[MemRegions.HR_TIMER] / BigUint64Array.BYTES_PER_ELEMENT,
+  );
+
   const memViews: WasmViews = {
-    memUI8,
-    frameBufferRGBA,
-    syncArr,
-    sleepArr,
-    imagesIndex,
-    imagesPixels,
-    fontChars,
-    strings,
-    workersMemCounters,
-    inputKeys,
+      memUI8,
+      frameBufferRGBA,
+      syncArr,
+      sleepArr,
+      imagesIndex,
+      imagesPixels,
+      fontChars,
+      strings,
+      workersMemCounters,
+      inputKeys,
+      hrTimer,
   };
 
   return memViews;
