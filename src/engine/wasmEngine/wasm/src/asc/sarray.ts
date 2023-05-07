@@ -1,5 +1,5 @@
 import { myAssert } from './myAssert';
-import { alloc, dealloc } from './workerHeapManager';
+import { alloc, free } from './workerHeapManager';
 import { ArenaAlloc, newArena } from './arenaAlloc';
 import { ilog2, nextPowerOfTwo, isPowerOfTwo, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, SIZE_T } from './memUtils';
 import { Pointer } from './pointer';
@@ -96,7 +96,7 @@ function newSArray<T>(length: SIZE_T, objAlignLg2: SIZE_T = alignof<T>()): SArra
 
 function deleteSArray<T>(arr: SArray<T>): void {
   const header = getHeader(arr);
-  dealloc(header.arrayPtr);
+  free(header.arrayPtr);
 }
 
 export { SArray, newSArray, deleteSArray };

@@ -1,6 +1,6 @@
 import { myAssert } from './myAssert';
 import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
-import { alloc, dealloc } from './workerHeapManager';
+import { alloc, free } from './workerHeapManager';
 import { ObjectAllocator, newObjectAllocator } from './objectAllocator';
 import { logi } from './importVars';
 import { usePalette, imagesIndexPtr, imagesIndexSize, imagesDataSize, imagesDataPtr, numImages } from './importVars';

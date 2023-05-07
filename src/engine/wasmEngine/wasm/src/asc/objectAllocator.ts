@@ -1,5 +1,5 @@
 import { myAssert } from './myAssert';
-import { alloc, dealloc } from './workerHeapManager';
+import { alloc, free } from './workerHeapManager';
 import { PTR_SIZE, PTR_ALIGN_MASK, SIZE_T, MAX_ALLOC_SIZE, 
          PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask } from './memUtils';
 import { ArenaAlloc, newArena } from './arenaAlloc';
@@ -18,7 +18,7 @@ import { logi } from './importVars';
   }
 
   delete(v: T): void {
-    this.arena.dealloc(changetype<PTR_T>(v));
+    this.arena.free(changetype<PTR_T>(v));
   }
 }
 

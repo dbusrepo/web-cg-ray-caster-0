@@ -16,7 +16,7 @@ function arenaAllocTest(): void {
   // arena.dealloc(ptr);
   ptr = arena.alloc();
   logi(<u32>ptr);
-  arena.dealloc(ptr);
+  arena.free(ptr);
   ptr = arena.alloc();
   logi(<u32>ptr);
   logi(-1);

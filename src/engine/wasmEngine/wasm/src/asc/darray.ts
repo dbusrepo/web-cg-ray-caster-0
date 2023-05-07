@@ -1,5 +1,5 @@
 import { myAssert } from './myAssert';
-import { alloc, dealloc } from './workerHeapManager';
+import { alloc, free } from './workerHeapManager';
 import { ilog2, nextPowerOfTwo, isPowerOfTwo, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, SIZE_T } from './memUtils';
 import { ArenaAlloc, newArena } from './arenaAlloc';
 import { Pointer } from './pointer';
@@ -78,7 +78,7 @@ import { logi } from './importVars';
       const numSrcBytes = this.next - this.dataStart;
       const newNext = newDataStart + numSrcBytes;
       memory.copy(newDataStart, this.dataStart, numSrcBytes);
-      dealloc(this.array);
+      free(this.array);
       this.array = newArray;
       this.dataStart = newDataStart;
       this.dataEnd = newArrayEnd;
@@ -128,8 +128,8 @@ function newDArray<T>(initialCapacity: SIZE_T, alignLg2: SIZE_T = alignof<T>()):
 }
 
 function deleteDArray<T>(arr: DArray<T>): void {
-  dealloc(arr.ArrayStart);
-  arrayArena.dealloc(changetype<PTR_T>(arr));
+  free(arr.ArrayStart);
+  arrayArena.free(changetype<PTR_T>(arr));
 }
 
 export { DArray, newDArray, deleteDArray };

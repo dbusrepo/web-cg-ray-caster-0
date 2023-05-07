@@ -1,5 +1,5 @@
 import { myAssert } from '../myAssert';
-import { alloc, dealloc } from '../workerHeapManager';
+import { alloc, free } from '../workerHeapManager';
 import { logi } from '../importVars';
 
 function workerHeapManagerTest(): void {

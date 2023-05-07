@@ -239,6 +239,7 @@ function EventLogPanel(props: EventLogPanelProps): JSX.Element {
               : '');
           // force cursor position after the prompt
           inputEl.setSelectionRange(prompt.length, prompt.length);
+          setInput(inputEl.value);
         }
         break;
       default:

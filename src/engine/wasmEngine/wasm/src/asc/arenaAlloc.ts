@@ -1,5 +1,5 @@
 import { myAssert } from './myAssert';
-import { alloc, dealloc, assertPtrLowerBound } from './workerHeapManager';
+import { alloc, free, assertPtrLowerBound } from './workerHeapManager';
 import { PTR_SIZE, PTR_ALIGN_MASK, SIZE_T, MAX_ALLOC_SIZE, 
          PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask } from './memUtils';
 import { logi } from './importVars';
@@ -86,7 +86,7 @@ import { logi } from './importVars';
     return dataPtr;
   }
 
-  @inline public dealloc(ptr: PTR_T): void {
+  @inline public free(ptr: PTR_T): void {
     if (ptr != NULL_PTR) {
       assertPtrLowerBound(ptr);
       myAssert((ptr & this.alignMask) == 0); // add other checks ?

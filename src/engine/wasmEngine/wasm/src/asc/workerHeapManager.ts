@@ -1,5 +1,5 @@
 import { myAssert } from './myAssert';
-import { heapAlloc, heapDealloc } from './heapAlloc';
+import { heapAlloc, heapFree } from './heapAlloc';
 import { logi, workerIdx, workersHeapPtr, workerHeapSize } from './importVars';
 import { MEM_BLOCK_USAGE_BIT_MASK, SIZE_T, MAX_ALLOC_SIZE, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, } from './memUtils';
 // import { memCountersPtr } from './importVars';
@@ -160,10 +160,10 @@ function alloc(reqSize: SIZE_T): PTR_T {
   return allocated;
 }
 
-function dealloc(ptr: PTR_T): void {
+function free(ptr: PTR_T): void {
   myAssert(ptr != NULL_PTR);
   if (ptr >= WORKER_HEAP_LIMIT) {
-    return heapDealloc(ptr);
+    return heapFree(ptr);
   }
   myAssert(ptr >= WORKER_HEAP_BASE + H_SIZE &&  ptr < WORKER_HEAP_LIMIT - F_SIZE);
   let headerPtr = ptr - H_SIZE;
@@ -287,4 +287,4 @@ function initMemManager(): void {
 //   logi(WORKER_HEAP_LIMIT);
 // }
 
-export { initMemManager, alloc, dealloc, assertPtrLowerBound };
+export { initMemManager, alloc, free, assertPtrLowerBound };

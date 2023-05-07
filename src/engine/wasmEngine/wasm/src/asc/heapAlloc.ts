@@ -143,7 +143,7 @@ function heapAlloc(reqSize: SIZE_T): PTR_T {
   return dataPtr;
 }
 
-function heapDealloc(ptr: PTR_T): void {
+function heapFree(ptr: PTR_T): void {
   myAssert(ptr >= START_ALLOC_PTR);
   lock(MUTEX_PTR);
   const blockPtr = ptr - HEADER_SIZE;
@@ -161,4 +161,4 @@ function initSharedHeap(): void {
   store<PTR_T>(FREE_PTR_PTR, NULL_PTR);
 }
 
-export { initSharedHeap, heapAlloc, heapDealloc };
+export { initSharedHeap, heapAlloc, heapFree };
