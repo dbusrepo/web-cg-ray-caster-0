@@ -5,6 +5,7 @@ import {
   alloc,
   dealloc,
 } from './workerHeapManager';
+import { heapAlloc } from './heapAlloc';
 // import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
 import * as draw from './draw';
@@ -70,6 +71,13 @@ function init(): void {
   initMemManager();
   images = initImages();
   // test();
+}
+
+function allocMap(width: usize, height: usize): PTR_T {
+  const size = width * height;
+  const ptr = heapAlloc(size);
+  memory.fill(ptr, 0, size);
+  return ptr;
 }
 
 function render(): void {
@@ -220,4 +228,4 @@ function run(): void {
 //   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
 // }
 
-export { init, render, run };
+export { init, render, run, allocMap };

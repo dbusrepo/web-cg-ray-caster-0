@@ -9,11 +9,11 @@ const enum StartViewMode {
 const panelConfig = {
   title: 'Panel',
 
-  canvasWidth: 320,
-  canvasHeight: 200,
+  canvasWidth: 800,
+  canvasHeight: 600,
 
-  canvasDisplayWidthWinMode: 640,
-  canvasDisplayHeightWinMode: 480,
+  canvasDisplayWidthWinMode: 800,
+  canvasDisplayHeightWinMode: 600,
 
   // canvasDisplayWidthWinMode: 512,
   // canvasDisplayHeightWinMode: 384,

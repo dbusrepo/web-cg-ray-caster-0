@@ -2,11 +2,11 @@ import assert from 'assert';
 import * as WasmUtils from './wasmMemUtils';
 import { AssetManager } from '../assets/assetManager';
 import { WasmRun, WasmRunConfig } from './wasmRun';
+import { WasmModules } from './wasmLoader';
 import WasmWorkerCommands from './wasmWorkerCommands';
 import { WasmWorkerConfig } from './wasmWorker';
 import { FONT_Y_SIZE, fontChars } from '../../assets/fonts/font';
 import { stringsArrayData } from '../../assets/strings/strings';
-import { InputManager, KeyCode } from '../input/inputManager';
 import * as utils from './../utils';
 import {
   // BPP_PAL,
@@ -17,7 +17,7 @@ import {
 } from '../../common';
 import { mainConfig } from '../../config/mainConfig';
 
-// type WasmViews = WasmUtils.views.WasmViews;
+type WasmViews = WasmUtils.views.WasmViews;
 
 type WasmEngineConfig = {
   canvas: OffscreenCanvas;
@@ -28,7 +28,6 @@ class WasmEngine {
   private cfg: WasmEngineConfig;
   private ctx: OffscreenCanvasRenderingContext2D;
   private assetManager: AssetManager;
-  private inputManager: InputManager;
   private wasmRunCfg: WasmRunConfig;
   private wasmMem: WebAssembly.Memory;
   private wasmMemConfig: WasmUtils.MemConfig;
@@ -44,7 +43,6 @@ class WasmEngine {
     await this.initAssetManager();
     await this.initWasm();
     await this.initWorkers();
-    this.initInputManager();
   }
 
   private initGfx() {
@@ -63,31 +61,6 @@ class WasmEngine {
   private async initAssetManager() {
     this.assetManager = new AssetManager();
     await this.assetManager.init();
-  }
-
-  private initInputManager() {
-    this.inputManager = new InputManager();
-    this.inputManager.init();
-    this.initInputHandlers();
-  }
-
-  private initInputHandlers() {
-    const key2Idx = {
-      KeyA: 0,
-      // KeyB: 1,
-    };
-    type MappedKey = keyof typeof key2Idx;
-    const inputArr = this.wasmRun.WasmViews.inputKeys;
-    const keyHandler = (key: MappedKey, dir: number) => () => {
-      // console.log(`key ${key} ${dir}`);
-      inputArr[key2Idx[key]] = dir;
-    };
-    const keyA = 'KeyA';
-    this.inputManager.addKeyDownHandler(keyA, keyHandler(keyA, 1));
-    this.inputManager.addKeyUpHandler(keyA, keyHandler(keyA, 0));
-    // const keyB = 'KeyB';
-    // this.inputManager.addKeyDownHandler(keyB, keyHandler(keyB, 1));
-    // this.inputManager.addKeyUpHandler(keyB, keyHandler(keyB, 0));
   }
 
   private async initWorkers() {
@@ -279,20 +252,20 @@ class WasmEngine {
     }
   }
 
-  private syncWorkers() {
+  public syncWorkers() {
     for (let i = 1; i <= this.cfg.numAuxWorkers; ++i) {
       utils.syncStore(this.wasmRun.WasmViews.syncArr, i, 1);
       utils.syncNotify(this.wasmRun.WasmViews.syncArr, i);
     }
   }
 
-  private waitWorkers() {
+  public waitWorkers() {
     for (let i = 1; i <= this.cfg.numAuxWorkers; ++i) {
       utils.syncWait(this.wasmRun.WasmViews.syncArr, i, 1);
     }
   }
 
-  private drawFrame() {
+  public drawFrame() {
     this.imageData.data.set(this.wasmRun.WasmViews.frameBufferRGBA);
     this.ctx.putImageData(this.imageData, 0, 0);
   }
@@ -310,12 +283,16 @@ class WasmEngine {
     // console.log(views.hrTimer[0]);
   }
 
-  public onKeyDown(key: KeyCode) {
-    this.inputManager.onKeyDown(key);
+  public get WasmMem(): WebAssembly.Memory {
+    return this.wasmMem;
   }
 
-  public onKeyUp(key: KeyCode) {
-    this.inputManager.onKeyUp(key);
+  public get WasmViews(): WasmViews {
+    return this.wasmRun.WasmViews;
+  }
+
+  public get WasmModules(): WasmModules {
+    return this.wasmRun.WasmModules;
   }
 }
 

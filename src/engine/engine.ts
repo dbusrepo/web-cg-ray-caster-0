@@ -14,7 +14,7 @@ import Commands from './engineCommands';
 import PanelCommands from '../panels/enginePanelCommands';
 import { KeyCode } from './input/inputManager';
 
-import { WasmEngine } from './wasmEngine/wasmEngine';
+import { RayCaster } from './rayCaster/rayCaster';
 
 type EngineConfig = {
   canvas: OffscreenCanvas;
@@ -36,12 +36,12 @@ class Engine {
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
 
   private cfg: EngineConfig;
-  private impl: WasmEngine;
+  private rayCaster: RayCaster;
 
   public async init(config: EngineConfig): Promise<void> {
     this.cfg = config;
-    this.impl = new WasmEngine();
-    await this.impl.init({
+    this.rayCaster = new RayCaster();
+    await this.rayCaster.init({
       canvas: this.cfg.canvas,
       numAuxWorkers: mainConfig.numWorkers,
     });
@@ -148,6 +148,7 @@ class Engine {
         // TODO: see multiplier in update_period def
         // update state with UPDATE_PERIOD_MS
         // updateState(STEP, t / MULTIPLIER);
+        this.rayCaster.update(Engine.UPDATE_PERIOD_MS / 2);
         updTimeAcc -= Engine.UPDATE_PERIOD_MS;
         updateCnt++;
       }
@@ -162,7 +163,7 @@ class Engine {
       renderTimeAcc += avgTimeLastFrame;
       if (renderTimeAcc >= Engine.RENDER_PERIOD_MS) {
         renderTimeAcc %= Engine.RENDER_PERIOD_MS;
-        this.impl.render();
+        this.rayCaster.render();
         saveFrameTime();
       }
     };
@@ -223,11 +224,11 @@ class Engine {
   }
 
   public onKeyDown(key: KeyCode) {
-    this.impl.onKeyDown(key);
+    this.rayCaster.onKeyDown(key);
   }
 
   public onKeyUp(key: KeyCode) {
-    this.impl.onKeyUp(key);
+    this.rayCaster.onKeyUp(key);
   }
 }
 

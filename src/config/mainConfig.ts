@@ -15,7 +15,7 @@ const mainConfig = {
   wasmMemMaxPages: 1000,
 
   targetRPS: 60,
-  targetUPS: 80,
+  targetUPS: 60,
 
   multiplier: 1,
 
