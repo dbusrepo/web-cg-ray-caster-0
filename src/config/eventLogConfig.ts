@@ -13,7 +13,7 @@ const eventLogConfig = {
   percHeightFull: 0.15, // 15 % of fs height in the same container
   // ************************************************************************
 
-  fontSize: 12,
+  fontSize: 16,
   lineHeight: 16,
 
   prompt: '> ',

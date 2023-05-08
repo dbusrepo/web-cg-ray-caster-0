@@ -46,6 +46,7 @@ function EventLogPanel(props: EventLogPanelProps): JSX.Element {
   const [isGrabbing, setIsGrabbing] = useState(false);
   const [grabPos, setGrabPos] = useState({ top: 0, y: 0 });
   const [input, setInput] = useState(prompt);
+  const [isCtrlDown, setCtrlDown] = useState(false);
 
   let listContRef: HTMLElement;
   let inputRef: HTMLInputElement;
@@ -175,8 +176,6 @@ function EventLogPanel(props: EventLogPanelProps): JSX.Element {
   const isCursorOnPrompt = (pos: number | null) =>
     pos === 0 || (pos && pos <= prompt.length);
 
-  let ctrlDown = false; // TODO ok?
-
   const onInputKeyDown = (
     event: JSX.TargetedKeyboardEvent<HTMLInputElement>,
   ) => {
@@ -218,17 +217,18 @@ function EventLogPanel(props: EventLogPanelProps): JSX.Element {
         }
         break;
       case 'Control':
-        ctrlDown = true;
+        setCtrlDown(true);
         break;
       case 'a': // C-a should go after the prompt prefix...
-        if (ctrlDown) {
+        if (isCtrlDown) {
           event.preventDefault();
           const inputEl = event.target as HTMLInputElement;
           inputEl.setSelectionRange(prompt.length, prompt.length);
         }
         break;
       case 'u': // C-u delete text before the cursor (prompt excluded)
-        if (ctrlDown) {
+        if (isCtrlDown) {
+          console.log('C-u');
           event.preventDefault();
           const inputEl = event.target as HTMLInputElement;
           const { selectionStart } = inputEl;
@@ -271,7 +271,7 @@ function EventLogPanel(props: EventLogPanelProps): JSX.Element {
   const onInputKeyUp = (event: JSX.TargetedKeyboardEvent<HTMLInputElement>) => {
     switch (event.key) {
       case 'Control':
-        ctrlDown = false;
+        setCtrlDown(false);
         break;
       default:
         break;
