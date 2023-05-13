@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import * as WasmUtils from '../wasmEngine/wasmMemUtils';
 import { InputManager, KeyCode } from '../input/inputManager';
@@ -12,6 +13,7 @@ type Viewport = {
   startY: number;
   width: number;
   height: number;
+  borderColor: number;
 }
 
 type FrameBuffer = {
@@ -58,6 +60,7 @@ class RayCaster {
   private viewport: Viewport;
   private zBuffer: Float32Array;
   private frameBuffer: FrameBuffer;
+  private backgroundColor: number;
   private map: Map;
 
   public async init(cfg: RayCasterConfig) {
@@ -70,20 +73,24 @@ class RayCaster {
     this.wasmViews = this.engine.WasmViews;
     this.wasmMem = this.engine.WasmMem;
     this.initMap();
-    this.pX = 1.5;
+    this.pX = 1.0;
     this.pY = 1.5;
     this.dirX = 1;
     this.dirY = 0;
     this.planeX = 0;
     this.planeY = 0.66;
-    this.pitch = 0;
+    // this.pitch = 0; // TODO: rename this plz
     this.posZ = 0.0;
-    this.wallHeight = this.cfg.canvas.height;
+    const border = 0;
     this.viewport = {
-      startX: 0, startY: 0,
-      width: this.cfg.canvas.width,
-      height: this.cfg.canvas.height,
+      startX: border,
+      startY: border,
+      width: this.cfg.canvas.width - border * 2,
+      height: this.cfg.canvas.height - border * 2,
+      borderColor: 0xff555555,
     };
+    // this.wallHeight = this.cfg.canvas.height;
+    this.wallHeight = this.viewport.height;
     this.zBuffer = new Float32Array(this.viewport.width);
     const frameBuf = this.wasmViews.frameBufferRGBA;
     this.frameBuffer = {
@@ -95,44 +102,9 @@ class RayCaster {
       pitch: this.cfg.canvas.width,
     };
     this.initInputManager();
-  }
-
-  private initInputManager() {
-    this.inputManager = new InputManager();
-    this.inputManager.init();
-    this.key2Offset = {
-      KeyW: 0,
-      KeyS: 1,
-      KeyA: 2,
-      KeyD: 3,
-      // check mem size inputKeysSize
-    };
-    this.initInputHandlers();
-  }
-
-  private initInputHandlers() {
-    this.inputView = this.wasmViews.inputKeys;
-    const keyHandler = (key: Keys, dir: number) => () => {
-      // console.log(`update key ${key} ${dir}`);
-      this.inputView[this.key2Offset[key]] = dir;
-    };
-    const addHandlers = (key: Keys) => {
-      this.inputManager.addKeyDownHandler(key, keyHandler(key, 1));
-      this.inputManager.addKeyUpHandler(key, keyHandler(key, 0));
-    };
-    Object.entries(this.key2Offset).forEach(([key, offset]) => {
-      addHandlers(key as Keys);
-      this.inputView[offset] = 0;
-    });
-  }
-
-  public onKeyDown(key: KeyCode) {
-    // console.log(`key down ${key}`);
-    this.inputManager.onKeyDown(key);
-  }
-
-  public onKeyUp(key: KeyCode) {
-    this.inputManager.onKeyUp(key);
+    this.renderBorders();
+    this.backgroundColor = 0xff000000;
+    // this.rotate(Math.PI / 4);
   }
 
   initMap() {
@@ -178,11 +150,40 @@ class RayCaster {
     this.engine.drawFrame();
   }
 
+  private renderBorders() {
+    const { buf32, pitch } = this.frameBuffer;
+    const { startX, startY, width, height, borderColor } = this.viewport;
+    const upperLimit = startY * pitch;
+    const lowerLimit = (startY + height) * pitch;
+    buf32.fill(borderColor, 0, upperLimit);
+    buf32.fill(borderColor, lowerLimit, buf32.length);
+    for (let i = startY, offset = startY * pitch; i < startY + height; i++, offset += pitch) {
+      buf32.fill(borderColor, offset, offset + startX);
+      buf32.fill(borderColor, offset + startX + width, offset + pitch);
+    }
+ }
+
+  private renderBackground() {
+    const { buf32, pitch } = this.frameBuffer;
+    const { startX, startY, width, height } = this.viewport;
+    for (let i = startY, offset = startY * pitch; i < startY + height; i++, offset += pitch) {
+      buf32.fill(this.backgroundColor, offset + startX, offset + startX + width);
+    }
+  }
+
   private castScene() {
-    this.engine.WasmModules.engine.render();
+    // this.engine.WasmModules.engine.render();
+
+    this.renderBackground();
 
     const { startX, startY, width, height } = this.viewport;
-    const { map, pX, pY, dirX, dirY, planeX, planeY, pitch, posZ } = this;
+    const { map, pX, pY, dirX, dirY, planeX, planeY } = this;
+
+    // TODO:
+    // const mid = (startY + height / 2) | 0;
+    // this.frameBuffer.buf32.fill(0xff00ffff, mid * this.frameBuffer.pitch + startX, mid * this.frameBuffer.pitch + startX + width);
+    // this.frameBuffer.buf32.fill(0xff00ffff, startY * this.frameBuffer.pitch + startX, startY * this.frameBuffer.pitch + startX + width);
+    // this.frameBuffer.buf32.fill(0xff00ffff, (startY + height - 1) * this.frameBuffer.pitch + startX, (startY + height - 1) * this.frameBuffer.pitch + startX + width);
 
     // console.log(`px ${pX.toFixed(2)} py ${pY.toFixed(2)}`); // dirX ${dirX} dirY ${dirY}`);// planeX ${planeX} planeY ${planeY} pitch ${pitch} posZ ${posZ}`)
 
@@ -194,7 +195,7 @@ class RayCaster {
     // console.log(cameraX);
 
     const frameBufPitch = this.frameBuffer.pitch;
-    const screenStart = startX + startY * frameBufPitch;
+    const scrStartPtr = startY * frameBufPitch + startX;
 
     for (let x = 0; x < width; x++) {
       // const cameraX = 2 * x / width - 1;
@@ -274,27 +275,24 @@ class RayCaster {
 
       const stripeHeight = (this.wallHeight / perpWallDist) | 0;
 
-      const midViewY = (startY + height / 2) | 0;
+      const midY = (height / 2) | 0;
 
-      // calc wall slice top and bottom
-      let stripeStart = ((-stripeHeight / 2) | 0) + midViewY;
-      if (stripeStart < startY) {
-        stripeStart = startY;
+      let stripeStart = ((-stripeHeight / 2) | 0) + midY;
+      if (stripeStart < 0) {
+        stripeStart = 0;
       }
 
       let stripeEnd = stripeStart + stripeHeight;
-      if (stripeEnd >= startY + height) {
-        stripeEnd = startY + height - 1;
+      if (stripeEnd > height) {
+        stripeEnd = height;
       }
 
-      const colXPtr = screenStart + x;
-      let screenPtr = colXPtr + stripeStart * frameBufPitch; 
-      let numStripePixels = stripeHeight;
+      const colPtr = scrStartPtr + x;
+      let scrPtr = colPtr + stripeStart * frameBufPitch; 
 
-      while (numStripePixels--) {
-        // this.frameBuffer.data[colX + numStripePixels * pitch] = 0xff0000ff;
-        this.frameBuffer.buf32[screenPtr] = 0xff0000ff;
-        screenPtr += frameBufPitch;
+      for (let y = stripeStart; y < stripeEnd; y++) {
+        this.frameBuffer.buf32[scrPtr] = 0xff0000ff;
+        scrPtr += frameBufPitch;
       }
 
     }
@@ -311,20 +309,20 @@ class RayCaster {
       this.moveForward(moveSpeed, -1);
     }
     if (this.inputView[this.key2Offset.KeyA] !== 0) {
-      this.rotate(moveSpeed, -1);
+      this.rotate(-moveSpeed);
     }
     if (this.inputView[this.key2Offset.KeyD] !== 0) {
-      this.rotate(moveSpeed, 1);
+      this.rotate(moveSpeed);
     }
   }
 
-  private rotate(moveSpeed: number, arg1: number) {
+  private rotate(moveSpeed: number) {
     const oldDirX = this.dirX;
-    this.dirX = this.dirX * Math.cos(arg1 * moveSpeed) - this.dirY * Math.sin(arg1 * moveSpeed);
-    this.dirY = oldDirX * Math.sin(arg1 * moveSpeed) + this.dirY * Math.cos(arg1 * moveSpeed);
+    this.dirX = this.dirX * Math.cos(moveSpeed) - this.dirY * Math.sin(moveSpeed);
+    this.dirY = oldDirX * Math.sin(moveSpeed) + this.dirY * Math.cos(moveSpeed);
     const oldPlaneX = this.planeX;
-    this.planeX = this.planeX * Math.cos(arg1 * moveSpeed) - this.planeY * Math.sin(arg1 * moveSpeed);
-    this.planeY = oldPlaneX * Math.sin(arg1 * moveSpeed) + this.planeY * Math.cos(arg1 * moveSpeed);
+    this.planeX = this.planeX * Math.cos(moveSpeed) - this.planeY * Math.sin(moveSpeed);
+    this.planeY = oldPlaneX * Math.sin(moveSpeed) + this.planeY * Math.cos(moveSpeed);
   }
 
   private moveForward(moveSpeed: number, dir: number) {
@@ -332,6 +330,43 @@ class RayCaster {
     this.pY += dir * this.dirY * moveSpeed;
   }
 
+  private initInputManager() {
+    this.inputManager = new InputManager();
+    this.inputManager.init();
+    this.key2Offset = {
+      KeyW: 0,
+      KeyS: 1,
+      KeyA: 2,
+      KeyD: 3,
+      // check mem size inputKeysSize
+    };
+    this.initInputHandlers();
+  }
+
+  private initInputHandlers() {
+    this.inputView = this.wasmViews.inputKeys;
+    const keyHandler = (key: Keys, dir: number) => () => {
+      // console.log(`update key ${key} ${dir}`);
+      this.inputView[this.key2Offset[key]] = dir;
+    };
+    const addHandlers = (key: Keys) => {
+      this.inputManager.addKeyDownHandler(key, keyHandler(key, 1));
+      this.inputManager.addKeyUpHandler(key, keyHandler(key, 0));
+    };
+    Object.entries(this.key2Offset).forEach(([key, offset]) => {
+      addHandlers(key as Keys);
+      this.inputView[offset] = 0;
+    });
+  }
+
+  public onKeyDown(key: KeyCode) {
+    // console.log(`key down ${key}`);
+    this.inputManager.onKeyDown(key);
+  }
+
+  public onKeyUp(key: KeyCode) {
+    this.inputManager.onKeyUp(key);
+  }
 }
 
 export { RayCaster, RayCasterConfig };
