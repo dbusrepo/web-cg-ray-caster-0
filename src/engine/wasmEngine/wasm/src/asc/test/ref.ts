@@ -1,6 +1,6 @@
 import { myAssert } from '../myAssert';
 import { SArray, newSArray, deleteSArray } from '../sarray';
-import { Pointer } from '../Pointer';
+import { Pointer } from '../pointer';
 // import { Vec3, vec3Alloc, newVec3 } from '../vec3';
 import { logi, logf } from '../importVars';
 import {alloc} from '../workerHeapManager';
