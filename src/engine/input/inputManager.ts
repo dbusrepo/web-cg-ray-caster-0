@@ -14,7 +14,7 @@ class InputManager {
 
   public init() {}
 
-  public addKeyHandler(key: KeyCode, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
+  public addKeyHandlers(key: KeyCode, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
     this.addKeyDownHandler(key, keyDownHandler);
     this.addKeyUpHandler(key, keyUpHandler);
     postMessage({
