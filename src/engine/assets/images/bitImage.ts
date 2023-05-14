@@ -25,6 +25,18 @@ abstract class BitImage {
   get Pixels() {
     return this.pixels;
   }
+
+  set Width(w: number) {
+    this.width = w;
+  }
+
+  set Height(h: number) {
+    this.height = h;
+  }
+
+  set Pixels(p: Uint8Array) {
+    this.pixels = p;
+  }
 }
 
 export { BitImage };

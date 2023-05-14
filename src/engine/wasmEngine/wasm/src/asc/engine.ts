@@ -31,7 +31,7 @@ import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
 import { test } from './test/test';
 import { PTR_T, SIZE_T } from './memUtils';
-import { MYIMG, IMG1 } from './importImages';
+// import { MYIMG, IMG1 } from './importImages';
 
 import {
   usePalette,

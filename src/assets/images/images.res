@@ -1,2 +1,2 @@
-IMG1=samplePNGImage.png
-MYIMG=samplePNGImage2.png
+BLUESTONE=pics/bluestone.png
+GREYSTONE=pics/greystone.png

@@ -3,13 +3,13 @@
 import * as WasmUtils from './wasmMemUtils';
 import { WasmModules, WasmImports, loadWasmModules } from './wasmLoader';
 // import { syncStore, randColor, sleep } from './utils';
-// import { BitImageRGBA } from './assets/images/bitImageRGBA';
-// import { PngDecoderRGBA } from './assets/images/vivaxy-png/PngDecoderRGBA';
+
 import {
   FONT_X_SIZE,
   FONT_Y_SIZE,
   FONT_SPACING,
 } from '../../assets/fonts/font';
+
 import { syncStore } from './../utils';
 
 type WasmViews = WasmUtils.views.WasmViews;

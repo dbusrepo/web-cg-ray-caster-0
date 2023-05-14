@@ -1,2 +1,2 @@
-export declare const IMG1: u32;
-export declare const MYIMG: u32;
+export declare const BLUESTONE: u32;
+export declare const GREYSTONE: u32;

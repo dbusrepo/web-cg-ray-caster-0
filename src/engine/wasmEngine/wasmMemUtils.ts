@@ -167,6 +167,8 @@ function getMemRegionsSizesAndOffsets(
   return [regionsSizes, regionsOffsets];
 }
 
+type WasmViews = views.WasmViews;
+
 export {
   MemConfig,
   MemRegions,

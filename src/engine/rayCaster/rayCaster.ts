@@ -2,6 +2,7 @@ import assert from 'assert';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import * as WasmUtils from '../wasmEngine/wasmMemUtils';
 import { InputManager, KeyCode } from '../input/inputManager';
+import { loadTexture } from './textureUtils';
 
 type RayCasterConfig = {
   canvas: OffscreenCanvas;
@@ -54,14 +55,15 @@ class RayCaster {
   private dirY: number;
   private planeX: number;
   private planeY: number;
-  private pitch: number;
-  private posZ: number;
+  // private pitch: number;
+  // private posZ: number;
   private wallHeight: number;
   private viewport: Viewport;
   private zBuffer: Float32Array;
   private frameBuffer: FrameBuffer;
   private backgroundColor: number;
   private map: Map;
+  // private textures
 
   public async init(cfg: RayCasterConfig) {
     this.cfg = cfg;
@@ -73,6 +75,7 @@ class RayCaster {
     this.wasmViews = this.engine.WasmViews;
     this.wasmMem = this.engine.WasmMem;
     this.initMap();
+    this.initTextures();
     this.pX = 1.0;
     this.pY = 1.5;
     this.dirX = 1;
@@ -80,7 +83,7 @@ class RayCaster {
     this.planeX = 0;
     this.planeY = 0.66;
     // this.pitch = 0; // TODO: rename this plz
-    this.posZ = 0.0;
+    // this.posZ = 0.0;
     const VIEWPORT_BORDER = 0;
     this.viewport = {
       startX: VIEWPORT_BORDER,
@@ -105,6 +108,11 @@ class RayCaster {
     this.renderBorders();
     this.backgroundColor = 0xff000000;
     // this.rotate(Math.PI / 4);
+  }
+
+  initTextures() {
+    loadTexture(this.wasmViews, "pics/bluestone.png");
+    loadTexture(this.wasmViews, "pics/greystone.png");
   }
 
   initMap() {
