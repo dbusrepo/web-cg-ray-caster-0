@@ -6,14 +6,13 @@ import { StatsPanel } from '../ui/stats/statsPanel';
 import { Panel } from './panel';
 import { EnginePanelGui } from './enginePanelGui';
 import { EngineConfig } from '../engine/engine';
-import Commands from './enginePanelCommands';
-
-const buildEngineWorker = () =>
-  new Worker(new URL('../engine/engine.ts', import.meta.url));
+import EnginePanelCommands from './enginePanelCommands';
+import EngineCommands from '../engine/commands';
 
 class EnginePanel extends Panel {
   protected menuGui: EnginePanelGui;
   private engineWorker: Worker;
+  private inputKeys: Set<string> = new Set();
 
   init(config: EnginePanelConfig, stats: Stats): EnginePanel {
     super.init(
@@ -25,41 +24,45 @@ class EnginePanel extends Panel {
     return this;
   }
 
+  initInputListeners(): void {
+    type EngineInputEvents = EngineCommands.KEYUP | EngineCommands.KEYDOWN;
+
+    const ignoreKeys = () => {
+      return this.isConsoleOpen;
+    };
+
+    const addKeyListener = (type: EngineInputEvents) => (
+      this.canvasContainerEl.addEventListener(type, (event) => {
+        if (ignoreKeys() || !this.inputKeys.has(event.code)) {
+          return;
+        }
+        this.engineWorker.postMessage({
+          command: type,
+          params: event.code,
+        });
+      })
+    );
+
+    addKeyListener(EngineCommands.KEYDOWN);
+    addKeyListener(EngineCommands.KEYUP);
+  }
+
   initEngineWorker(): void {
-    this.engineWorker = buildEngineWorker();
+    this.engineWorker = new Worker(new URL('../engine/engine.ts', import.meta.url));
 
     let enginePanel = this;
 
     const commands = {
-      [Commands.UPDATE_STATS]: (values: StatsValues) => {
+      [EnginePanelCommands.UPDATE_STATS]: (values: StatsValues) => {
         enginePanel.stats.update(values);
         enginePanel.menuGui.updateFps(values[StatsNames.UFPS]);
       },
-      [Commands.EVENT]: (msg: string) => {
+      [EnginePanelCommands.EVENT]: (msg: string) => {
         // console.log(msg);
         enginePanel.eventLog?.log('event ' + msg, 'Hello ' + msg);
       },
-      [Commands.REGISTER_KEYDOWN_HANDLER]: (key: string) => {
-        enginePanel.canvasContainerEl.addEventListener('keydown', (event) => {
-          if (event.code !== key) {
-            return;
-          }
-          enginePanel.engineWorker.postMessage({
-            command: 'keydown',
-            params: key,
-          });
-        });
-      },
-      [Commands.REGISTER_KEYUP_HANDLER]: (key: string) => {
-        enginePanel.canvasContainerEl.addEventListener('keyup', (event) => {
-          if (event.code !== key) {
-            return;
-          }
-          enginePanel.engineWorker.postMessage({
-            command: 'keyup',
-            params: key,
-          });
-        });
+      [EnginePanelCommands.REGISTER_KEY_HANDLER]: (key: string) => {
+        this.inputKeys.add(key);
       },
     };
 
@@ -105,6 +108,7 @@ class EnginePanel extends Panel {
   run() {
     super.run();
     this.initEngineWorker();
+    this.initInputListeners();
     this.runEngineWorker();
   }
 }

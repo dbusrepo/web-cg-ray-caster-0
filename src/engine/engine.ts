@@ -10,7 +10,7 @@ import { StatsNames, StatsValues } from '../ui/stats/stats';
 import { mainConfig } from '../config/mainConfig';
 import * as utils from './utils';
 
-import Commands from './engineCommands';
+import Commands from './commands';
 import PanelCommands from '../panels/enginePanelCommands';
 import { KeyCode } from './input/inputManager';
 

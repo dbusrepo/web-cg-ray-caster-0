@@ -14,22 +14,23 @@ class InputManager {
 
   public init() {}
 
-  public addKeyDownHandler(key: KeyCode, keyHandler: KeyHandler) {
-    this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? [];
-    this.keyDownHandlers[key].push(keyHandler);
+  public addKeyHandler(key: KeyCode, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
+    this.addKeyDownHandler(key, keyDownHandler);
+    this.addKeyUpHandler(key, keyUpHandler);
     postMessage({
-      command: Commands.REGISTER_KEYDOWN_HANDLER,
+      command: Commands.REGISTER_KEY_HANDLER,
       params: key,
     });
   }
 
-  public addKeyUpHandler(key: KeyCode, keyHandler: KeyHandler) {
+  private addKeyDownHandler(key: KeyCode, keyHandler: KeyHandler) {
+    this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? [];
+    this.keyDownHandlers[key].push(keyHandler);
+  }
+
+  private addKeyUpHandler(key: KeyCode, keyHandler: KeyHandler) {
     this.keyUpHandlers[key] = this.keyUpHandlers[key] ?? [];
     this.keyUpHandlers[key].push(keyHandler);
-    postMessage({
-      command: Commands.REGISTER_KEYUP_HANDLER,
-      params: key,
-    });
   }
 
   public onKeyDown(key: KeyCode) {

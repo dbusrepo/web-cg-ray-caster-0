@@ -349,12 +349,11 @@ class RayCaster {
       // console.log(`update key ${key} ${dir}`);
       this.inputView[this.key2Offset[key]] = dir;
     };
-    const addHandlers = (key: Keys) => {
-      this.inputManager.addKeyDownHandler(key, keyHandler(key, 1));
-      this.inputManager.addKeyUpHandler(key, keyHandler(key, 0));
+    const addKeyHandlers = (key: Keys) => {
+      this.inputManager.addKeyHandler(key, keyHandler(key, 1), keyHandler(key, 0));
     };
     Object.entries(this.key2Offset).forEach(([key, offset]) => {
-      addHandlers(key as Keys);
+      addKeyHandlers(key as Keys);
       this.inputView[offset] = 0;
     });
   }
