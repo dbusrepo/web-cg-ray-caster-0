@@ -81,7 +81,7 @@ class Main {
     const panelConfig: EnginePanelConfig = {
       ...enginePanelConfig,
       // startViewMode: StartViewMode.FULL_WIN,
-      startViewMode: StartViewMode.WIN,
+      // startViewMode: StartViewMode.WIN,
       title,
       focusOnStart: true,
       eventLogConfig: {

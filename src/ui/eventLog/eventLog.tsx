@@ -59,7 +59,7 @@ class EventLog {
     // let counter = 0;
     // setInterval(() => {
     //   const val = counter++; //Math.round(Math.random()*1000);
-    //   this.log('event ' + val, this._cfg.helloMsg + ' ' + val);
+    //   this.log('event ' + val, 'Hello' + ' ' + val);
     // }, 1000);
 
     // setTimeout(() => {
@@ -71,7 +71,7 @@ class EventLog {
     // }, 1000);
     // }, 1000);
 
-    // for (let i = 0; i < 10; ++i) {
+    // for (let i = 0; i < 20; ++i) {
     //   const val = i; // Math.round(Math.random() * 1000);
     //   this.log('event ' + val, 'Hello ' + val);
     //   // this.log('', 'Hello ' + val);

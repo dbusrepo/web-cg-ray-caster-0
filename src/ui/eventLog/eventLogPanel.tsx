@@ -285,7 +285,7 @@ function EventLogPanel(props: EventLogPanelProps): JSX.Element {
 
   const inputStyle = buildInputStyle(lineHeightStyle, fontSizeStyle);
 
-  const logListStyle = buildHistoryStyle(parentContainer, lineHeight);
+  const logListStyle = {}; // buildHistoryStyle(parentContainer, lineHeight);
 
   const searchTerm = input.substring(prompt.length);
 
@@ -360,6 +360,7 @@ const buildHistoryStyle = (
 
   const historyStyle = {
     height: `${Math.round(histHeightPerc)}%`,
+    // height: `${histHeightPerc}%`,
   };
 
   return historyStyle;

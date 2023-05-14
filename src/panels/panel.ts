@@ -559,7 +559,7 @@ abstract class Panel {
       'event-log-bottom-panel',
       'event-log-bottom-panel-win',
     );
-    // width alread 100% see css
+    // width 100% see css
     this.eventLogBottomPanel.style.height = `${
       this.config.eventLogConfig.percHeightWin *
       this.cfg.canvasDisplayHeightWinMode
@@ -668,7 +668,6 @@ abstract class Panel {
       this.canvasDisplayHeightPercFull =
         1 - this.config.eventLogConfig.percHeightFull;
     }
-    // set the css value for the canvas container
     this.canvasContainer.style.height = `${
       this.canvasDisplayHeightPercFull * 100
     }%`;
