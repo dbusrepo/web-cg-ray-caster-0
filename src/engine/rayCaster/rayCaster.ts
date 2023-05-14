@@ -81,13 +81,13 @@ class RayCaster {
     this.planeY = 0.66;
     // this.pitch = 0; // TODO: rename this plz
     this.posZ = 0.0;
-    const border = 0;
+    const VIEWPORT_BORDER = 0;
     this.viewport = {
-      startX: border,
-      startY: border,
-      width: this.cfg.canvas.width - border * 2,
-      height: this.cfg.canvas.height - border * 2,
-      borderColor: 0xff555555,
+      startX: VIEWPORT_BORDER,
+      startY: VIEWPORT_BORDER,
+      width: this.cfg.canvas.width - VIEWPORT_BORDER * 2,
+      height: this.cfg.canvas.height - VIEWPORT_BORDER * 2,
+      borderColor: 0xff444444,
     };
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.height;
