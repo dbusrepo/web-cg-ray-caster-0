@@ -9,4 +9,6 @@ npm-debug.log
 *.wasm
 *.map
 **/wasm/src/asc/**/*.d
+**/wasm/src/asc/**/_gen*.*
 build_flags
+src/assets/build

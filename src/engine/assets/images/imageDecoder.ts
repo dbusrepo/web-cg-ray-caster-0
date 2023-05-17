@@ -9,7 +9,7 @@ type ImageInfo = {
 
 interface ImageDecoder {
   readInfo(input: ArrayBuffer): ImageInfo;
-  read(input: ArrayBuffer, output: BitImage): void;
+  read(input: ArrayBuffer, outImage: BitImage): void;
 }
 
 export { ImageDecoder, ImageInfo };

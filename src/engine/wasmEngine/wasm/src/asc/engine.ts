@@ -5,7 +5,6 @@ import {
   alloc,
   free,
 } from './workerHeapManager';
-import { heapAlloc } from './heapAlloc';
 // import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
 import * as draw from './draw';
@@ -31,7 +30,8 @@ import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
 import { test } from './test/test';
 import { PTR_T, SIZE_T } from './memUtils';
-// import { MYIMG, IMG1 } from './importImages';
+
+// import { MYIMG, IMG1 } from './_genImportImages';
 
 import {
   usePalette,
@@ -43,8 +43,10 @@ import {
 } from './importVars';
 import { stringsDataPtr, stringsDataSize } from './importVars';
 import { FONT_Y_SIZE, fontCharsPtr, fontCharsSize } from './importVars';
-import * as strings from './importStrings';
-import { inputKeysPtr } from './importVars';
+// import * as strings from './_genImportStrings';
+
+// import { inputKeysPtr } from './genImportVars';
+
 // import { memCountersPtr, memCountersSize } from './importVars';
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
@@ -73,13 +75,6 @@ function init(): void {
   // test();
 }
 
-function allocMap(width: usize, height: usize): PTR_T {
-  const size = width * height;
-  const ptr = heapAlloc(size);
-  memory.fill(ptr, 0, size);
-  return ptr;
-}
-
 function render(): void {
 
   const r = utils.range(workerIdx, numWorkers, frameHeight);
@@ -88,8 +83,6 @@ function render(): void {
 
   // const t0 = <u64>process.hrtime();
   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
-  // draw.clearBg(s, e, 0xff_33_33_33); // ABGR
-
   // const t1 = <u64>process.hrtime();
   // store<u64>(hrTimerPtr, t1 - t0);
 
@@ -230,4 +223,4 @@ function run(): void {
 //   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
 // }
 
-export { init, render, run, allocMap };
+export { init, render, run };

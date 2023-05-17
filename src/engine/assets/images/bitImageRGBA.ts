@@ -3,10 +3,22 @@ import { BitImage } from './bitImage';
 const BPP = 4;
 
 class BitImageRGBA extends BitImage {
-  protected allocPixels(): void {
-    const size = BPP * this.width * this.height;
-    this.pixels= new Uint8Array(size);
+
+  private buf32: Uint32Array;
+
+  get Buf8() {
+    return this.buf8;
   }
+
+  set Buf8(p: Uint8Array) {
+    this.buf8 = p;
+    this.buf32 = new Uint32Array(this.buf8.buffer, this.buf8.byteOffset, this.buf8.byteLength / 4);
+  }
+  
+  get Buf32() {
+    return this.buf32;
+  }
+
 }
 
-export { BitImageRGBA };
+export { BitImageRGBA, BPP };

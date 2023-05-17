@@ -1,18 +1,9 @@
 abstract class BitImage {
   protected width: number;
   protected height: number;
-  protected pixels: Uint8Array;
+  protected buf8: Uint8Array;
 
   // constructor() {}
-
-  // call it before insert data
-  setSize(w: number, h: number) {
-    this.width = w;
-    this.height = h;
-    this.allocPixels();
-  }
-
-  protected abstract allocPixels(): void;
 
   get Width() {
     return this.width;
@@ -22,8 +13,8 @@ abstract class BitImage {
     return this.height;
   }
 
-  get Pixels() {
-    return this.pixels;
+  get Buf8() {
+    return this.buf8;
   }
 
   set Width(w: number) {
@@ -34,8 +25,8 @@ abstract class BitImage {
     this.height = h;
   }
 
-  set Pixels(p: Uint8Array) {
-    this.pixels = p;
+  set Buf8(p: Uint8Array) {
+    this.buf8 = p;
   }
 }
 

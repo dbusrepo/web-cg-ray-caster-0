@@ -33,8 +33,8 @@ function writeImages(
     wasmImagesIndex[WIDTHS_OFFS + i] = image.Width;
     wasmImagesIndex[HEIGHTS_OFFS + i] = image.Height;
     wasmImagesIndex[PTR_2_IMGS_OFFS + i] = imgOffset;
-    wasmImagesPixels.set(image.Pixels, imgOffset);
-    imgOffset += image.Pixels.length;
+    wasmImagesPixels.set(image.Buf8, imgOffset);
+    imgOffset += image.Buf8.length;
   }
 }
 

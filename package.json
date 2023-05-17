@@ -25,7 +25,7 @@
     "serve": "webpack-dev-server",
     "launch": "npm run cleandist && npm run build_proj && npm run serve",
     "prod": "webpack --production",
-    "clean": "rimraf dist/ && cd src/engine/wasmEngine/wasm && make clean",
+    "clean": "rimraf dist/ && (cd src/assets/ && make clean) && (cd src/engine/wasmEngine/wasm && make clean)",
     "cleandist": "rimraf dist/",
     "ascv": "asc --version",
     "build": "npm run install-dependencies && npm run build_proj",

@@ -1,11 +1,9 @@
 import assert from 'assert';
 import { decodeImageInfo, decode } from './decode';
-import { BitImageRGBA } from '../bitImageRGBA';
+import { BitImageRGBA, BPP } from '../bitImageRGBA';
 import { COLOR_TYPES } from './helpers/color-types';
 import { PngDecoder } from '../pngDecoder';
 import { ImageInfo } from '../imageDecoder';
-
-const BPP = 4;
 
 class PngDecoderRGBA implements PngDecoder {
   readInfo(input: ArrayBuffer): ImageInfo {
@@ -21,18 +19,21 @@ class PngDecoderRGBA implements PngDecoder {
     };
   }
 
-  read(input: ArrayBuffer, output: BitImageRGBA): void {
+  read(input: ArrayBuffer, outImage: BitImageRGBA): void {
     // this.checkType(input);
     const metadata = decode(input);
     const { width, height, data: sourcePixels } = metadata;
     // console.log(sourcePixels);
-    output.setSize(width, height);
+    outImage.Width = width;
+    outImage.Height = height;
+    const imageBuffer = new Uint8Array(width * height * BPP);
     switch (metadata.colorType) {
       case COLOR_TYPES.TRUE_COLOR_WITH_ALPHA:
       case COLOR_TYPES.TRUE_COLOR: // alpha = 255 in sourcePixels
         {
           // console.log(metdata.colorType);
-          output.Pixels.set(sourcePixels);
+          imageBuffer.set(sourcePixels);
+          outImage.Buf8 = imageBuffer;
         }
         break;
       // TODO other color types ?

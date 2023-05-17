@@ -106,6 +106,7 @@ else
 endif
 
 clean-asc-dep:
+	@echo 'Cleaning asc dependency files...'
 	rm -f $(ASC_DEP_FILES)
 
 clean-asc: clean-asc-dep
@@ -115,6 +116,7 @@ clean-wat:
 	rm -rf $(BUILD_DIR)/wat
 
 clean: clean-asc-dep
+	@echo 'Cleaning asc build files...'
 	rm -rf $(BUILD_DIR)/
 
 # SOURCE_ASC_PATHS = $(wildcard $(SOURCE_DIR)/asc/*.ts)

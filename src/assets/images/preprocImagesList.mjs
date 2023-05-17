@@ -46,7 +46,7 @@ const writeOpts = {
 
 const warnMsg = '// Do not modify. This file is auto generated from images.res with make';
 const getImagesUrlsPrefix = `const getImagesPaths = async () => {
-  const paths = [`;
+  const paths: Promise<typeof import("*.png")>[] = [`;
 const getImagesUrlsSuffix = `  ];
   return (await Promise.all(paths)).map((imp) => imp.default);
 };\n`;
