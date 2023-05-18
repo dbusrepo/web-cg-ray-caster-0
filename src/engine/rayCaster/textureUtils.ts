@@ -1,4 +1,4 @@
-import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import { BitImageRGBA, BPP } from '../assets/images/bitImageRGBA';
 import { WasmViews} from '../wasmEngine/wasmViews';
 import { images } from '../../assets/build/images';
 
@@ -28,7 +28,7 @@ const loadTexture = (wasmViews: WasmViews, imageName: string): BitImageRGBA => {
   const bitImage = new BitImageRGBA();
   bitImage.Width = width;
   bitImage.Height = height;
-  bitImage.Buf8 = new Uint8Array(imagesPixels, offset, width * height * 4);
+  bitImage.Buf8 = new Uint8Array(imagesPixels, offset, width * height * BPP);
 
   return bitImage;
 } 

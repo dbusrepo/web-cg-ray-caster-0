@@ -2,6 +2,7 @@ import assert from 'assert';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import * as WasmUtils from '../wasmEngine/wasmMemUtils';
 import { InputManager, KeyCode } from '../input/inputManager';
+import { BitImageRGBA, BPP } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 
 type RayCasterConfig = {
@@ -63,7 +64,7 @@ class RayCaster {
   private frameBuffer: FrameBuffer;
   private backgroundColor: number;
   private map: Map;
-  // private textures
+  private textures: BitImageRGBA[];
 
   public async init(cfg: RayCasterConfig) {
     this.cfg = cfg;
@@ -105,14 +106,18 @@ class RayCaster {
       pitch: this.cfg.canvas.width,
     };
     this.initInputManager();
+
     this.renderBorders();
-    this.backgroundColor = 0xff000000;
+    this.backgroundColor = 0xff000000; // TODO:
+    // this.renderBackground();
     // this.rotate(Math.PI / 4);
+    this.castScene(); // TODO:
   }
 
   initTextures() {
-    loadTexture(this.wasmViews, "pics/bluestone.png");
-    loadTexture(this.wasmViews, "pics/greystone.png");
+    this.textures = [];
+    this.textures[0] = loadTexture(this.wasmViews, "pics/bluestone.png");
+    // this.textures[1] = loadTexture(this.wasmViews, "pics/greystone.png");
   }
 
   initMap() {
@@ -149,7 +154,7 @@ class RayCaster {
   public render() {
     this.engine.syncWorkers();
     try {
-      this.castScene();
+      // this.castScene();
     }
     catch (e) {
       console.error(e);
@@ -205,7 +210,7 @@ class RayCaster {
     const frameBufPitch = this.frameBuffer.pitch;
     const scrStartPtr = startY * frameBufPitch + startX;
 
-    for (let x = 0; x < width; x++) {
+    for (let x = 10; x < width; x++) {
       // const cameraX = 2 * x / width - 1;
       const cameraX = 2 * x / (width - 1) - 1; // TODO:
       const rayDirX = dirX + planeX * cameraX;
@@ -281,28 +286,59 @@ class RayCaster {
 
       this.zBuffer[x] = perpWallDist;
 
-      const stripeHeight = (this.wallHeight / perpWallDist) | 0;
+      const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
       const midY = (height / 2) | 0;
 
-      let stripeStart = ((-stripeHeight / 2) | 0) + midY;
-      if (stripeStart < 0) {
-        stripeStart = 0;
+      let wallTop = ((-wallSliceHeight / 2) | 0) + midY;
+      if (wallTop < 0) {
+        wallTop = 0;
       }
 
-      let stripeEnd = stripeStart + stripeHeight;
-      if (stripeEnd > height) {
-        stripeEnd = height;
+      let wallBottom = wallTop + wallSliceHeight;
+      if (wallBottom > height) {
+        wallBottom = height;
       }
+
+      const texId = map.data[mapIdx] - 1;
+      assert(texId >= 0 && texId < this.textures.length, `invalid texture id ${texId}`);
+      const texture = this.textures[texId];
+
+      const wallX = (side === 0 ? pY + perpWallDist * rayDirY : pX + perpWallDist * rayDirX) % 1;
+
+      const texWidth = texture.Width
+
+      let texX = (wallX * texWidth) | 0;
+      if (side === 0 && rayDirX > 0) {
+        texX = texWidth - texX - 1;
+      }
+      if (side === 1 && rayDirY < 0) {
+        texX = texWidth - texX - 1;
+      }
+
+      const step = 1. * texture.Height / wallSliceHeight;
+
+      let texPos = (wallTop - midY + wallSliceHeight / 2) * step;
 
       const colPtr = scrStartPtr + x;
-      let scrPtr = colPtr + stripeStart * frameBufPitch; 
+      let scrPtr = colPtr + wallTop * frameBufPitch; 
 
-      for (let y = stripeStart; y < stripeEnd; y++) {
-        this.frameBuffer.buf32[scrPtr] = 0xff0000ff;
+      for (let y = wallTop; y < wallBottom; y++) {
+        const texY = texPos | 0;
+        texPos += step;
+        const color = texture.Buf32[texY * texWidth + texX];
+        this.frameBuffer.buf32[scrPtr] = color;
         scrPtr += frameBufPitch;
       }
 
+      // // solid color
+      // for (let y = wallTop; y < wallBottom; y++) {
+      //   this.frameBuffer.buf32[scrPtr] = 0xff0000ff;
+      //   scrPtr += frameBufPitch;
+      // }
+
+      // texture wall
+      // const step = texHeight / lineHeight;
     }
   }
 
