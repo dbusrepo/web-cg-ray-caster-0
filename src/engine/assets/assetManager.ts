@@ -3,7 +3,7 @@ import * as loadUtils from './loadUtils';
 import {
   // images as sourceImages,
   getImagesPaths,
-} from '../../assets/images/imagesList';
+} from '../../assets/build/images';
 import { loadImages } from './images/utils';
 import { BitImage } from './images/bitImage';
 

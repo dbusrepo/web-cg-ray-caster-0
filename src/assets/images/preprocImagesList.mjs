@@ -82,7 +82,7 @@ try {
     }
     imgsKeys[imgKey] = 1;
     objImagesBodyStr += `${first ? '':'\n'}  ${imgKey}: '${imgFile}',`;
-    const importStmt = ` import('./${imgFile}'),`;
+    const importStmt = ` import('../images/${imgFile}'),`;
     getImagesUrlsBodyStr += `${first ? '':'\n'}   ${importStmt}`;
     ascIndicesObjBodyStr += `${first ? '':'\n'}  ${imgKey}: ${ascIdx},`;
     ascIdx++;

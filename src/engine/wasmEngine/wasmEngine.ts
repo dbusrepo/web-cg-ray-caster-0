@@ -6,7 +6,8 @@ import { WasmModules } from './wasmLoader';
 import WasmWorkerCommands from './wasmWorkerCommands';
 import { WasmWorkerConfig } from './wasmWorker';
 import { FONT_Y_SIZE, fontChars } from '../../assets/fonts/font';
-import { stringsArrayData } from '../../assets/strings/strings';
+import { stringsArrayData } from '../../assets/build/strings';
+import { InputManager, KeyCode } from '../input/inputManager';
 import * as utils from './../utils';
 import {
   // BPP_PAL,
