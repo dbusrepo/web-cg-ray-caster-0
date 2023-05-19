@@ -14,16 +14,15 @@ const loadTexture = (wasmViews: WasmViews, imageName: string): BitImageRGBA => {
   }
 
   const numImages = imagesList.length;
-  const imagesIndex = wasmViews.imagesIndex;
-  const offsets_offset = 0; // image pixel offsets
-  const widths_offset = offsets_offset + numImages;
-  const heights_offset = widths_offset + numImages;
+  const { imagesIndex, imagesPixels } = wasmViews;
+  // get images index region offsets (address, widths, heights)
+  const address_index = 0;
+  const width_index = address_index + numImages;
+  const heigth_index = width_index + numImages;
 
-  const offset = imagesIndex[offsets_offset + imageIdx];
-  const width = imagesIndex[widths_offset + imageIdx];
-  const height = imagesIndex[heights_offset + imageIdx];
-
-  const imagesPixels = wasmViews.imagesPixels;
+  const offset = imagesIndex[address_index + imageIdx];
+  const width = imagesIndex[width_index + imageIdx];
+  const height = imagesIndex[heigth_index + imageIdx];
 
   const bitImage = new BitImageRGBA();
   bitImage.Width = width;

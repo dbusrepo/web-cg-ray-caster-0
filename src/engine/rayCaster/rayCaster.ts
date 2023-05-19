@@ -111,13 +111,14 @@ class RayCaster {
     this.backgroundColor = 0xff000000; // TODO:
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
-    this.castScene(); // TODO:
+    // this.castScene(); // TODO:
   }
 
   initTextures() {
     this.textures = [];
-    this.textures[0] = loadTexture(this.wasmViews, "pics/bluestone.png");
+    // this.textures[0] = loadTexture(this.wasmViews, "pics/bluestone.png");
     // this.textures[1] = loadTexture(this.wasmViews, "pics/greystone.png");
+    this.textures[0] = loadTexture(this.wasmViews, "pics/colorstone.png");
   }
 
   initMap() {
@@ -154,7 +155,7 @@ class RayCaster {
   public render() {
     this.engine.syncWorkers();
     try {
-      // this.castScene();
+      this.castScene();
     }
     catch (e) {
       console.error(e);
@@ -210,7 +211,7 @@ class RayCaster {
     const frameBufPitch = this.frameBuffer.pitch;
     const scrStartPtr = startY * frameBufPitch + startX;
 
-    for (let x = 10; x < width; x++) {
+    for (let x = 0; x < width; x++) {
       // const cameraX = 2 * x / width - 1;
       const cameraX = 2 * x / (width - 1) - 1; // TODO:
       const rayDirX = dirX + planeX * cameraX;
@@ -300,7 +301,7 @@ class RayCaster {
         wallBottom = height;
       }
 
-      const texId = map.data[mapIdx] - 1;
+      const texId = 0; //map.data[mapIdx] - 1;
       assert(texId >= 0 && texId < this.textures.length, `invalid texture id ${texId}`);
       const texture = this.textures[texId];
 
@@ -408,6 +409,7 @@ class RayCaster {
   }
 
   public onKeyUp(key: KeyCode) {
+    // console.log(`key down ${up}`);
     this.inputManager.onKeyUp(key);
   }
 }
