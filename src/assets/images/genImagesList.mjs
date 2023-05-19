@@ -34,7 +34,7 @@ const checkArgs = () => {
 checkArgs();
 
 // example call from cli in the same dir of the script: 
-// $ node preprocImagesList.mjs images.res imagesList.ts <ascfile>.ts
+// $ node genImagesList.mjs images.res imagesList.ts <ascfile>.ts
 // if from another dir use the rel path for the script and the other args
 const IN_FILE = srcFile; // path.join(__dirname, srcFile);
 const OUT_FILE = outFileTs; // path.join(__dirname, outFile);
@@ -57,7 +57,9 @@ const imagesObjSuffix = `};\n`;
 const ascImagesIndexesObjPrefix = `const ascImportImages = {`;
 const ascImagesIndexesObjSuffix = `};\n`;
 
-const suffix = 'export { images, getImagesPaths, ascImportImages };';
+const numImages = `const numImages = Object.keys(images).length;\n`;
+
+const suffix = 'export { numImages, images, getImagesPaths, ascImportImages };';
 
 try {
   console.log(IN_FILE);
@@ -100,6 +102,7 @@ ${imagesObjSuffix}
 ${ascImagesIndexesObjPrefix}
 ${ascIndicesObjBodyStr}
 ${ascImagesIndexesObjSuffix}
+${numImages}
 ${suffix}
 `;
 

@@ -6,8 +6,8 @@ ASC_DIR := ../engine/wasmEngine/wasm/src/asc
 IMAGES_DIR := ./images
 STRINGS_DIR := ./strings
 
-IMAGES_SCRIPT := $(IMAGES_DIR)/preprocImagesList.mjs
-STRINGS_SCRIPT := $(STRINGS_DIR)/preprocSringsList.mjs
+IMAGES_SCRIPT := $(IMAGES_DIR)/genImagesList.mjs
+STRINGS_SCRIPT := $(STRINGS_DIR)/genStringsList.mjs
 
 IMAGES_IN := $(IMAGES_DIR)/images.res
 STRINGS_IN := $(STRINGS_DIR)/strings.res

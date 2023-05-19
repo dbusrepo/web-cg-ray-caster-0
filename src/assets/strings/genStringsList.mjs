@@ -58,7 +58,9 @@ const stringsByteArrSuffix = `]);\n`;
 const ascStringsIndexesObjPrefix = `const ascImportStrings = {`;
 const ascStringsIndexesObjSuffix= `};\n`;
 
-const suffix = 'export { strings, stringsArrayData, ascImportStrings };';
+const numStrings = `const numStrings = Object.keys(strings).length;\n`;
+
+const suffix = 'export { numStrings, strings, stringsArrayData, ascImportStrings };';
 
 // https://stackoverflow.com/questions/14313183/javascript-regex-how-do-i-check-if-the-string-is-ascii-only
 function isASCII(str, extended) {
@@ -126,6 +128,7 @@ ${stringsByteArrSuffix}
 ${ascStringsIndexesObjPrefix}
 ${ascStringsOffsObjBodyStr}
 ${ascStringsIndexesObjSuffix}
+${numStrings}
 ${suffix}
 `;
 // strings index not generated
