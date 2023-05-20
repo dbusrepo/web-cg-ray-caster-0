@@ -154,18 +154,18 @@ class WasmEngine {
   }
 
   private initWasmFontChars() {
-    WasmUtils.initFontChars.writeFontCharsData(this.wasmRun.WasmViews.fontChars);
+    WasmUtils.initFontChars.copyFontChars2WasmMem(this.wasmRun.WasmViews.fontChars);
   }
 
   private initWasmStrings() {
-    WasmUtils.initStrings.writeStringsData(this.wasmRun.WasmViews.strings);
+    WasmUtils.initStrings.copyStrings2WasmMem(this.wasmRun.WasmViews.strings);
   }
 
   private initWasmImages(): void {
-    WasmUtils.initImages.writeImages(
+    WasmUtils.initImages.copyImages2WasmMem(
       this.assetManager.Images,
-      this.wasmRun.WasmViews.imagesPixels,
       this.wasmRun.WasmViews.imagesIndex,
+      this.wasmRun.WasmViews.imagesPixels,
     );
   }
 

@@ -12,9 +12,9 @@ import { stringsArrayData } from '../../assets/build/strings';
 //   return stringsArrayDataIndex.byteLength;
 // }
 
-function writeStringsData(stringsView: Uint8Array) {
+function copyStrings2WasmMem(stringsView: Uint8Array) {
   // stringsIndexView.set(stringsArrayDataIndex);
   stringsView.set(stringsArrayData);
 }
 
-export { writeStringsData };
+export { copyStrings2WasmMem };

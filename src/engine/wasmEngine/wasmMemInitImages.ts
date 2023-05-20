@@ -17,25 +17,25 @@ function getImagesIndexSize() {
   return (OFFS_IMG_SIZE + WIDTH_SIZE + HEIGHT_SIZE) * numImages;
 }
 
-function writeImages(
+function copyImages2WasmMem(
   images: BitImage[],
-  wasmImagesPixels: Uint8Array,
-  wasmImagesIndex: Uint32Array,
+  imagesIndex: Uint32Array,
+  imagesPixels: Uint8Array,
 ) {
-  const numImages = images.length;
-  const PTR_2_IMGS_OFFS = 0;
-  const WIDTHS_OFFS = PTR_2_IMGS_OFFS + numImages;
-  const HEIGHTS_OFFS = WIDTHS_OFFS + numImages;
-  let imgOffset = 0;
-  for (let i = 0; i < images.length; ++i) {
+  const { length: numImages } = images;
+  const address_index = 0;
+  const width_index = address_index + numImages;
+  const height_index = width_index + numImages;
+  let imageAddress = 0;
+  for (let i = 0, { length } = images; i < length; ++i) {
     // Atomics.store(imageIndex, i, imagesOffsets[i]);
     const image = images[i];
-    wasmImagesIndex[WIDTHS_OFFS + i] = image.Width;
-    wasmImagesIndex[HEIGHTS_OFFS + i] = image.Height;
-    wasmImagesIndex[PTR_2_IMGS_OFFS + i] = imgOffset;
-    wasmImagesPixels.set(image.Buf8, imgOffset);
-    imgOffset += image.Buf8.length;
+    imagesIndex[width_index + i] = image.Width;
+    imagesIndex[height_index + i] = image.Height;
+    imagesIndex[address_index + i] = imageAddress;
+    imagesPixels.set(image.Buf8, imageAddress);
+    imageAddress += image.Buf8.length;
   }
 }
 
-export { getImagesIndexSize, writeImages };
+export { getImagesIndexSize, copyImages2WasmMem };

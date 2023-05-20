@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { FONT_X_SIZE, fontChars } from '../../assets/fonts/font';
 
-function writeFontCharsData(fontCharsView: Uint8Array) {
+function copyFontChars2WasmMem(fontCharsView: Uint8Array) {
   assert(FONT_X_SIZE === 8);
   let offset = 0;
   for (let ch of fontChars) {
@@ -11,4 +11,4 @@ function writeFontCharsData(fontCharsView: Uint8Array) {
   }
 }
 
-export { writeFontCharsData };
+export { copyFontChars2WasmMem };
