@@ -1,6 +1,6 @@
 import { BitImage } from './bitImage';
 
-const BPP = 4;
+const BPP_RGBA = 4;
 
 class BitImageRGBA extends BitImage {
 
@@ -12,7 +12,7 @@ class BitImageRGBA extends BitImage {
 
   set Buf8(p: Uint8Array) {
     this.buf8 = p;
-    this.buf32 = new Uint32Array(this.buf8.buffer, this.buf8.byteOffset, this.buf8.byteLength / 4);
+    this.buf32 = new Uint32Array(this.buf8.buffer, this.buf8.byteOffset, this.buf8.byteLength / BPP_RGBA);
   }
   
   get Buf32() {
@@ -21,4 +21,4 @@ class BitImageRGBA extends BitImage {
 
 }
 
-export { BitImageRGBA, BPP };
+export { BitImageRGBA, BPP_RGBA };

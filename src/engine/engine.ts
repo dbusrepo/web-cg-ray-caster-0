@@ -18,8 +18,6 @@ import { RayCaster } from './rayCaster/rayCaster';
 
 type EngineConfig = {
   canvas: OffscreenCanvas;
-  sendStats: boolean;
-  // usePalette: boolean; // TODO move to def config?
 };
 
 class Engine {
@@ -46,10 +44,6 @@ class Engine {
       numAuxWorkers: mainConfig.numWorkers,
     });
   }
-
-  // private getBPP(): number {
-  //   return this.cfg.usePalette ? BPP_PAL : BPP_RGBA;
-  // }
 
   public run(): void {
     let lastFrameStartTime: number;
@@ -187,28 +181,26 @@ class Engine {
         fpsArr[st_idx] = fps;
         rpsArr[st_idx] = rps;
         upsArr[st_idx] = ups;
-        if (this.cfg.sendStats) {
-          const avgFps = utils.arrAvg(fpsArr, statsCnt);
-          const avgRps = utils.arrAvg(rpsArr, statsCnt);
-          const avgUps = utils.arrAvg(upsArr, statsCnt);
-          const avgFrameTime = utils.arrAvg(frameTimeArr, renderCnt);
-          let avgUFps = avgFrameTime === 0 ? 0 : MILLI_IN_SEC / avgFrameTime;
-          // const workersHeapMem = this._wasmMemViews.workersMemCounters.reduce(
-          //   (tot, cnt) => tot + cnt,
-          //   0,
-          // );
-          const stats: StatsValues = {
-            [StatsNames.FPS]: avgFps,
-            [StatsNames.RPS]: avgRps,
-            [StatsNames.UPS]: avgUps,
-            [StatsNames.UFPS]: avgUFps,
-            // [StatsNames.WASM_HEAP]: workersHeapMem,
-          };
-          postMessage({
-            command: PanelCommands.UPDATE_STATS,
-            params: stats,
-          });
-        }
+        const avgFps = utils.arrAvg(fpsArr, statsCnt);
+        const avgRps = utils.arrAvg(rpsArr, statsCnt);
+        const avgUps = utils.arrAvg(upsArr, statsCnt);
+        const avgFrameTime = utils.arrAvg(frameTimeArr, renderCnt);
+        let avgUFps = avgFrameTime === 0 ? 0 : MILLI_IN_SEC / avgFrameTime;
+        // const workersHeapMem = this._wasmMemViews.workersMemCounters.reduce(
+        //   (tot, cnt) => tot + cnt,
+        //   0,
+        // );
+        const stats: StatsValues = {
+          [StatsNames.FPS]: avgFps,
+          [StatsNames.RPS]: avgRps,
+          [StatsNames.UPS]: avgUps,
+          [StatsNames.UFPS]: avgUFps,
+          // [StatsNames.WASM_HEAP]: workersHeapMem,
+        };
+        postMessage({
+          command: PanelCommands.UPDATE_STATS,
+          params: stats,
+        });
       }
     };
 

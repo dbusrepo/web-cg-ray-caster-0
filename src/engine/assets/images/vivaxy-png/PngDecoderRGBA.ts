@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { decodeImageInfo, decode } from './decode';
-import { BitImageRGBA, BPP } from '../bitImageRGBA';
+import { BitImageRGBA, BPP_RGBA } from '../bitImageRGBA';
 import { COLOR_TYPES } from './helpers/color-types';
 import { PngDecoder } from '../pngDecoder';
 import { ImageInfo } from '../imageDecoder';
@@ -15,7 +15,7 @@ class PngDecoderRGBA implements PngDecoder {
       width: imgInfo[0],
       height: imgInfo[1],
       depth: imgInfo[2],
-      bpp: BPP,
+      bpp: BPP_RGBA,
     };
   }
 
@@ -26,7 +26,7 @@ class PngDecoderRGBA implements PngDecoder {
     // console.log(sourcePixels);
     outImage.Width = width;
     outImage.Height = height;
-    const imageBuffer = new Uint8Array(width * height * BPP);
+    const imageBuffer = new Uint8Array(width * height * BPP_RGBA);
     switch (metadata.colorType) {
       case COLOR_TYPES.TRUE_COLOR_WITH_ALPHA:
       case COLOR_TYPES.TRUE_COLOR: // alpha = 255 in sourcePixels

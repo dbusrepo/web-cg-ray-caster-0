@@ -2,7 +2,7 @@ import assert from 'assert';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import * as WasmUtils from '../wasmEngine/wasmMemUtils';
 import { InputManager, KeyCode } from '../input/inputManager';
-import { BitImageRGBA, BPP } from '../assets/images/bitImageRGBA';
+import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 

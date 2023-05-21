@@ -15,12 +15,7 @@ class EnginePanel extends Panel {
   private inputKeys: Set<string> = new Set();
 
   init(config: EnginePanelConfig, stats: Stats): EnginePanel {
-    super.init(
-      {
-        ...config,
-      },
-      stats,
-    );
+    super.init({ ...config }, stats);
     return this;
   }
 
@@ -89,8 +84,6 @@ class EnginePanel extends Panel {
     const offCanvas = this.canvasEl.transferControlToOffscreen();
     const engineConfig: EngineConfig = {
       canvas: offCanvas,
-      sendStats: !!this.stats,
-      // usePalette: false,
     };
     this.engineWorker.postMessage(
       {
