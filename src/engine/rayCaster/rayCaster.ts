@@ -4,6 +4,7 @@ import * as WasmUtils from '../wasmEngine/wasmMemUtils';
 import { InputManager, KeyCode } from '../input/inputManager';
 import { BitImageRGBA, BPP } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
+import { images } from '../../assets/build/images';
 
 type RayCasterConfig = {
   canvas: OffscreenCanvas;
@@ -115,10 +116,11 @@ class RayCaster {
   }
 
   initTextures() {
-    this.textures = [];
-    // this.textures[0] = loadTexture(this.wasmViews, "pics/bluestone.png");
-    // this.textures[1] = loadTexture(this.wasmViews, "pics/greystone.png");
-    this.textures[0] = loadTexture(this.wasmViews, "pics/colorstone.png");
+    const NUM_TEXTURES = 1;
+    this.textures = new Array(NUM_TEXTURES);
+    this.textures[0] = loadTexture(this.wasmViews, images.GREYSTONE);
+    this.textures[1] = loadTexture(this.wasmViews, images.BLUESTONE);
+    this.textures[2] = loadTexture(this.wasmViews, images.REDBRICK);
   }
 
   initMap() {
@@ -150,6 +152,9 @@ class RayCaster {
       // }
       // console.log(mapStr);
     } 
+    mapBuf[2] = 2;
+    mapBuf[3] = 3;
+    mapBuf[mapWidth*2 + 2] = 3;
   }
 
   public render() {
@@ -301,7 +306,7 @@ class RayCaster {
         wallBottom = height;
       }
 
-      const texId = 0; //map.data[mapIdx] - 1;
+      const texId = map.data[mapIdx] - 1;
       assert(texId >= 0 && texId < this.textures.length, `invalid texture id ${texId}`);
       const texture = this.textures[texId];
 
