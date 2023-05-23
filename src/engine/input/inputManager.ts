@@ -12,7 +12,7 @@ class InputManager {
   private keyDownHandlers: KeyHandlersMap = {};
   private keyUpHandlers: KeyHandlersMap = {};
 
-  public init() {}
+  // public init() {}
 
   public addKeyHandlers(key: KeyCode, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
     this.addKeyDownHandler(key, keyDownHandler);

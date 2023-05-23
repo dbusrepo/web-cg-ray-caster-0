@@ -14,7 +14,7 @@ import { syncStore } from './../utils';
 
 type WasmViews = WasmUtils.views.WasmViews;
 
-type WasmRunConfig = {
+type WasmRunParams = {
   wasmMem: WebAssembly.Memory;
   wasmMemRegionsOffsets: WasmUtils.MemRegionsData;
   wasmMemRegionsSizes: WasmUtils.MemRegionsData;
@@ -29,14 +29,12 @@ type WasmRunConfig = {
 };
 
 class WasmRun {
-  protected cfg: WasmRunConfig;
+  protected params: WasmRunParams;
   protected wasmViews: WasmViews;
   protected wasmModules: WasmModules;
 
-  public async init(
-    workerCfg: WasmRunConfig,
-  ): Promise<void> {
-    this.cfg = workerCfg;
+  public async init(params: WasmRunParams) {
+    this.params = params;
     await this.initWasm();
   }
 
@@ -50,7 +48,7 @@ class WasmRun {
       wasmMem: mem,
       wasmMemRegionsOffsets: memOffsets,
       wasmMemRegionsSizes: memSizes,
-    } = this.cfg;
+    } = this.params;
 
     this.wasmViews = WasmUtils.views.buildWasmMemViews(
       mem,
@@ -58,7 +56,7 @@ class WasmRun {
       memSizes,
     );
 
-    const { workerIdx } = this.cfg;
+    const { workerIdx } = this.params;
     syncStore(this.wasmViews.syncArr, workerIdx, 0);
     syncStore(this.wasmViews.sleepArr, workerIdx, 0);
   }
@@ -69,9 +67,9 @@ class WasmRun {
       wasmMemRegionsSizes: memSizes,
       wasmMemRegionsOffsets: memOffsets,
       wasmWorkerHeapSize: workerHeapSize,
-    } = this.cfg;
+    } = this.params;
 
-    const { frameWidth, frameHeight, mainWorkerIdx, numWorkers, numImages, workerIdx } = this.cfg;
+    const { frameWidth, frameHeight, mainWorkerIdx, numWorkers, numImages, workerIdx } = this.params;
 
     const logf = (f: number) =>
       console.log(`[wasm] Worker [${workerIdx}]: ${f}`);
@@ -134,4 +132,4 @@ class WasmRun {
   }
 }
 
-export { WasmRun, WasmRunConfig };
+export { WasmRun, WasmRunParams };

@@ -312,7 +312,7 @@ body {
   width: 100%;
   font-family: Menlo, monospace;
   color: #ddd;
-  transition: margin-top 100ms ease-in-out;
+  transition: margin-top 70ms ease-in-out;
 }
 
 .console-history {

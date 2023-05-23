@@ -17,11 +17,11 @@ import { StatsNames } from './ui/stats/stats';
 class Main {
   private panels: Panel[];
 
-  init() {
-    this.initPanels();
+  async init() {
+    await this.initPanels();
   }
 
-  initPanels(): void {
+  async initPanels() {
     const board = <HTMLDivElement>document.querySelector('#board');
     const row0 = document.createElement('div');
     row0.classList.add('row', 'row0');
@@ -33,7 +33,7 @@ class Main {
     this.panels = [];
     // const enginePanel = null;
 
-    const enginePanel = this.buildEnginePanel('3D View', board, row0, stats);
+    const enginePanel = await this.buildEnginePanel('3D View', board, row0, stats);
     this.panels.push(enginePanel);
 
     const aPanel = this.buildViewPanel('View', board, row0, stats);
@@ -70,12 +70,12 @@ class Main {
     return stats;
   }
 
-  private buildEnginePanel(
+  private async buildEnginePanel(
     title: string,
     board: HTMLDivElement,
     parentNode: HTMLDivElement,
     stats: Stats,
-  ): EnginePanel {
+  ) {
     const { enginePanelConfig } = mainConfig;
     // parentNode.style.zIndex = '1'; // TODO:
     const panelConfig: EnginePanelConfig = {
@@ -90,7 +90,9 @@ class Main {
         isBelowCanvas: true,
       },
     };
-    return new EnginePanel(board, parentNode).init(panelConfig, stats);
+    const enginePanel = new EnginePanel(board, parentNode);
+    await enginePanel.init(panelConfig, stats);
+    return enginePanel;
   }
 
   private buildViewPanel(
@@ -109,8 +111,8 @@ class Main {
     return new ViewPanel(board, parentNode).init(panelConfig, stats);
   }
 
-  run() {
-    this.init();
+  async run() {
+    await this.init();
     this.panels.forEach((panel) => {
       panel.run();
     });

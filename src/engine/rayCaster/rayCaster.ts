@@ -1,14 +1,16 @@
 import assert from 'assert';
-import { WasmEngine } from '../wasmEngine/wasmEngine';
+import { WasmEngine, WasmEngineParams } from '../wasmEngine/wasmEngine';
 import * as WasmUtils from '../wasmEngine/wasmMemUtils';
 import { InputManager, KeyCode } from '../input/inputManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
+import { AssetManager } from '../assets/assetManager';
 
-type RayCasterConfig = {
+type RayCasterParams = { // TODO: change name
   canvas: OffscreenCanvas;
-  numAuxWorkers: number;
+  assetManager: AssetManager;
+  auxWorkers: Worker[];
 };
 
 type Viewport = {
@@ -43,10 +45,11 @@ type Keys = KeyCode & keyof KeyOffset;
 type WasmViews = WasmUtils.views.WasmViews;
 
 class RayCaster {
-  private cfg: RayCasterConfig;
-  private engine: WasmEngine;
-  private wasmViews: WasmViews;
+  private params: RayCasterParams;
+  private wasmEngine: WasmEngine;
+  private wasmViews: WasmViews; // TODO: remove?
   private wasmMem: WebAssembly.Memory;
+
   private inputManager: InputManager;
   private key2Offset: KeyOffset;
   private inputView: Uint8Array;
@@ -67,15 +70,13 @@ class RayCaster {
   private map: Map;
   private textures: BitImageRGBA[];
 
-  public async init(cfg: RayCasterConfig) {
-    this.cfg = cfg;
-    this.engine = new WasmEngine();
-    await this.engine.init({
-      canvas: this.cfg.canvas,
-      numAuxWorkers: this.cfg.numAuxWorkers,
-    });
-    this.wasmViews = this.engine.WasmViews;
-    this.wasmMem = this.engine.WasmMem;
+  public async init(params: RayCasterParams) {
+    this.params = params;
+
+    await this.initWasmEngine(); // TODO:
+    this.initInputManager();
+
+    // ray caster init stuff
     this.initMap();
     this.initTextures();
     this.pX = 1.0;
@@ -90,9 +91,9 @@ class RayCaster {
     this.viewport = {
       startX: VIEWPORT_BORDER,
       startY: VIEWPORT_BORDER,
-      width: this.cfg.canvas.width - VIEWPORT_BORDER * 2,
-      height: this.cfg.canvas.height - VIEWPORT_BORDER * 2,
-      borderColor: 0xff444444,
+      width: this.params.canvas.width - VIEWPORT_BORDER * 2,
+      height: this.params.canvas.height - VIEWPORT_BORDER * 2,
+      borderColor: 0xff444444, // TODO:
     };
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.height;
@@ -104,15 +105,27 @@ class RayCaster {
         frameBuf.buffer,
         0,
         frameBuf.byteLength / Uint32Array.BYTES_PER_ELEMENT),
-      pitch: this.cfg.canvas.width,
+      pitch: this.params.canvas.width,
     };
-    this.initInputManager();
-
     this.renderBorders();
     this.backgroundColor = 0xff000000; // TODO:
+
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
     // this.castScene(); // TODO:
+  }
+
+  private async initWasmEngine() {
+    this.wasmEngine = new WasmEngine();
+    const wasmEngineParams: WasmEngineParams = {
+      canvas: this.params.canvas,
+      assetManager: this.params.assetManager,
+      auxWorkers: this.params.auxWorkers,
+      runLoopInWorker: false, // WARN:
+    };
+    await this.wasmEngine.init(wasmEngineParams);
+    this.wasmViews = this.wasmEngine.WasmViews;
+    this.wasmMem = this.wasmEngine.WasmMem;
   }
 
   initTextures() {
@@ -126,7 +139,7 @@ class RayCaster {
   initMap() {
     const mapWidth = 16;
     const mapHeight = 16;
-    const mapPtr = this.engine.WasmModules.engine.allocMap(mapWidth, mapHeight);
+    const mapPtr = this.wasmEngine.WasmModules.engine.allocMap(mapWidth, mapHeight);
     this.map = {
       width: mapWidth,
       height: mapHeight,
@@ -158,15 +171,15 @@ class RayCaster {
   }
 
   public render() {
-    this.engine.syncWorkers();
+    this.wasmEngine.syncWorkers();
     try {
       this.castScene();
     }
     catch (e) {
       console.error(e);
     }
-    this.engine.waitWorkers();
-    this.engine.drawFrame();
+    this.wasmEngine.waitWorkers();
+    this.wasmEngine.drawFrame();
   }
 
   private renderBorders() {
@@ -382,7 +395,6 @@ class RayCaster {
 
   private initInputManager() {
     this.inputManager = new InputManager();
-    this.inputManager.init();
     this.key2Offset = {
       KeyW: 0,
       KeyS: 1,
@@ -419,4 +431,4 @@ class RayCaster {
   }
 }
 
-export { RayCaster, RayCasterConfig };
+export { RayCaster, RayCasterParams };

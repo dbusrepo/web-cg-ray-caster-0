@@ -5,46 +5,74 @@ import { StatsPanel } from '../ui/stats/statsPanel';
 // import { MemoryStats } from '../ui/stats/memoryStats';
 import { Panel } from './panel';
 import { EnginePanelGui } from './enginePanelGui';
-import { EngineConfig } from '../engine/engine';
+import { EngineParams, EngineCommands } from '../engine/engine';
 import EnginePanelCommands from './enginePanelCommands';
-import EngineCommands from '../engine/commands';
 
 class EnginePanel extends Panel {
   protected menuGui: EnginePanelGui;
-  private engineWorker: Worker;
+  private mainEngineWorker: Worker;
   private inputKeys: Set<string> = new Set();
 
-  init(config: EnginePanelConfig, stats: Stats): EnginePanel {
+  async init(config: EnginePanelConfig, stats: Stats) {
     super.init({ ...config }, stats);
-    return this;
+    this.initInputListeners();
+    await this.initMainEngineWorker();
   }
 
   initInputListeners(): void {
-    type EngineInputEvents = EngineCommands.KEYUP | EngineCommands.KEYDOWN;
+    type KeyEvents = 'keydown' | 'keyup';
 
     const ignoreKeys = () => {
       return this.isConsoleOpen;
     };
 
-    const addKeyListener = (type: EngineInputEvents) => (
+    const addKeyListener = (type: KeyEvents) => (
       this.canvasContainerEl.addEventListener(type, (event) => {
         if (ignoreKeys() || !this.inputKeys.has(event.code)) {
           return;
         }
-        this.engineWorker.postMessage({
+        this.mainEngineWorker.postMessage({
           command: type,
           params: event.code,
         });
       })
     );
 
-    addKeyListener(EngineCommands.KEYDOWN);
-    addKeyListener(EngineCommands.KEYUP);
+    (['keydown', 'keyup'] as KeyEvents[]).forEach(addKeyListener);
   }
 
-  initEngineWorker(): void {
-    this.engineWorker = new Worker(new URL('../engine/engine.ts', import.meta.url));
+  async initMainEngineWorker() {
+    this.mainEngineWorker = new Worker(new URL('../engine/engine.ts', import.meta.url));
 
+    // init main engine worker
+    const offscreenCanvas = this.canvasEl.transferControlToOffscreen();
+    const engineParams: EngineParams = {
+      canvas: offscreenCanvas,
+    };
+    this.mainEngineWorker.postMessage(
+      {
+        command: EngineCommands.INIT,
+        params: engineParams,
+      },
+      [offscreenCanvas],
+    );
+
+    try {
+      // wait for main engine worker to init
+      await new Promise<void>((resolve, reject) => {
+        this.mainEngineWorker.onmessage = ({ data }) => {
+          // TODO: no check for data.status
+          resolve();
+        };
+      });
+    } catch (err) {
+      console.error(err);
+    }
+      
+    this.setMainEngineWorkerHandlers();
+  }
+
+  private setMainEngineWorkerHandlers(): void {
     let enginePanel = this;
 
     const commands = {
@@ -53,7 +81,6 @@ class EnginePanel extends Panel {
         enginePanel.menuGui.updateFps(values[StatsNames.UFPS]);
       },
       [EnginePanelCommands.EVENT]: (msg: string) => {
-        // console.log(msg);
         enginePanel.eventLog?.log('event ' + msg, 'Hello ' + msg);
       },
       [EnginePanelCommands.REGISTER_KEY_HANDLER]: (key: string) => {
@@ -61,7 +88,7 @@ class EnginePanel extends Panel {
       },
     };
 
-    this.engineWorker.onmessage = ({ data: { command, params } }) => {
+    this.mainEngineWorker.onmessage = ({ data: { command, params } }) => {
       if (commands.hasOwnProperty(command)) {
         try {
           commands[command as keyof typeof commands]!(params);
@@ -80,18 +107,10 @@ class EnginePanel extends Panel {
     return new EnginePanelGui();
   }
 
-  private runEngineWorker(): void {
-    const offCanvas = this.canvasEl.transferControlToOffscreen();
-    const engineConfig: EngineConfig = {
-      canvas: offCanvas,
-    };
-    this.engineWorker.postMessage(
-      {
-        command: 'run',
-        params: engineConfig,
-      },
-      [offCanvas],
-    );
+  private runMainEngineWorker(): void {
+    this.mainEngineWorker.postMessage({
+      command: EngineCommands.RUN
+    });
   }
 
   protected destroy() {
@@ -100,9 +119,7 @@ class EnginePanel extends Panel {
 
   run() {
     super.run();
-    this.initEngineWorker();
-    this.initInputListeners();
-    this.runEngineWorker();
+    this.runMainEngineWorker();
   }
 }
 

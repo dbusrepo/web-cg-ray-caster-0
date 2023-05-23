@@ -5,18 +5,17 @@ import {
   MILLI_IN_SEC,
 } from '../common';
 
-import { StatsNames, StatsValues } from '../ui/stats/stats';
-
 import { mainConfig } from '../config/mainConfig';
 import * as utils from './utils';
-
-import Commands from './commands';
+import { StatsNames, StatsValues } from '../ui/stats/stats';
+import { AssetManager } from './assets/assetManager';
 import PanelCommands from '../panels/enginePanelCommands';
 import { KeyCode } from './input/inputManager';
+import { EngineWorkerParams, EngineWorkerCommands } from './engineWorker';
 
-import { RayCaster } from './rayCaster/rayCaster';
+import { RayCaster, RayCasterParams } from './rayCaster/rayCaster';
 
-type EngineConfig = {
+type EngineParams = {
   canvas: OffscreenCanvas;
 };
 
@@ -33,19 +32,100 @@ class Engine {
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
 
-  private cfg: EngineConfig;
+  private params: EngineParams;
+  private assetManager: AssetManager;
   private rayCaster: RayCaster;
 
-  public async init(config: EngineConfig): Promise<void> {
-    this.cfg = config;
+  private auxWorkers: Worker[];
+  private syncArray: Int32Array;
+  private sleepArray: Int32Array;
+
+  public async init(params: EngineParams): Promise<void> {
+    this.params = params;
+    await this.initAssetManager();
+    const numWorkers = mainConfig.numAuxWorkers;
+    console.log(`Using 1 main engine worker plus ${numWorkers} auxiliary engine workers`);
+    const numTotalWorkers = numWorkers + 1;
+    this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
+    this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
+    this.auxWorkers = [];
+    if (numWorkers > 0) {
+      await this.initAuxWorkers(numWorkers);
+    }
+    await this.initRayCaster();
+  }
+  
+  private async initRayCaster() {
     this.rayCaster = new RayCaster();
-    await this.rayCaster.init({
-      canvas: this.cfg.canvas,
-      numAuxWorkers: mainConfig.numWorkers,
-    });
+    const rayCasterParams: RayCasterParams = {
+      canvas: this.params.canvas,
+      assetManager: this.assetManager,
+      auxWorkers: this.auxWorkers,
+    };
+    await this.rayCaster.init(rayCasterParams);
+  }
+
+  private async initAssetManager() {
+    this.assetManager = new AssetManager();
+    await this.assetManager.init();
+  }
+
+  private async initAuxWorkers(numWorkers: number) {
+    assert(numWorkers > 0);
+    let remWorkers = numWorkers;
+    const initStart = Date.now();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        for (
+        let workerIndex = 1; // 0 is reserved for main worker
+        workerIndex <= numWorkers;
+        ++workerIndex
+      ) {
+          const worker = new Worker(
+            new URL('./engineWorker.ts', import.meta.url),
+            {
+              name: `engine-worker-${workerIndex}`,
+              type: 'module',
+            },
+          );
+          this.auxWorkers.push(worker);
+          const workerParams: EngineWorkerParams = {
+            workerIndex,
+            numWorkers,
+            syncArray: this.syncArray,
+            sleepArray: this.sleepArray,
+          };
+          worker.postMessage({
+            command: EngineWorkerCommands.INIT,
+            params: workerParams,
+          });
+          worker.onmessage = ({ data }) => {
+            --remWorkers;
+            console.log(
+              `Worker id=${workerIndex} init, left count=${remWorkers}, time=${
+Date.now() - initStart
+}ms with data = ${JSON.stringify(data)}`,
+            );
+            if (remWorkers === 0) {
+              console.log(
+                `Workers init done. After ${Date.now() - initStart}ms`,
+              );
+              resolve();
+            }
+          };
+          worker.onerror = (error) => {
+            console.log(`Worker id=${workerIndex} error: ${error.message}\n`);
+            reject(error);
+          };
+        }
+      });
+    } catch (error) {
+      console.error(`Error during workers init: ${JSON.stringify(error)}`);
+    }
   }
 
   public run(): void {
+
     let lastFrameStartTime: number;
     // let last_render_t: number;
     let updTimeAcc: number;
@@ -98,6 +178,8 @@ class Engine {
       isPaused = false;
       requestAnimationFrame(frame);
     };
+
+    requestAnimationFrame(mainLoopInit);
 
     const begin = () => {
       frameStartTime = performance.now();
@@ -158,6 +240,8 @@ class Engine {
       if (renderTimeAcc >= Engine.RENDER_PERIOD_MS) {
         renderTimeAcc %= Engine.RENDER_PERIOD_MS;
         this.rayCaster.render();
+        // this.syncWorkers();
+        // this.waitWorkers();
         saveFrameTime();
       }
     };
@@ -186,16 +270,11 @@ class Engine {
         const avgUps = utils.arrAvg(upsArr, statsCnt);
         const avgFrameTime = utils.arrAvg(frameTimeArr, renderCnt);
         let avgUFps = avgFrameTime === 0 ? 0 : MILLI_IN_SEC / avgFrameTime;
-        // const workersHeapMem = this._wasmMemViews.workersMemCounters.reduce(
-        //   (tot, cnt) => tot + cnt,
-        //   0,
-        // );
         const stats: StatsValues = {
           [StatsNames.FPS]: avgFps,
           [StatsNames.RPS]: avgRps,
           [StatsNames.UPS]: avgUps,
           [StatsNames.UFPS]: avgUFps,
-          // [StatsNames.WASM_HEAP]: workersHeapMem,
         };
         postMessage({
           command: PanelCommands.UPDATE_STATS,
@@ -204,6 +283,7 @@ class Engine {
       }
     };
 
+    // TODO: test events
     // setInterval(() => {
     //   // console.log('sending...');
     //   postMessage({
@@ -211,8 +291,19 @@ class Engine {
     //     params: Math.floor(Math.random() * 100),
     //   });
     // }, 2000);
+  }
 
-    requestAnimationFrame(mainLoopInit);
+  private syncWorkers() {
+    for (let i = 1; i <= this.auxWorkers.length; ++i) {
+      Atomics.store(this.syncArray, i, 1);
+      Atomics.notify(this.syncArray, i);
+    }
+  }
+
+  private waitWorkers() {
+    for (let i = 1; i <= this.auxWorkers.length; ++i) {
+      Atomics.wait(this.syncArray, i, 1);
+    }
   }
 
   public onKeyDown(key: KeyCode) {
@@ -226,18 +317,26 @@ class Engine {
 
 let engine: Engine;
 
+const enum EngineCommands {
+  INIT = 'main_engine_worker_init',
+  RUN = 'main_engine_worker_run',
+  KEYDOWN = 'main_engine_worker_keydown',
+  KEYUP = 'main_engine_worker_keyup',
+}
+
 const commands = {
-  [Commands.RUN]: (config: EngineConfig) => {
+  [EngineCommands.INIT]: async (params: EngineParams) => {
     engine = new Engine();
-    (async () => {
-      await engine.init(config);
-      engine.run();
-    })();
+    await engine.init(params);
+    postMessage({ status: 'init completed' });
   },
-  [Commands.KEYDOWN]: (key: KeyCode) => {
+  [EngineCommands.RUN]: () => {
+    engine.run();
+  },
+  [EngineCommands.KEYDOWN]: (key: KeyCode) => {
     engine.onKeyDown(key);
   },
-  [Commands.KEYUP]: (key: KeyCode) => {
+  [EngineCommands.KEYUP]: (key: KeyCode) => {
     engine.onKeyUp(key);
   },
 };
@@ -252,4 +351,4 @@ self.onmessage = ({ data: { command, params } }) => {
   }
 };
 
-export { EngineConfig, Engine };
+export { EngineParams, EngineCommands };
