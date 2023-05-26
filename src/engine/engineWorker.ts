@@ -26,7 +26,7 @@ class EngineWorker {
 
   async run() {
     const { syncArray, workerIndex } = this.params;
-    console.log(`Engine worker ${workerIndex} running!`);
+    console.log(`Worker ${workerIndex} running!`);
     try {
       while (true) {
         Atomics.wait(syncArray, workerIndex, 0);
@@ -48,7 +48,7 @@ class EngineWorker {
   async runWasm() {
     assert(this.wasmRun);
     const { workerIndex } = this.params;
-    console.log(`Engine worker ${workerIndex} running wasm!`);
+    console.log(`Worker ${workerIndex} running wasm!`);
     try {
       this.wasmRun.WasmModules.engine.run();
     } catch (e) {

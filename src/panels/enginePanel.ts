@@ -19,36 +19,49 @@ class EnginePanel extends Panel {
     await this.initMainEngineWorker();
   }
 
+  private ignoreInputKey(key: string): boolean {
+    return this.isConsoleOpen;
+  }
+
   initInputListeners(): void {
-    type KeyEvents = 'keydown' | 'keyup';
-
-    const ignoreKeys = () => {
-      return this.isConsoleOpen;
+    const key2cmd = {
+      'keydown': EngineCommands.KEY_DOWN,
+      'keyup': EngineCommands.KEY_UP,
     };
+    type KeyEvents = keyof typeof key2cmd;
 
-    const addKeyListener = (type: KeyEvents) => (
-      this.canvasContainerEl.addEventListener(type, (event) => {
-        if (ignoreKeys() || !this.inputKeys.has(event.code)) {
+    const addKeyListener = (keyEvent: KeyEvents) => (
+      this.canvasContainerEl.addEventListener(keyEvent, (event) => {
+        if (!this.inputKeys.has(event.code) || this.ignoreInputKey(event.code)) {
           return;
         }
         this.mainEngineWorker.postMessage({
-          command: type,
+          command: key2cmd[keyEvent],
           params: event.code,
         });
       })
     );
 
-    (['keydown', 'keyup'] as KeyEvents[]).forEach(addKeyListener);
+    (Object.keys(key2cmd) as KeyEvents[]).forEach(addKeyListener);
   }
 
   async initMainEngineWorker() {
     this.mainEngineWorker = new Worker(new URL('../engine/engine.ts', import.meta.url));
 
-    // init main engine worker
     const offscreenCanvas = this.canvasEl.transferControlToOffscreen();
+
     const engineParams: EngineParams = {
       canvas: offscreenCanvas,
     };
+
+    let resolveInit: (value: void | PromiseLike<void>) => void;
+
+    const initPromise =  new Promise<void>((resolve) => {
+      resolveInit = resolve;
+    });
+
+    this.setMainWorkerMessageHandlers(resolveInit!);
+
     this.mainEngineWorker.postMessage(
       {
         command: EngineCommands.INIT,
@@ -57,34 +70,25 @@ class EnginePanel extends Panel {
       [offscreenCanvas],
     );
 
-    try {
-      // wait for main engine worker to init
-      await new Promise<void>((resolve, reject) => {
-        this.mainEngineWorker.onmessage = ({ data }) => {
-          // TODO: no check for data.status
-          resolve();
-        };
-      });
-    } catch (err) {
-      console.error(err);
-    }
-      
-    this.setMainEngineWorkerHandlers();
+    await initPromise;
   }
 
-  private setMainEngineWorkerHandlers(): void {
+  private setMainWorkerMessageHandlers(resolveInit: (value: void | PromiseLike<void>) => void): void {
     let enginePanel = this;
 
     const commands = {
+      [EnginePanelCommands.INIT]: () => {
+        resolveInit();
+      },
+      [EnginePanelCommands.REGISTER_KEY_HANDLER]: (key: string) => {
+        this.inputKeys.add(key);
+      },
       [EnginePanelCommands.UPDATE_STATS]: (values: StatsValues) => {
         enginePanel.stats.update(values);
         enginePanel.menuGui.updateFps(values[StatsNames.UFPS]);
       },
       [EnginePanelCommands.EVENT]: (msg: string) => {
         enginePanel.eventLog?.log('event ' + msg, 'Hello ' + msg);
-      },
-      [EnginePanelCommands.REGISTER_KEY_HANDLER]: (key: string) => {
-        this.inputKeys.add(key);
       },
     };
 
@@ -93,6 +97,7 @@ class EnginePanel extends Panel {
         try {
           commands[command as keyof typeof commands]!(params);
         } catch (err) {
+          console.error('error in engine panel message handler');
           console.error(err);
         }
       }

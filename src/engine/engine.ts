@@ -10,14 +10,20 @@ import * as utils from './utils';
 import { StatsNames, StatsValues } from '../ui/stats/stats';
 import { AssetManager } from './assets/assetManager';
 import PanelCommands from '../panels/enginePanelCommands';
-import { KeyCode } from './input/inputManager';
+import { InputManager } from './input/inputManager';
 import { EngineWorkerParams, EngineWorkerCommands } from './engineWorker';
 
 import { RayCaster, RayCasterParams } from './rayCaster/rayCaster';
 
+import EnginePanelCommands from '../panels/enginePanelCommands';
+import { AuxWorker } from './auxWorker';
+import Keys from './input/keys';
+
 type EngineParams = {
   canvas: OffscreenCanvas;
 };
+
+const MAIN_WORKER_IDX = 0;
 
 class Engine {
   private static readonly RENDER_PERIOD_MS = MILLI_IN_SEC / mainConfig.targetRPS;
@@ -35,22 +41,24 @@ class Engine {
   private params: EngineParams;
   private assetManager: AssetManager;
   private rayCaster: RayCaster;
+  private inputManager: InputManager;
 
-  private auxWorkers: Worker[];
+  private auxWorkers: AuxWorker[];
   private syncArray: Int32Array;
   private sleepArray: Int32Array;
 
   public async init(params: EngineParams): Promise<void> {
     this.params = params;
     await this.initAssetManager();
-    const numWorkers = mainConfig.numAuxWorkers;
-    console.log(`Using 1 main engine worker plus ${numWorkers} auxiliary engine workers`);
-    const numTotalWorkers = numWorkers + 1;
+    this.initInput();
+    const numAuxWorkers = mainConfig.numAuxWorkers;
+    console.log(`Using 1 main engine worker plus ${numAuxWorkers} auxiliary workers`);
+    const numTotalWorkers = numAuxWorkers + 1;
     this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
     this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
     this.auxWorkers = [];
-    if (numWorkers > 0) {
-      await this.initAuxWorkers(numWorkers);
+    if (numAuxWorkers > 0) {
+      await this.initAuxWorkers(numAuxWorkers);
     }
     await this.initRayCaster();
   }
@@ -61,8 +69,28 @@ class Engine {
       canvas: this.params.canvas,
       assetManager: this.assetManager,
       auxWorkers: this.auxWorkers,
+      mainWorkerIdx: MAIN_WORKER_IDX,
+      inputManager: this.inputManager,
+      // runLoopInWorker: true,
     };
     await this.rayCaster.init(rayCasterParams);
+  }
+
+  private initInput() {
+    Object.values(Keys).forEach((key) => {
+      postMessage({
+        command: EnginePanelCommands.REGISTER_KEY_HANDLER,
+        params: key,
+      });
+    });
+    this.initInputManager();
+  }
+
+  private initInputManager() {
+    this.inputManager = new InputManager();
+    // this.inputManager.addKeyHandlers(Keys.KEY_A, () => { console.log('A down') }, () => { console.log('A up') });
+    // this.inputManager.addKeyHandlers(Keys.KEY_S, () => { console.log('S down') }, () => { console.log('S up') });
+    // this.inputManager.addKeyHandlers(Keys.KEY_D, () => { console.log('D down') }, () => { console.log('D up') });
   }
 
   private async initAssetManager() {
@@ -70,36 +98,43 @@ class Engine {
     await this.assetManager.init();
   }
 
-  private async initAuxWorkers(numWorkers: number) {
-    assert(numWorkers > 0);
-    let remWorkers = numWorkers;
+  private async initAuxWorkers(numAuxWorkers: number) {
+    assert(numAuxWorkers > 0);
     const initStart = Date.now();
     try {
+      let nextWorkerIdx = 0;
+      const getWorkerIdx = () => {
+        if (nextWorkerIdx === MAIN_WORKER_IDX) {
+          nextWorkerIdx++;
+        }
+        return nextWorkerIdx++;
+      };
+      let remWorkers = numAuxWorkers;
       await new Promise<void>((resolve, reject) => {
-        for (
-        let workerIndex = 1; // 0 is reserved for main worker
-        workerIndex <= numWorkers;
-        ++workerIndex
-      ) {
-          const worker = new Worker(
-            new URL('./engineWorker.ts', import.meta.url),
-            {
-              name: `engine-worker-${workerIndex}`,
-              type: 'module',
-            },
-          );
-          this.auxWorkers.push(worker);
+        for (let i = 0; i < numAuxWorkers; ++i) {
+          const workerIndex = getWorkerIdx();
+          const auxWorker = {
+            index: workerIndex,
+            worker: new Worker(
+              new URL('./engineWorker.ts', import.meta.url),
+              {
+                name: `engine-worker-${workerIndex}`,
+                type: 'module',
+              },
+            )
+          };
+          this.auxWorkers.push(auxWorker);
           const workerParams: EngineWorkerParams = {
             workerIndex,
-            numWorkers,
+            numWorkers: numAuxWorkers,
             syncArray: this.syncArray,
             sleepArray: this.sleepArray,
           };
-          worker.postMessage({
+          auxWorker.worker.postMessage({
             command: EngineWorkerCommands.INIT,
             params: workerParams,
           });
-          worker.onmessage = ({ data }) => {
+          auxWorker.worker.onmessage = ({ data }) => {
             --remWorkers;
             console.log(
               `Worker id=${workerIndex} init, left count=${remWorkers}, time=${
@@ -113,7 +148,7 @@ Date.now() - initStart
               resolve();
             }
           };
-          worker.onerror = (error) => {
+          auxWorker.worker.onerror = (error) => {
             console.log(`Worker id=${workerIndex} error: ${error.message}\n`);
             reject(error);
           };
@@ -125,7 +160,6 @@ Date.now() - initStart
   }
 
   public run(): void {
-
     let lastFrameStartTime: number;
     // let last_render_t: number;
     let updTimeAcc: number;
@@ -306,11 +340,11 @@ Date.now() - initStart
     }
   }
 
-  public onKeyDown(key: KeyCode) {
+  public onKeyDown(key: Keys) {
     this.rayCaster.onKeyDown(key);
   }
 
-  public onKeyUp(key: KeyCode) {
+  public onKeyUp(key: Keys) {
     this.rayCaster.onKeyUp(key);
   }
 }
@@ -320,23 +354,25 @@ let engine: Engine;
 const enum EngineCommands {
   INIT = 'main_engine_worker_init',
   RUN = 'main_engine_worker_run',
-  KEYDOWN = 'main_engine_worker_keydown',
-  KEYUP = 'main_engine_worker_keyup',
+  KEY_DOWN = 'main_engine_worker_keydown',
+  KEY_UP = 'main_engine_worker_keyup',
 }
 
 const commands = {
   [EngineCommands.INIT]: async (params: EngineParams) => {
     engine = new Engine();
     await engine.init(params);
-    postMessage({ status: 'init completed' });
+    postMessage({
+      command: PanelCommands.INIT,
+    });
   },
   [EngineCommands.RUN]: () => {
     engine.run();
   },
-  [EngineCommands.KEYDOWN]: (key: KeyCode) => {
+  [EngineCommands.KEY_DOWN]: (key: Keys) => {
     engine.onKeyDown(key);
   },
-  [EngineCommands.KEYUP]: (key: KeyCode) => {
+  [EngineCommands.KEY_UP]: (key: Keys) => {
     engine.onKeyUp(key);
   },
 };

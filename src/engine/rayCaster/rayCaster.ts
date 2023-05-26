@@ -6,11 +6,14 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
+import { AuxWorker } from '../auxWorker';
 
 type RayCasterParams = { // TODO: change name
   canvas: OffscreenCanvas;
   assetManager: AssetManager;
-  auxWorkers: Worker[];
+  inputManager: InputManager;
+  mainWorkerIdx: number;
+  auxWorkers: AuxWorker[];
 };
 
 type Viewport = {
@@ -121,10 +124,12 @@ class RayCaster {
       canvas: this.params.canvas,
       assetManager: this.params.assetManager,
       auxWorkers: this.params.auxWorkers,
+      mainWorkerIdx: this.params.mainWorkerIdx,
+      inputManager: this.inputManager,
       runLoopInWorker: false, // WARN:
     };
     await this.wasmEngine.init(wasmEngineParams);
-    this.wasmViews = this.wasmEngine.WasmViews;
+    this.wasmViews = this.wasmEngine.WasmRun.WasmViews
     this.wasmMem = this.wasmEngine.WasmMem;
   }
 
@@ -139,7 +144,7 @@ class RayCaster {
   initMap() {
     const mapWidth = 16;
     const mapHeight = 16;
-    const mapPtr = this.wasmEngine.WasmModules.engine.allocMap(mapWidth, mapHeight);
+    const mapPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth, mapHeight);
     this.map = {
       width: mapWidth,
       height: mapHeight,
