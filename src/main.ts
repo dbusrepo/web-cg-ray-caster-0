@@ -12,7 +12,7 @@ import { EnginePanel } from './panels/enginePanel';
 import { ViewPanel } from './panels/viewPanel';
 import { Stats } from './ui/stats/stats';
 import { StatsPanel } from './ui/stats/statsPanel';
-import { StatsNames } from './ui/stats/stats';
+import { StatsNameEnum } from './ui/stats/stats';
 
 class Main {
   private panels: Panel[];
@@ -53,10 +53,10 @@ class Main {
       // isVisible: false,
     };
     stats.init(cfg);
-    const fpsPanel = new StatsPanel({ title: StatsNames.FPS, fg: '#0ff', bg: '#022', graphHeight: 200 });
-    const rpsPanel = new StatsPanel({ title: StatsNames.RPS, fg: '#f80', bg: '#022', graphHeight: 200 });
-    const upsPanel = new StatsPanel({ title: StatsNames.UPS, fg: '#0f0', bg: '#020', graphHeight: 200 });
-    const ufpsPanel = new StatsPanel({ title: StatsNames.UFPS, fg: '#f50', bg: '#110', graphHeight: 5000 });
+    const fpsPanel = new StatsPanel({ title: StatsNameEnum.FPS, fg: '#0ff', bg: '#022', graphHeight: 200 });
+    const rpsPanel = new StatsPanel({ title: StatsNameEnum.RPS, fg: '#f80', bg: '#022', graphHeight: 200 });
+    const upsPanel = new StatsPanel({ title: StatsNameEnum.UPS, fg: '#0f0', bg: '#020', graphHeight: 200 });
+    const ufpsPanel = new StatsPanel({ title: StatsNameEnum.UFPS, fg: '#f50', bg: '#110', graphHeight: 5000 });
     // const unlockedFpsPanel = new StatsPanel(StatsNames.FPSU, '#f50', '#110');
     // const wasmHeapMem = new StatsPanel(StatsNames.WASM_HEAP, '#0b0', '#030');
     // this.mem_panel = new StatsPanel('MEM', '#ff0', '#330');

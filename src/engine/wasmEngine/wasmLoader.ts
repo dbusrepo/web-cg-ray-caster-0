@@ -97,4 +97,5 @@ async function loadWasmModules(imports: WasmImports): Promise<WasmModules> {
   };
 }
 
-export { WasmImports, WasmModules, loadWasmModules };
+export type { WasmImports, WasmModules };
+export { loadWasmModules };

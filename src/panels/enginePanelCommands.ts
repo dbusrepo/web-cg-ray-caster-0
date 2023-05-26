@@ -1,8 +1,8 @@
-const enum commands {
+enum EnginePanelCommandsEnum {
   INIT = 'init',
   UPDATE_STATS = 'updateStats',
   EVENT = 'event',
   REGISTER_KEY_HANDLER = 'register_handler',
 }
 
-export default commands;
+export default EnginePanelCommandsEnum;

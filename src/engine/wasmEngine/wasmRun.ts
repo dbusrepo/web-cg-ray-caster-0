@@ -1,7 +1,11 @@
 // import assert from 'assert';
-// import { fileTypeFromBuffer } from 'file-type';
 import * as WasmUtils from './wasmMemUtils';
-import { WasmModules, WasmImports, loadWasmModules } from './wasmLoader';
+
+import type { WasmViews } from './wasmViews';
+import { buildWasmMemViews } from './wasmViews';
+import type { WasmModules, WasmImports } from './wasmLoader';
+import { loadWasmModules } from './wasmLoader';
+
 // import { syncStore, randColor, sleep } from './utils';
 
 import {
@@ -12,12 +16,10 @@ import {
 
 import { syncStore } from './../utils';
 
-type WasmViews = WasmUtils.views.WasmViews;
-
 type WasmRunParams = {
   wasmMem: WebAssembly.Memory;
-  wasmMemRegionsOffsets: WasmUtils.MemRegionsData;
-  wasmMemRegionsSizes: WasmUtils.MemRegionsData;
+  wasmMemRegionsOffsets: WasmUtils.WasmMemRegionsData;
+  wasmMemRegionsSizes: WasmUtils.WasmMemRegionsData;
   wasmWorkerHeapSize: number;
   mainWorkerIdx: number;
   workerIdx: number;
@@ -39,18 +41,18 @@ class WasmRun {
   }
 
   private async initWasm(): Promise<void> {
-    this.buildWasmMemViews();
+    this.buildMemViews();
     await this.loadWasmModules();
   }
 
-  protected buildWasmMemViews(): void {
+  protected buildMemViews(): void {
     const {
       wasmMem: mem,
       wasmMemRegionsOffsets: memOffsets,
       wasmMemRegionsSizes: memSizes,
     } = this.params;
 
-    this.wasmViews = WasmUtils.views.buildWasmMemViews(
+    this.wasmViews = buildWasmMemViews(
       mem,
       memOffsets,
       memSizes,
@@ -82,32 +84,32 @@ class WasmRun {
       memory,
       frameWidth,
       frameHeight,
-      frameBufferPtr: memOffsets[WasmUtils.MemRegions.FRAMEBUFFER_RGBA],
-      syncArrayPtr: memOffsets[WasmUtils.MemRegions.SYNC_ARRAY],
-      sleepArrayPtr: memOffsets[WasmUtils.MemRegions.SLEEP_ARRAY],
+      frameBufferPtr: memOffsets[WasmUtils.MemRegionsEnum.FRAMEBUFFER_RGBA],
+      syncArrayPtr: memOffsets[WasmUtils.MemRegionsEnum.SYNC_ARRAY],
+      sleepArrayPtr: memOffsets[WasmUtils.MemRegionsEnum.SLEEP_ARRAY],
       mainWorkerIdx,
       workerIdx,
       numWorkers,
-      workersHeapPtr: memOffsets[WasmUtils.MemRegions.WORKERS_HEAPS],
+      workersHeapPtr: memOffsets[WasmUtils.MemRegionsEnum.WORKERS_HEAPS],
       workerHeapSize,
-      heapPtr: memOffsets[WasmUtils.MemRegions.HEAP],
+      heapPtr: memOffsets[WasmUtils.MemRegionsEnum.HEAP],
       bgColor: 0xff_00_00_00, // randColor(),
       // usePalette: this._config.usePalette ? 1 : 0,
       usePalette: 0,
-      fontCharsPtr: memOffsets[WasmUtils.MemRegions.FONT_CHARS],
-      fontCharsSize: memSizes[WasmUtils.MemRegions.FONT_CHARS],
+      fontCharsPtr: memOffsets[WasmUtils.MemRegionsEnum.FONT_CHARS],
+      fontCharsSize: memSizes[WasmUtils.MemRegionsEnum.FONT_CHARS],
       numImages,
-      imagesIndexSize: memSizes[WasmUtils.MemRegions.IMAGES_INDEX],
-      imagesIndexPtr: memOffsets[WasmUtils.MemRegions.IMAGES_INDEX],
-      imagesDataPtr: memOffsets[WasmUtils.MemRegions.IMAGES],
-      imagesDataSize: memSizes[WasmUtils.MemRegions.IMAGES],
-      stringsDataPtr: memOffsets[WasmUtils.MemRegions.STRINGS],
-      stringsDataSize: memSizes[WasmUtils.MemRegions.STRINGS],
-      workersMemCountersPtr: memOffsets[WasmUtils.MemRegions.MEM_COUNTERS],
-      workersMemCountersSize: memSizes[WasmUtils.MemRegions.MEM_COUNTERS],
-      inputKeysPtr: memOffsets[WasmUtils.MemRegions.INPUT_KEYS],
-      inputKeysSize: memSizes[WasmUtils.MemRegions.INPUT_KEYS],
-      hrTimerPtr: memOffsets[WasmUtils.MemRegions.HR_TIMER],
+      imagesIndexSize: memSizes[WasmUtils.MemRegionsEnum.IMAGES_INDEX],
+      imagesIndexPtr: memOffsets[WasmUtils.MemRegionsEnum.IMAGES_INDEX],
+      imagesDataPtr: memOffsets[WasmUtils.MemRegionsEnum.IMAGES],
+      imagesDataSize: memSizes[WasmUtils.MemRegionsEnum.IMAGES],
+      stringsDataPtr: memOffsets[WasmUtils.MemRegionsEnum.STRINGS],
+      stringsDataSize: memSizes[WasmUtils.MemRegionsEnum.STRINGS],
+      workersMemCountersPtr: memOffsets[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
+      workersMemCountersSize: memSizes[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
+      inputKeysPtr: memOffsets[WasmUtils.MemRegionsEnum.INPUT_KEYS],
+      inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
+      hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
 
       FONT_X_SIZE,
       FONT_Y_SIZE,
@@ -132,4 +134,5 @@ class WasmRun {
   }
 }
 
-export { WasmRun, WasmRunParams };
+export type { WasmRunParams };
+export { WasmRun };

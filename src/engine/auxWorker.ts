@@ -1,4 +1,3 @@
-
 class AuxWorker {
   index: number;
   worker: Worker;

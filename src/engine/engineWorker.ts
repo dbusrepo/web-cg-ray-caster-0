@@ -1,7 +1,8 @@
 import assert from 'assert';
-import { WasmRun, WasmRunParams } from './wasmEngine/wasmRun';
+import type { WasmRunParams } from './wasmEngine/wasmRun';
+import { WasmRun } from './wasmEngine/wasmRun';
 
-const enum EngineWorkerCommands {
+const enum EngineWorkerCommandsEnum {
   INIT = 'worker_init',
   INIT_WASM = 'worker_init_wasm',
   RUN = 'worker_run',
@@ -65,19 +66,19 @@ class EngineWorker {
 let engineWorker: EngineWorker;
 
 const commands = {
-  [EngineWorkerCommands.INIT]: async (params: EngineWorkerParams) => {
+  [EngineWorkerCommandsEnum.INIT]: async (params: EngineWorkerParams) => {
     engineWorker = new EngineWorker();
     await engineWorker.init(params);
     postMessage({ status: `engine worker ${engineWorker.Index} init completed` });
   },
-  [EngineWorkerCommands.RUN]: async () => {
+  [EngineWorkerCommandsEnum.RUN]: async () => {
     await engineWorker.run();
   },
-  [EngineWorkerCommands.INIT_WASM]: async (params: WasmRunParams) => {
+  [EngineWorkerCommandsEnum.INIT_WASM]: async (params: WasmRunParams) => {
     await engineWorker.initWasm(params);
     postMessage({ status: `engine worker ${engineWorker.Index} wasm init completed` });
   },
-  [EngineWorkerCommands.RUN_WASM]: async () => {
+  [EngineWorkerCommandsEnum.RUN_WASM]: async () => {
     await engineWorker.runWasm();
   },
 };
@@ -90,4 +91,5 @@ self.addEventListener('message', async ({ data: { command, params } }) => {
   }
 });
 
-export { EngineWorkerParams, EngineWorkerCommands };
+export type { EngineWorkerParams };
+export { EngineWorkerCommandsEnum };

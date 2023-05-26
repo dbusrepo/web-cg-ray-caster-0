@@ -3,7 +3,7 @@ import { StatsPanel } from './statsPanel';
 import { StatsConfig } from './statsConfig';
 import { dragElement } from '../drag';
 
-enum StatsNames {
+enum StatsNameEnum {
   FPS = 'FPS',
   RPS = 'RPS',
   UPS = 'UPS',
@@ -13,7 +13,7 @@ enum StatsNames {
 }
 
 type StatsValues = {
-  -readonly [property in keyof typeof StatsNames]: number;
+  -readonly [property in keyof typeof StatsNameEnum]: number;
 };
 
 class Stats {
@@ -74,4 +74,5 @@ class Stats {
   }
 }
 
-export { Stats, StatsNames, StatsValues };
+export type { StatsValues };
+export { Stats, StatsNameEnum };

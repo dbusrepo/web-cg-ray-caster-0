@@ -1,11 +1,10 @@
-import assert from 'assert';
+// import assert from 'assert';
 import { EnginePanelConfig } from '../config/mainConfig';
-import { Stats, StatsNames, StatsValues } from '../ui/stats/stats';
-import { StatsPanel } from '../ui/stats/statsPanel';
-// import { MemoryStats } from '../ui/stats/memoryStats';
+import { Stats, StatsNameEnum, StatsValues } from '../ui/stats/stats';
 import { Panel } from './panel';
 import { EnginePanelGui } from './enginePanelGui';
-import { EngineParams, EngineCommands } from '../engine/engine';
+import type { EngineParams } from '../engine/engine';
+import { EngineCommandsEnum } from '../engine/engine';
 import EnginePanelCommands from './enginePanelCommands';
 
 class EnginePanel extends Panel {
@@ -25,8 +24,8 @@ class EnginePanel extends Panel {
 
   initInputListeners(): void {
     const key2cmd = {
-      'keydown': EngineCommands.KEY_DOWN,
-      'keyup': EngineCommands.KEY_UP,
+      'keydown': EngineCommandsEnum.KEY_DOWN,
+      'keyup': EngineCommandsEnum.KEY_UP,
     };
     type KeyEvents = keyof typeof key2cmd;
 
@@ -64,7 +63,7 @@ class EnginePanel extends Panel {
 
     this.mainEngineWorker.postMessage(
       {
-        command: EngineCommands.INIT,
+        command: EngineCommandsEnum.INIT,
         params: engineParams,
       },
       [offscreenCanvas],
@@ -85,7 +84,7 @@ class EnginePanel extends Panel {
       },
       [EnginePanelCommands.UPDATE_STATS]: (values: StatsValues) => {
         enginePanel.stats.update(values);
-        enginePanel.menuGui.updateFps(values[StatsNames.UFPS]);
+        enginePanel.menuGui.updateFps(values[StatsNameEnum.UFPS]);
       },
       [EnginePanelCommands.EVENT]: (msg: string) => {
         enginePanel.eventLog?.log('event ' + msg, 'Hello ' + msg);
@@ -114,7 +113,7 @@ class EnginePanel extends Panel {
 
   private runMainEngineWorker(): void {
     this.mainEngineWorker.postMessage({
-      command: EngineCommands.RUN
+      command: EngineCommandsEnum.RUN
     });
   }
 

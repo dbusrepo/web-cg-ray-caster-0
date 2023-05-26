@@ -1,33 +1,34 @@
-import Keys from './keys';
+import { KeysEnum } from './keys';
 
 type KeyHandler = () => void;
 
-type KeyHandlers = Partial<Record<Keys, KeyHandler[]>>;
+type KeyHandlers = Partial<Record<KeysEnum, KeyHandler[]>>;
 
 class InputManager {
   private keyDownHandlers: KeyHandlers = {};
   private keyUpHandlers: KeyHandlers = {};
 
-  public addKeyHandlers(key: Keys, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
+  public addKeyHandlers(key: KeysEnum, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
     this.addKeyDownHandler(key, keyDownHandler);
     this.addKeyUpHandler(key, keyUpHandler);
   }
 
-  private addKeyDownHandler(key: Keys, keyHandler: KeyHandler) {
+  private addKeyDownHandler(key: KeysEnum, keyHandler: KeyHandler) {
     (this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? []).push(keyHandler);
   }
 
-  private addKeyUpHandler(key: Keys, keyHandler: KeyHandler) {
+  private addKeyUpHandler(key: KeysEnum, keyHandler: KeyHandler) {
     (this.keyUpHandlers[key] = this.keyUpHandlers[key] ?? []).push(keyHandler);
   }
 
-  public onKeyDown(key: Keys) {
+  public onKeyDown(key: KeysEnum) {
     this.keyDownHandlers[key]?.forEach((h) => h());
   }
 
-  public onKeyUp(key: Keys) {
+  public onKeyUp(key: KeysEnum) {
     this.keyUpHandlers[key]?.forEach((h) => h());
   }
 }
 
-export { InputManager, KeyHandler };
+export type { KeyHandler };
+export { InputManager };

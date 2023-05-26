@@ -1,14 +1,15 @@
 import assert from 'assert';
-import { WasmEngine, WasmEngineParams } from '../wasmEngine/wasmEngine';
-import * as WasmUtils from '../wasmEngine/wasmMemUtils';
-import engineExport from '../wasmEngine/wasm/build/asc/engine';
+import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
+import { WasmEngine } from '../wasmEngine/wasmEngine';
+import type { WasmViews } from '../wasmEngine/wasmViews';
+import type { WasmModules } from '../wasmEngine/wasmLoader';
 import { InputManager } from '../input/inputManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
 import { AuxWorker } from '../auxWorker';
-import Keys from '../input/keys';
+import { KeysEnum } from '../input/keys';
 
 type RayCasterParams = { // TODO: change name
   canvas: OffscreenCanvas;
@@ -45,13 +46,12 @@ type KeyOffset = {
   KeyD: number,
 };
 
-type WasmViews = WasmUtils.views.WasmViews;
-
 class RayCaster {
   private params: RayCasterParams;
   private wasmEngine: WasmEngine;
   private wasmViews: WasmViews;
   private wasmMem: WebAssembly.Memory;
+  private wasmModules: WasmModules;
 
   private inputManager: InputManager;
   private key2Offset: KeyOffset;
@@ -72,7 +72,6 @@ class RayCaster {
   private backgroundColor: number;
   private map: Map;
   private textures: BitImageRGBA[];
-  private wasmEngineModule: typeof engineExport;
 
   public async init(params: RayCasterParams) {
     this.params = params;
@@ -131,7 +130,7 @@ class RayCaster {
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmViews = this.wasmEngine.WasmRun.WasmViews
     this.wasmMem = this.wasmEngine.WasmMem;
-    this.wasmEngineModule = this.wasmEngine.WasmRun.WasmModules.engine;
+    this.wasmModules = this.wasmEngine.WasmRun.WasmModules;
   }
 
   initTextures() {
@@ -412,16 +411,16 @@ class RayCaster {
   }
 
   private initInputHandlers() {
-    // this.inputManager.addKeyHandlers(Keys.KEY_A, () => { }, () => { });
-    // this.inputManager.addKeyHandlers(Keys.KEY_S, () => { }, () => { });
-    // this.inputManager.addKeyHandlers(Keys.KEY_D, () => { }, () => { });
+    this.inputManager.addKeyHandlers(KeysEnum.KEY_A, () => { }, () => { });
+    // this.inputManager.addKeyHandlers(KeysEnum.KEY_S, () => { }, () => { });
+    // this.inputManager.addKeyHandlers(KeysEnum.KEY_D, () => { }, () => { });
   }
 
-  public onKeyDown(key: Keys) {
+  public onKeyDown(key: KeysEnum) {
     this.inputManager.onKeyDown(key);
   }
 
-  public onKeyUp(key: Keys) {
+  public onKeyUp(key: KeysEnum) {
     this.inputManager.onKeyUp(key);
   }
 }
