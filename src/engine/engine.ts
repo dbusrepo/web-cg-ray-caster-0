@@ -369,11 +369,15 @@ const commands = {
   [EngineCommandsEnum.RUN]: () => {
     engine.run();
   },
-  [EngineCommandsEnum.KEY_DOWN]: (key: KeysEnum) => {
-    engine.onKeyDown(key);
+  [EngineCommandsEnum.KEY_DOWN]: (key: string) => {
+    if (Object.values(KeysEnum).includes(key as KeysEnum)) {
+      engine.onKeyDown(key as KeysEnum);
+    }
   },
-  [EngineCommandsEnum.KEY_UP]: (key: KeysEnum) => {
-    engine.onKeyUp(key);
+  [EngineCommandsEnum.KEY_UP]: (key: string) => {
+    if (Object.values(KeysEnum).includes(key as KeysEnum)) {
+      engine.onKeyUp(key as KeysEnum);
+    }
   },
 };
 
