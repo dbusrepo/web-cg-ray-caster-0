@@ -1,12 +1,14 @@
 import assert from 'assert';
 import { WasmEngine, WasmEngineParams } from '../wasmEngine/wasmEngine';
 import * as WasmUtils from '../wasmEngine/wasmMemUtils';
-import { InputManager, KeyCode } from '../input/inputManager';
+import engineExport from '../wasmEngine/wasm/build/asc/engine';
+import { InputManager } from '../input/inputManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
 import { AuxWorker } from '../auxWorker';
+import Keys from '../input/keys';
 
 type RayCasterParams = { // TODO: change name
   canvas: OffscreenCanvas;
@@ -43,14 +45,12 @@ type KeyOffset = {
   KeyD: number,
 };
 
-type Keys = KeyCode & keyof KeyOffset;
-
 type WasmViews = WasmUtils.views.WasmViews;
 
 class RayCaster {
   private params: RayCasterParams;
   private wasmEngine: WasmEngine;
-  private wasmViews: WasmViews; // TODO: remove?
+  private wasmViews: WasmViews;
   private wasmMem: WebAssembly.Memory;
 
   private inputManager: InputManager;
@@ -72,12 +72,12 @@ class RayCaster {
   private backgroundColor: number;
   private map: Map;
   private textures: BitImageRGBA[];
+  private wasmEngineModule: typeof engineExport;
 
   public async init(params: RayCasterParams) {
     this.params = params;
-
-    await this.initWasmEngine(); // TODO:
     this.initInputManager();
+    await this.initWasmEngine(); // TODO:
 
     // ray caster init stuff
     this.initMap();
@@ -131,6 +131,7 @@ class RayCaster {
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmViews = this.wasmEngine.WasmRun.WasmViews
     this.wasmMem = this.wasmEngine.WasmMem;
+    this.wasmEngineModule = this.wasmEngine.WasmRun.WasmModules.engine;
   }
 
   initTextures() {
@@ -411,27 +412,16 @@ class RayCaster {
   }
 
   private initInputHandlers() {
-    this.inputView = this.wasmViews.inputKeys;
-    const keyHandler = (key: Keys, dir: number) => () => {
-      // console.log(`update key ${key} ${dir}`);
-      this.inputView[this.key2Offset[key]] = dir;
-    };
-    const addKeyHandlers = (key: Keys) => {
-      this.inputManager.addKeyHandlers(key, keyHandler(key, 1), keyHandler(key, 0));
-    };
-    Object.entries(this.key2Offset).forEach(([key, offset]) => {
-      addKeyHandlers(key as Keys);
-      this.inputView[offset] = 0;
-    });
+    // this.inputManager.addKeyHandlers(Keys.KEY_A, () => { }, () => { });
+    // this.inputManager.addKeyHandlers(Keys.KEY_S, () => { }, () => { });
+    // this.inputManager.addKeyHandlers(Keys.KEY_D, () => { }, () => { });
   }
 
-  public onKeyDown(key: KeyCode) {
-    // console.log(`key down ${key}`);
+  public onKeyDown(key: Keys) {
     this.inputManager.onKeyDown(key);
   }
 
-  public onKeyUp(key: KeyCode) {
-    // console.log(`key down ${up}`);
+  public onKeyUp(key: Keys) {
     this.inputManager.onKeyUp(key);
   }
 }

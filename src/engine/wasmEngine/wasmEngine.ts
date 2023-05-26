@@ -257,6 +257,26 @@ class WasmEngine {
   public get WasmRun(): WasmRun {
     return this.wasmRun;
   }
+
+  public get WasmMem(): WebAssembly.Memory {
+    return this.wasmMem;
+  }
+
+  public get WasmMemConfig(): WasmUtils.MemConfig {
+    return this.wasmMemConfig;
+  }
+
+  public get WasmRegionsSizes(): WasmUtils.MemRegionsData {
+    return this.wasmRegionsSizes;
+  }
+
+  public get WasmRegionsOffsets(): WasmUtils.MemRegionsData {
+    return this.wasmRegionsOffsets;
+  }
+  
+  public get ImageData(): ImageData {
+    return this.imageData;
+  }
 }
 
 export { WasmEngine, WasmEngineParams };
