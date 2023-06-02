@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { FONT_X_SIZE, fontChars } from '../../assets/fonts/font';
+import { FONT_X_SIZE, fontChars } from '../../../assets/fonts/font';
 
 function copyFontChars2WasmMem(fontCharsView: Uint8Array) {
   assert(FONT_X_SIZE === 8);

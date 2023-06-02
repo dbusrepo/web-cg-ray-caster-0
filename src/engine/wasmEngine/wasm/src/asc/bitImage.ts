@@ -3,7 +3,7 @@ import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
 import { alloc, free } from './workerHeapManager';
 import { ObjectAllocator, newObjectAllocator } from './objectAllocator';
 import { logi } from './importVars';
-import { usePalette, imagesIndexPtr, imagesIndexSize, imagesDataSize, imagesDataPtr, numImages } from './importVars';
+import { imagesIndexPtr, imagesIndexSize, imagesDataSize, imagesDataPtr, numImages } from './importVars';
 
 // index fields types
 type IMG_OFF_T = u32; // used for offsets to pixels

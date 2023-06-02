@@ -308,3 +308,6 @@ $ nvm use <node version>
 $ npm install -g assemblyscript
 to remove an older version select the older node version and then:
 $ npm ninstall -g assemblyscript
+
+export const url
+https://stackoverflow.com/questions/68612239/referenceerror-document-is-not-defined-service-worker-workbox

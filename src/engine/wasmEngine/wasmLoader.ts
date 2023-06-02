@@ -1,8 +1,8 @@
 // import assert from 'assert';
 import engineWasm from './wasm/build/asc/engine.wasm';
 import engineExport from './wasm/build/asc/engine';
-import { ascImportImages } from '../../assets/build/images';
-import { ascImportStrings } from '../../assets/build/strings';
+import { ascImportImages } from '../../../assets/build/images';
+import { ascImportStrings } from '../../../assets/build/strings';
 
 // TODO
 type wasmBuilderFunc<T> = (
@@ -15,9 +15,15 @@ type wasmBuilderFunc<T> = (
 
 type WasmImports = {
   memory: WebAssembly.Memory;
-  frameWidth: number;
-  frameHeight: number;
-  frameBufferPtr: number;
+
+  rgbaSurface0ptr: number;
+  rgbaSurface0width: number;
+  rgbaSurface0height: number;
+
+  // rgbaSurface1ptr: number;
+  // rgbaSurface1width: number;
+  // rgbaSurface1height: number;
+
   syncArrayPtr: number;
   sleepArrayPtr: number;
   workersHeapPtr: number;
@@ -27,7 +33,7 @@ type WasmImports = {
   mainWorkerIdx: number;
   numWorkers: number;
   bgColor: number;
-  usePalette: number;
+  // usePalette: number;
   numImages: number;
   imagesIndexPtr: number;
   imagesIndexSize: number;
@@ -45,6 +51,7 @@ type WasmImports = {
   FONT_X_SIZE: number;
   FONT_Y_SIZE: number;
   FONT_SPACING: number;
+
   logi: (v: number) => void;
   logf: (v: number) => void;
 };

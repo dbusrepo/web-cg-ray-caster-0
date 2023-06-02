@@ -1,5 +1,5 @@
 import { MonitorBindingApi } from 'tweakpane';
-import { PanelGui, PanelTweakOptions, PanelTweakOptionsKeys } from './panelGui';
+import { PanelGui, PanelTweakOptions } from './panelGui';
 import { EnginePanel } from './enginePanel';
 import MaxDeque from '../ds/maxDeque';
 

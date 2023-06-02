@@ -1,4 +1,4 @@
-import { stringsArrayData } from '../../assets/build/strings';
+import { stringsArrayData } from '../../../assets/build/strings';
 
 // STRINGS REGION LAYOUT:
 

@@ -64,6 +64,7 @@ abstract class Panel {
   protected abstract menuGui: PanelGui;
 
   protected stats: Stats;
+  protected inputKeys: Set<string>;
 
   protected viewMode: ViewMode;
   protected preViewMode: ViewMode;
@@ -761,7 +762,11 @@ abstract class Panel {
     }
   }
 
-  run(): void {
+  public ignoreInputKey(_key: string): boolean {
+    return this.isConsoleOpen;
+  }
+
+  showInit(): void {
     this.initWinMode();
     this.initFullWinMode();
     this.initFocus();
@@ -793,7 +798,7 @@ abstract class Panel {
     return this.board;
   }
 
-  get canvasEl(): HTMLCanvasElement {
+  get Canvas(): HTMLCanvasElement {
     return this.canvas;
   }
 
@@ -840,8 +845,12 @@ abstract class Panel {
     this.stats.isVisible = value;
   }
 
-  public get Stats(): Stats {
+  get Stats(): Stats {
     return this.stats;
+  }
+
+  get EventLog(): EventLog {
+    return this.eventLog;
   }
 
   get isConsoleOpen(): boolean {
@@ -866,6 +875,22 @@ abstract class Panel {
 
   private set isEventLogBelowCanvas(value: boolean) {
     this.cfg.eventLogConfig.isBelowCanvas = value;
+  }
+
+  get InputEl(): HTMLElement {
+    return this.canvasContainerEl;
+  }
+
+  get InputKeys(): Set<string> {
+    return this.inputKeys;
+  }
+
+  get InputElement(): HTMLElement {
+    return this.canvasContainer;
+  }
+
+  get Id() {
+    return this.cfg.id;
   }
 }
 

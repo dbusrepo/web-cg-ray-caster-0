@@ -1,22 +1,23 @@
 import assert from 'assert';
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
+import type { InputEvent } from '../../app/events';
 import type { WasmViews } from '../wasmEngine/wasmViews';
 import type { WasmModules } from '../wasmEngine/wasmLoader';
-import { InputManager } from '../input/inputManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
-import { AuxWorker } from '../auxWorker';
-import { KeysEnum } from '../input/keys';
+import { InputManager, keys } from '../../input/inputManager';
+import { EngineWorkerCommandEnum } from '../engineWorker';
+import { EngineWorkerDesc } from '../engineWorker';
 
-type RayCasterParams = { // TODO: change name
-  canvas: OffscreenCanvas;
+type RayCasterParams = {
+  engineCanvas: OffscreenCanvas;
   assetManager: AssetManager;
   inputManager: InputManager;
+  engineWorkers: EngineWorkerDesc[];
   mainWorkerIdx: number;
-  auxWorkers: AuxWorker[];
 };
 
 type Viewport = {
@@ -77,7 +78,6 @@ class RayCaster {
     this.params = params;
     this.initInputManager();
     await this.initWasmEngine(); // TODO:
-
     // ray caster init stuff
     this.initMap();
     this.initTextures();
@@ -93,25 +93,24 @@ class RayCaster {
     this.viewport = {
       startX: VIEWPORT_BORDER,
       startY: VIEWPORT_BORDER,
-      width: this.params.canvas.width - VIEWPORT_BORDER * 2,
-      height: this.params.canvas.height - VIEWPORT_BORDER * 2,
+      width: this.params.engineCanvas.width - VIEWPORT_BORDER * 2,
+      height: this.params.engineCanvas.height - VIEWPORT_BORDER * 2,
       borderColor: 0xff444444, // TODO:
     };
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.height;
     this.zBuffer = new Float32Array(this.viewport.width);
-    const frameBuf = this.wasmViews.frameBufferRGBA;
+    const frameBuf = this.wasmViews.rgbaSurface0;
     this.frameBuffer = {
       buf8: frameBuf,
       buf32: new Uint32Array(
         frameBuf.buffer,
         0,
         frameBuf.byteLength / Uint32Array.BYTES_PER_ELEMENT),
-      pitch: this.params.canvas.width,
+      pitch: this.params.engineCanvas.width,
     };
     this.renderBorders();
     this.backgroundColor = 0xff000000; // TODO:
-
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
     // this.castScene(); // TODO:
@@ -120,9 +119,9 @@ class RayCaster {
   private async initWasmEngine() {
     this.wasmEngine = new WasmEngine();
     const wasmEngineParams: WasmEngineParams = {
-      canvas: this.params.canvas,
+      enginePanel: this.params.engineCanvas,
       assetManager: this.params.assetManager,
-      auxWorkers: this.params.auxWorkers,
+      engineWorkers: this.params.engineWorkers,
       mainWorkerIdx: this.params.mainWorkerIdx,
       inputManager: this.inputManager,
       runLoopInWorker: false, // WARN:
@@ -411,17 +410,17 @@ class RayCaster {
   }
 
   private initInputHandlers() {
-    this.inputManager.addKeyHandlers(KeysEnum.KEY_A, () => { }, () => { });
-    // this.inputManager.addKeyHandlers(KeysEnum.KEY_S, () => { }, () => { });
-    // this.inputManager.addKeyHandlers(KeysEnum.KEY_D, () => { }, () => { });
+    this.inputManager.addKeyHandlers(keys.KEY_A, () => { }, () => { });
+    // this.inputManager.addKeyHandlers(keys.KEY_S, () => { }, () => { });
+    // this.inputManager.addKeyHandlers(keys.KEY_D, () => { }, () => { });
   }
 
-  public onKeyDown(key: KeysEnum) {
-    this.inputManager.onKeyDown(key);
+  public onKeyDown(inputEvent: InputEvent) {
+    this.inputManager.onKeyDown(inputEvent.code);
   }
 
-  public onKeyUp(key: KeysEnum) {
-    this.inputManager.onKeyUp(key);
+  public onKeyUp(inputEvent: InputEvent) {
+    this.inputManager.onKeyUp(inputEvent.code);
   }
 }
 

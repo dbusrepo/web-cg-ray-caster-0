@@ -1,4 +1,4 @@
-import { Panel } from './panel';
+// import { Panel } from './panel';
 import { PanelGui, PanelTweakOptions } from './panelGui';
 import { ViewPanel } from './viewPanel';
 
@@ -18,9 +18,9 @@ class ViewPanelGui extends PanelGui {
     super.init(panel);
   }
 
-  protected initTweakPaneOptionsObj(): void {
-    super.initTweakPaneOptionsObj();
-  }
+  // protected initTweakPaneOptionsObj(): void {
+  //   super.initTweakPaneOptionsObj();
+  // }
 
   protected addTweakPaneOptions() {
     super.addStatsOpt();

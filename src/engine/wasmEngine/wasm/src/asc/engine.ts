@@ -17,9 +17,9 @@ import {
   workerIdx,
   logi,
   logf,
-  frameWidth,
-  frameHeight,
-  frameBufferPtr,
+  rgbaSurface0ptr,
+  rgbaSurface0width,
+  rgbaSurface0height,
   syncArrayPtr,
   sleepArrayPtr,
   hrTimerPtr,
@@ -35,7 +35,6 @@ import { PTR_T, SIZE_T } from './memUtils';
 // import { MYIMG, IMG1 } from './_genImportImages';
 
 import {
-  usePalette,
   imagesIndexPtr,
   imagesIndexSize,
   imagesDataSize,
@@ -85,12 +84,13 @@ function allocMap(width: usize, height: usize): PTR_T {
 
 function render(): void {
 
-  const r = utils.range(workerIdx, numWorkers, frameHeight);
+  const r = utils.range(workerIdx, numWorkers, rgbaSurface0height);
   const s = <u32>(r >> 32);
   const e = <u32>r;
 
   // const t0 = <u64>process.hrtime();
-  draw.clearBg(s, e, 0xff_00_00_00); // ABGR
+  draw.clearBg(s, e, 0xff_ff_00_00); // ABGR
+  // logi(r as i32);
   // const t1 = <u64>process.hrtime();
   // store<u64>(hrTimerPtr, t1 - t0);
 

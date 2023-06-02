@@ -31,6 +31,8 @@ const panelConfig = {
   focusOnStart: false,
 };
 
-type PanelConfig = typeof panelConfig;
+type PanelConfig = typeof panelConfig & {
+  id: number;
+};
 
 export { StartViewMode, PanelConfig, panelConfig };

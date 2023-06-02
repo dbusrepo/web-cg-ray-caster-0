@@ -1,11 +1,13 @@
 import { myAssert } from './myAssert';
-import { logi, logf, frameBufferPtr, frameWidth, frameHeight } from './importVars';
+import { rgbaSurface0ptr, rgbaSurface0width, rgbaSurface0height } from './importVars';
+// import { rgbaSurface1ptr, rgbaSurface1width, rgbaSurface1height } from './importVars';
+import { logi, logf } from './importVars';
 import { FONT_X_SIZE, FONT_Y_SIZE, FONT_SPACING } from './importVars';
 import { stringsDataPtr, fontCharsPtr } from './importVars';
 
 const PIX_OFFS = 4;
-const FRAME_ROW_LEN = frameWidth * PIX_OFFS;
-const LIMIT = frameBufferPtr + frameHeight * FRAME_ROW_LEN;
+const FRAME_ROW_LEN = rgbaSurface0width * PIX_OFFS;
+const LIMIT = rgbaSurface0ptr + rgbaSurface0height * FRAME_ROW_LEN;
 
 function clearBg(
   start: u32,
@@ -13,8 +15,11 @@ function clearBg(
   color: u32,
 ): void {
 
-  const startOff: usize = frameBufferPtr + start * FRAME_ROW_LEN;
-  const endOff: usize = frameBufferPtr + end * FRAME_ROW_LEN;
+  const startOff: usize = rgbaSurface0ptr + start * FRAME_ROW_LEN;
+  const endOff: usize = rgbaSurface0ptr + end * FRAME_ROW_LEN;
+
+  // const startOff1: usize = rgbaSurface1ptr + start * FRAME_ROW_LEN;
+  // const endOff1: usize = rgbaSurface1ptr + end * FRAME_ROW_LEN;
 
   // let value = v128.splat<i32>(color);
   // TODO check bounds ?
@@ -25,19 +30,22 @@ function clearBg(
 
   // TODO handle remainder elements here ?
 
+  // let ptr1 = startOff1;
   for (let ptr = startOff; ptr < endOff; ptr += PIX_OFFS) {
     store<u32>(ptr, color);
+    // store<u32>(ptr1, 0xff_00_ff_00);
+    // ptr1 += PIX_OFFS;
   }
 
   // test first and last pixel
-  // store<u32>(frameBufferPtr, 0xFF_00_00_FF);
-  // store<u32>(frameBufferPtr + (pixelCount-1)*4, 0xFF_00_00_FF);
+  // store<u32>(rgbaSurface0ptr, 0xFF_00_00_FF);
+  // store<u32>(rgbaSurface0ptr + (pixelCount-1)*4, 0xFF_00_00_FF);
 }
 
-// export function clearCanvasVec(frameBufferPtr: i32): void {
+// export function clearCanvasVec(rgbaSurface0ptr: i32): void {
 //     const value = 0xff_00_00_00;
-//     let limit = frameBufferPtr + pixelCount*4;
-//     for (let i: i32 = frameBufferPtr; i != limit; i+=16) {
+//     let limit = rgbaSurface0ptr + pixelCount*4;
+//     for (let i: i32 = rgbaSurface0ptr; i != limit; i+=16) {
 //         store<u32>(i, value);
 //         store<u32>(i+4, value);
 //         store<u32>(i+8, value);
@@ -46,12 +54,12 @@ function clearBg(
 // }
 
 function drawText(textOffs: usize, x: i32, y: i32, scale: f32, color: u32): void {
-  myAssert(x >= 0 && x < frameWidth);
-  myAssert(y >= 0 && y < frameHeight);
+  myAssert(x >= 0 && x < rgbaSurface0width);
+  myAssert(y >= 0 && y < rgbaSurface0height);
   myAssert(scale > 0);
   myAssert(FONT_X_SIZE == 8);
-  let rowPtr: usize = frameBufferPtr + x * PIX_OFFS + y * FRAME_ROW_LEN;
-  let startNextRow: usize = frameBufferPtr + (y + 1) * FRAME_ROW_LEN;
+  let rowPtr: usize = rgbaSurface0ptr + x * PIX_OFFS + y * FRAME_ROW_LEN;
+  let startNextRow: usize = rgbaSurface0ptr + (y + 1) * FRAME_ROW_LEN;
   const step_y = f32(1) / scale;
   let inc_y = f32(0);
   for (let font_y = usize(0); font_y < FONT_Y_SIZE && rowPtr < LIMIT; ) {

@@ -1,4 +1,4 @@
-import { images as sourceImgs } from '../../assets/build/images';
+import { images as sourceImgs } from '../../../assets/build/images';
 import { BitImage } from './../assets/images/bitImage';
 
 // IMAGES REGION LAYOUT:

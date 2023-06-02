@@ -2,7 +2,8 @@ import { MemRegionsEnum, WasmMemRegionsData } from './wasmMemUtils';
 
 type WasmViews = {
   memUI8: Uint8Array;
-  frameBufferRGBA: Uint8ClampedArray;
+  rgbaSurface0: Uint8ClampedArray;
+  rgbaSurface1: Uint8ClampedArray;
   syncArr: Int32Array;
   sleepArr: Int32Array;
   fontChars: Uint8Array;
@@ -24,10 +25,16 @@ function buildWasmMemViews(
   const wasmTotalStartSize = startOffset + startSize;
   const memUI8 = new Uint8Array(wasmMem.buffer, 0, wasmTotalStartSize);
 
-  const frameBufferRGBA = new Uint8ClampedArray(
+  const rgbaSurface0 = new Uint8ClampedArray(
     wasmMem.buffer,
-    memOffsets[MemRegionsEnum.FRAMEBUFFER_RGBA],
-    memSizes[MemRegionsEnum.FRAMEBUFFER_RGBA],
+    memOffsets[MemRegionsEnum.RGBA_SURFACE_0],
+    memSizes[MemRegionsEnum.RGBA_SURFACE_0],
+  );
+
+  const rgbaSurface1 = new Uint8ClampedArray(
+    wasmMem.buffer,
+    memOffsets[MemRegionsEnum.RGBA_SURFACE_1],
+    memSizes[MemRegionsEnum.RGBA_SURFACE_1],
   );
 
   const syncArr = new Int32Array(
@@ -86,7 +93,8 @@ function buildWasmMemViews(
 
   const memViews: WasmViews = {
       memUI8,
-      frameBufferRGBA,
+      rgbaSurface0,
+      rgbaSurface1,
       syncArr,
       sleepArr,
       imagesIndex,
