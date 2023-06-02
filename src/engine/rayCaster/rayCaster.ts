@@ -119,7 +119,7 @@ class RayCaster {
   private async initWasmEngine() {
     this.wasmEngine = new WasmEngine();
     const wasmEngineParams: WasmEngineParams = {
-      enginePanel: this.params.engineCanvas,
+      engineCanvas: this.params.engineCanvas,
       assetManager: this.params.assetManager,
       engineWorkers: this.params.engineWorkers,
       mainWorkerIdx: this.params.mainWorkerIdx,

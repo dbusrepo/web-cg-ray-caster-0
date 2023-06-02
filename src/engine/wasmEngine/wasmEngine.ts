@@ -26,11 +26,11 @@ import {
 
 
 type WasmEngineParams = {
-  enginePanel: OffscreenCanvas;
+  engineCanvas: OffscreenCanvas;
   assetManager: AssetManager;
   inputManager: InputManager;
-  mainWorkerIdx: number;
   engineWorkers: EngineWorkerDesc[];
+  mainWorkerIdx: number;
   runLoopInWorker: boolean;
 };
 
@@ -65,10 +65,10 @@ class WasmEngine {
   }
 
   private initGfx() {
-    this.ctx2d = this.get2dCtxFromCanvas(this.params.enginePanel);
+    this.ctx2d = this.get2dCtxFromCanvas(this.params.engineCanvas);
     this.engineImageData = this.ctx2d.createImageData(
-      this.params.enginePanel.width,
-      this.params.enginePanel.height);
+      this.params.engineCanvas.width,
+      this.params.engineCanvas.height);
   }
 
   private initInputHandlers() {

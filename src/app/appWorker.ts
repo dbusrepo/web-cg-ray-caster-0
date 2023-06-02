@@ -158,11 +158,11 @@ Date.now() - initStart
   private async initWasmEngine() {
     this.wasmEngine = new WasmEngine();
     const wasmEngineParams: WasmEngineParams = {
-      mainWorkerIdx: MAIN_WORKER_IDX,
-      enginePanel: this.params.engineCanvas,
+      engineCanvas: this.params.engineCanvas,
       assetManager: this.assetManager,
       inputManager: this.inputManager,
       engineWorkers: this.engineWorkers,
+      mainWorkerIdx: MAIN_WORKER_IDX,
       runLoopInWorker: true,
     };
     await this.wasmEngine.init(wasmEngineParams);
