@@ -8,7 +8,7 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
-import { InputManager, keys } from '../../input/inputManager';
+import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 import { EngineWorkerCommandEnum } from '../engineWorker';
 import { EngineWorkerDesc } from '../engineWorker';
 
@@ -370,16 +370,16 @@ class RayCaster {
 
     const moveSpeed = time * 0.005;
 
-    if (inputKeys[this.key2Offset.KeyW] !== 0) {
+    if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
       this.moveForward(moveSpeed, 1);
     }
-    if (inputKeys[this.key2Offset.KeyS] !== 0) {
+    if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
       this.moveForward(moveSpeed, -1);
     }
-    if (inputKeys[this.key2Offset.KeyA] !== 0) {
+    if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
       this.rotate(-moveSpeed);
     }
-    if (inputKeys[this.key2Offset.KeyD] !== 0) {
+    if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
       this.rotate(moveSpeed);
     }
   }
