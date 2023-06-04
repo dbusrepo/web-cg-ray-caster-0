@@ -19,14 +19,14 @@ import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from './appTypes';
 class App {
   private stats: Stats;
   private enginePanel: EnginePanel;
-  private engineWorker: Worker;
+  private appWorker: Worker;
 
   async init() {
     this.stats = this.initStatsPanel();
     this.initPanels();
     this.initKeyListeners();
+    await this.initAppWorker();
     this.enginePanel.showInit();
-    await this.initEngineWorker();
   }
 
   private initKeyListeners() {
@@ -35,7 +35,7 @@ class App {
 
   private addKeyListener(panel: Panel) {
 
-    const keyEvent2EngineCmd = {
+    const keyEvent2cmd = {
       [KeyEventsEnum.KEY_DOWN]: AppWorkerCommandEnum.KEY_DOWN,
       [KeyEventsEnum.KEY_UP]: AppWorkerCommandEnum.KEY_UP,
     };
@@ -45,8 +45,8 @@ class App {
         if (!panel.InputKeys.has(event.code) || panel.ignoreInputKey(event.code)) {
           return;
         }
-        this.engineWorker.postMessage({
-          command: keyEvent2EngineCmd[keyEvent],
+        this.appWorker.postMessage({
+          command: keyEvent2cmd[keyEvent],
           params: { 
             code: event.code,
             panelId: panel.Id,
@@ -58,12 +58,10 @@ class App {
     (Object.values(KeyEventsEnum) as KeyEventsEnum[]).forEach(addKeyListener);
   }
 
-  private buildEngineWorkerParams() {
-
-    const getOffscreenCanvas = (panel: Panel) => panel.Canvas.transferControlToOffscreen();
+  private buildAppWorkerParams() {
 
     const params: AppWorkerParams = {
-      engineCanvas: getOffscreenCanvas(this.enginePanel),
+      engineCanvas: this.enginePanel.Canvas.transferControlToOffscreen(),
     };
 
     return {
@@ -72,25 +70,29 @@ class App {
     };
   }
 
-  async initEngineWorker() {
-    this.engineWorker = new Worker(new URL('./appWorker.ts', import.meta.url));
+  async initAppWorker() {
+    this.appWorker = new Worker(new URL('./appWorker.ts', import.meta.url));
 
-    const initPromise = this.initEngineWorkerMessageHandlers();
+    const initPromise = this.initAppWorkerMsgHandlers();
 
-    const { params, transferables } = this.buildEngineWorkerParams();
+    this.sendInitMsgToAppWorker();
 
-    this.engineWorker.postMessage(
+    await initPromise;
+  }
+
+  private sendInitMsgToAppWorker() {
+    const { params, transferables } = this.buildAppWorkerParams();
+
+    this.appWorker.postMessage(
       {
         command: AppWorkerCommandEnum.INIT,
         params,
       },
       transferables,
     );
-
-    await initPromise;
   }
 
-  private initEngineWorkerMessageHandlers() {
+  private initAppWorkerMsgHandlers() {
     let enginePanel = this.enginePanel;
 
     let resolveInit: (value: void | PromiseLike<void>) => void;
@@ -112,7 +114,7 @@ class App {
       },
     };
 
-    this.engineWorker.onmessage = ({ data: { command, params } }) => {
+    this.appWorker.onmessage = ({ data: { command, params } }) => {
       if (commands.hasOwnProperty(command)) {
         try {
           commands[command as keyof typeof commands]!(params);
@@ -127,7 +129,7 @@ class App {
   }
 
   run() {
-    this.engineWorker.postMessage({
+    this.appWorker.postMessage({
       command: AppWorkerCommandEnum.RUN
     });
   }

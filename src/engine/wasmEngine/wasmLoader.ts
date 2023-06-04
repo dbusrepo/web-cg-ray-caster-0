@@ -79,10 +79,10 @@ async function loadWasm<T>(
       ...wasmInput,
       ...otherImpObj,
     },
-    importImages: {
+    gen_importImages: {
       ...ascImportImages,
     },
-    importStrings: {
+    gen_importStrings: {
       ...ascImportStrings,
     },
     env: {

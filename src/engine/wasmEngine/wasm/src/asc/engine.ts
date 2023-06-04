@@ -22,6 +22,7 @@ import {
   rgbaSurface0height,
   syncArrayPtr,
   sleepArrayPtr,
+  inputKeysPtr,
   hrTimerPtr,
 } from './importVars';
 import { BitImage } from './bitImage';
@@ -30,9 +31,10 @@ import { initImages } from './initImages';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
 import { test } from './test/test';
-import { PTR_T, SIZE_T } from './memUtils';
+import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
 
-// import { MYIMG, IMG1 } from './_genImportImages';
+import { MYIMG, IMG1 } from './gen_importImages';
+import * as strings from './gen_importStrings';
 
 import {
   imagesIndexPtr,
@@ -43,19 +45,15 @@ import {
 } from './importVars';
 import { stringsDataPtr, stringsDataSize } from './importVars';
 import { FONT_Y_SIZE, fontCharsPtr, fontCharsSize } from './importVars';
-// import * as strings from './_genImportStrings';
-
-// import { inputKeysPtr } from './genImportVars';
-
-// import { memCountersPtr, memCountersSize } from './importVars';
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
 const MAIN_THREAD_IDX = mainWorkerIdx;
 
-let images: SArray<BitImage> | null = null;
+let images = changetype<SArray<BitImage>>(NULL_PTR);
 
+// @ts-ignore: decorator
 @inline function align<T>(): SIZE_T {
   return alignof<T>();
 }
@@ -72,6 +70,14 @@ function init(): void {
   }
   initMemManager();
   images = initImages();
+  // logi(workerIdx as i32);
+
+  // logi(MYIMG);
+
+  // myAssert(images != null);
+  // const image = images.at(0);
+  // logi(image.Width as i32);
+  // logi(image.Height as i32);
   // test();
 }
 
@@ -85,37 +91,38 @@ function allocMap(width: usize, height: usize): PTR_T {
 function render(): void {
 
   const r = utils.range(workerIdx, numWorkers, rgbaSurface0height);
-  const s = <u32>(r >> 32);
-  const e = <u32>r;
+  const s = <usize>(r >> 32);
+  const e = <usize>r;
+  // logi(r as i32);
 
   // const t0 = <u64>process.hrtime();
   draw.clearBg(s, e, 0xff_ff_00_00); // ABGR
-  // logi(r as i32);
   // const t1 = <u64>process.hrtime();
   // store<u64>(hrTimerPtr, t1 - t0);
 
-  // draw.clearBg(s, e, 0xff_ff_00_00); // ABGR
+  // render image test
+  // const image = images.at(IMG1);
+  // // const byte = load<u8>(image.Ptr);
+  // // logi(<i32>byte);
 
-  // logi(workerIdx);
-
-  // // // logi(image.height);
-  // if (workerIdx == 1) {
-  //   for (let i = s; i != e; ++i) {
-  //     let screenPtr: PTR_T = frameBufferPtr + i * frameWidth * 4;
-  //     const pixels: PTR_T = image.pixels + i * image.width * 4;
-  //     memory.copy(screenPtr, pixels, frameWidth * 4);
-  //   }
+  // if (workerIdx == MAIN_THREAD_IDX) {
+  // const minWidth = <usize>Math.min(image.Width, rgbaSurface0width);
+  // for (let i = s; i != e; ++i) {
+  //   let screenPtr: PTR_T = rgbaSurface0ptr + i * rgbaSurface0width * 4;
+  //   const pixels: PTR_T = image.Ptr + i * image.Width * 4;
+  //   memory.copy(screenPtr, pixels, minWidth * 4);
+  // }
   // }
 
-  // if (workerIdx == 0) {
-  //   draw.drawText(strings.SENT2, 10, 10, 1, 0xFF_00_00_FF);
-  //   draw.drawText(strings.SENT2, 10, 18, 2, 0xFF_00_00_FF);
-  //   // let y = 20;
-  //   // for (let s = 1; s < 5; ) {
-  //   //   draw.drawText(strings.SENT2, 10, y, f32(s), 0xFF_00_00_FF);
-  //   //   y += FONT_Y_SIZE * s;
-  //   //   s++;
-  //   // }
+  // if (workerIdx == MAIN_THREAD_IDX) {
+    // draw.drawText(strings.SENT2, 10, 10, 1, 0xFF_00_00_FF);
+    // draw.drawText(strings.SENT2, 10, 18, 2, 0xFF_00_00_FF);
+    // let y = 20;
+    // for (let s = 1; s < 5; ) {
+    //   draw.drawText(strings.SENT2, 10, y, f32(s), 0xFF_00_00_FF);
+    //   y += FONT_Y_SIZE * s;
+    //   s++;
+    // }
   // }
 
   // logi(load<u8>(inputKeysPtr));

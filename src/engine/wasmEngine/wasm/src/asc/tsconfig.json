@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "strictPropertyInitialization": false
+    // "strictNullChecks": false,
     // "noUnusedLocals": false
     // "experimentalDecorators": true
   },

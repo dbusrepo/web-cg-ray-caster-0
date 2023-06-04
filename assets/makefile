@@ -1,7 +1,7 @@
 # https://stackoverflow.com/questions/3871444/making-all-rules-depend-on-the-makefile-itself
 .EXTRA_PREREQS:= $(abspath $(lastword $(MAKEFILE_LIST)))
 
-ASC_DIR := ../engine/wasmEngine/wasm/src/asc
+ASC_DIR := ../src/engine/wasmEngine/wasm/src/asc
 
 IMAGES_DIR := ./images
 STRINGS_DIR := ./strings
@@ -17,11 +17,14 @@ BUILD_DIR := ./build
 IMAGES_OUT_TS := $(BUILD_DIR)/images.ts
 STRINGS_OUT_TS := $(BUILD_DIR)/strings.ts
 
-ASC_GEN_PREFIX := _gen
-# use prefix _gen for generated files for asc sources
+# prefix for generated asc files
+ASC_GEN_PREFIX := gen_
 
-IMAGES_OUT_TS_ASC := $(ASC_DIR)/${ASC_GEN_PREFIX}ImportImages.ts
-STRINGS_OUT_TS_ASC := $(ASC_DIR)/${ASC_GEN_PREFIX}ImportStrings.ts
+IMAGES_OUT_ASC := $(ASC_DIR)/${ASC_GEN_PREFIX}importImages.ts
+STRINGS_OUT_ASC := $(ASC_DIR)/${ASC_GEN_PREFIX}importStrings.ts
+# these two are define for clean only
+IMAGES_OUT_ASC_DEP := $(ASC_DIR)/${ASC_GEN_PREFIX}importImages.d
+STRINGS_OUT_ASC_DEP := $(ASC_DIR)/${ASC_GEN_PREFIX}importStrings.d
 
 .PHONY: clean clean-images clean-strings
 
@@ -30,24 +33,24 @@ all: mk_build_dir images strings
 mk_build_dir:
 	@mkdir -p $(BUILD_DIR)
 
-images: $(IMAGES_OUT_TS) $(IMAGES_OUT_TS_ASC)
+images: $(IMAGES_OUT_TS) $(IMAGES_OUT_ASC)
 	@echo 'Images assets generation terminated.'
 
-strings: $(STRINGS_OUT_TS) $(STRINGS_OUT_TS_ASC)
+strings: $(STRINGS_OUT_TS) $(STRINGS_OUT_ASC)
 	@echo 'Strings assets generation terminated.'
 
-$(IMAGES_OUT_TS) $(IMAGES_OUT_TS_ASC): $(IMAGES_IN) $(IMAGES_SCRIPT)
-	node $(IMAGES_SCRIPT) $(IMAGES_IN) $(IMAGES_OUT_TS) $(IMAGES_OUT_TS_ASC)
+$(IMAGES_OUT_TS) $(IMAGES_OUT_ASC): $(IMAGES_IN) $(IMAGES_SCRIPT)
+	node $(IMAGES_SCRIPT) $(IMAGES_IN) $(IMAGES_OUT_TS) $(IMAGES_OUT_ASC)
 
-$(STRINGS_OUT_TS) $(STRINGS_OUT_TS_ASC): $(STRINGS_IN) $(STRINGS_SCRIPT)
-	node $(STRINGS_SCRIPT) $(STRINGS_IN) $(STRINGS_OUT_TS) $(STRINGS_OUT_TS_ASC)
+$(STRINGS_OUT_TS) $(STRINGS_OUT_ASC): $(STRINGS_IN) $(STRINGS_SCRIPT)
+	node $(STRINGS_SCRIPT) $(STRINGS_IN) $(STRINGS_OUT_TS) $(STRINGS_OUT_ASC)
 
 clean-images:
 	@echo 'Cleaning images assets...'
-	rm -f $(IMAGES_OUT_TS) $(IMAGES_OUT_TS_ASC)
+	rm -f $(IMAGES_OUT_TS) $(IMAGES_OUT_ASC) $(IMAGES_OUT_ASC_DEP)
 
 clean-strings:
 	@echo 'Cleaning strings assets...'
-	rm -f $(STRINGS_OUT_TS) $(STRINGS_OUT_TS_ASC)
+	rm -f $(STRINGS_OUT_TS) $(STRINGS_OUT_ASC) $(STRINGS_OUT_ASC_DEP)
 
 clean: clean-images clean-strings

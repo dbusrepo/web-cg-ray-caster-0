@@ -10,8 +10,8 @@ const FRAME_ROW_LEN = rgbaSurface0width * PIX_OFFS;
 const LIMIT = rgbaSurface0ptr + rgbaSurface0height * FRAME_ROW_LEN;
 
 function clearBg(
-  start: u32,
-  end: u32,
+  start: usize,
+  end: usize,
   color: u32,
 ): void {
 
@@ -53,7 +53,7 @@ function clearBg(
 //     }
 // }
 
-function drawText(textOffs: usize, x: i32, y: i32, scale: f32, color: u32): void {
+function drawText(textOffs: usize, x: u32, y: u32, scale: f32, color: u32): void {
   myAssert(x >= 0 && x < rgbaSurface0width);
   myAssert(y >= 0 && y < rgbaSurface0height);
   myAssert(scale > 0);

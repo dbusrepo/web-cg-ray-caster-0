@@ -1,4 +1,6 @@
 import assert from 'assert';
+import type { WasmViews } from './wasmEngine/wasmViews';
+import { buildWasmMemViews } from './wasmEngine/wasmViews';
 import type { WasmRunParams } from './wasmEngine/wasmRun';
 import { WasmRun } from './wasmEngine/wasmRun';
 
@@ -43,7 +45,11 @@ class EngineWorker {
 
   async initWasm(params: WasmRunParams) {
     this.wasmRun = new WasmRun();
-    await this.wasmRun.init(params);
+    const wasmViews = buildWasmMemViews(
+      params.wasmMem,
+      params.wasmMemRegionsOffsets,
+      params.wasmMemRegionsSizes);
+    await this.wasmRun.init(params, wasmViews);
   }
 
   async runWasm() {

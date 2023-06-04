@@ -55,7 +55,7 @@ class AppWorker {
     await this.initAssetManager();
     this.initInput();
     const numEngineWorkers = mainConfig.numEngineWorkers;
-    console.log(`Using 1 main worker plus ${numEngineWorkers} engine workers`);
+    console.log(`Using 1 main worker and ${numEngineWorkers} engine workers`);
     const numTotalWorkers = numEngineWorkers + 1;
     this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
     this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));

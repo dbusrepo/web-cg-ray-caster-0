@@ -1,11 +1,9 @@
 // import assert from 'assert';
 import * as WasmUtils from './wasmMemUtils';
-
 import type { WasmViews } from './wasmViews';
-import { buildWasmMemViews } from './wasmViews';
 import type { WasmModules, WasmImports } from './wasmLoader';
 import { loadWasmModules } from './wasmLoader';
-
+import { syncStore } from './../utils';
 // import { syncStore, randColor, sleep } from './utils';
 
 import {
@@ -13,7 +11,6 @@ import {
   FONT_Y_SIZE,
   FONT_SPACING,
 } from '../../../assets/fonts/font';
-import { syncStore } from './../utils';
 
 type WasmRunParams = {
   // usePalette: boolean;
@@ -31,32 +28,17 @@ type WasmRunParams = {
 
 class WasmRun {
   protected params: WasmRunParams;
-  protected wasmViews: WasmViews;
   protected wasmModules: WasmModules;
+  protected wasmViews: WasmViews;
 
-  public async init(params: WasmRunParams) {
+  public async init(params: WasmRunParams, wasmViews: WasmViews) {
     this.params = params;
-    await this.initWasm();
-  }
-
-  private async initWasm(): Promise<void> {
-    this.buildMemViews();
+    this.wasmViews = wasmViews;
+    this.initSyncStore();
     await this.loadWasmModules();
   }
 
-  protected buildMemViews(): void {
-    const {
-      wasmMem: mem,
-      wasmMemRegionsOffsets: memOffsets,
-      wasmMemRegionsSizes: memSizes,
-    } = this.params;
-
-    this.wasmViews = buildWasmMemViews(
-      mem,
-      memOffsets,
-      memSizes,
-    );
-
+  private initSyncStore() {
     const { workerIdx } = this.params;
     syncStore(this.wasmViews.syncArr, workerIdx, 0);
     syncStore(this.wasmViews.sleepArr, workerIdx, 0);
@@ -69,7 +51,7 @@ class WasmRun {
       wasmMemRegionsOffsets: memOffsets,
       wasmWorkerHeapSize: workerHeapSize,
       surface0sizes,
-      surface1sizes,
+      // surface1sizes,
       mainWorkerIdx,
       numWorkers,
       numImages,

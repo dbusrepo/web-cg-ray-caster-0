@@ -50,16 +50,16 @@ const HEADER_SIZE = getTypeSize<Header>();
     return changetype<PTR_T>(this);
   }
 
-  ptrAt(idx: SIZE_T): PTR_T {
+  @inline ptrAt(idx: SIZE_T): PTR_T {
     return this.idx2Ptr(idx);
   }
 
-  at(idx: SIZE_T): T {
+  @inline at(idx: SIZE_T): T {
     const ptr = this.idx2Ptr(idx);
     return new Pointer<T>(ptr).value;
   }
 
-  set(idx: SIZE_T, value: T): void {
+  @inline set(idx: SIZE_T, value: T): void {
     const ptr = this.idx2Ptr(idx);
     new Pointer<T>(ptr).value = value;
   }
