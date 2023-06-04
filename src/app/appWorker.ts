@@ -16,7 +16,7 @@ import { InputManager, keys } from '../input/inputManager';
 import type { EngineWorkerParams } from '../engine/engineWorker';
 import { EngineWorkerCommandEnum, EngineWorkerDesc } from '../engine/engineWorker';
 import * as utils from '../engine/utils';
-import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCaster';
+import { RayCasterEngine, RayCasterEngineParams } from '../engine/rayCaster/rayCasterEngine';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -39,18 +39,16 @@ class AppWorker {
 
   private params: AppWorkerParams;
   private assetManager: AssetManager;
-  private inputManager: InputManager;
 
   private engineWorkers: EngineWorkerDesc[];
   private syncArray: Int32Array;
   private sleepArray: Int32Array;
 
-  private rayCaster: RayCaster;
+  private rayCaster: RayCasterEngine;
 
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
     await this.initAssetManager();
-    this.initInput();
     const numEngineWorkers = mainConfig.numEngineWorkers;
     console.log(`Using 1 main worker and ${numEngineWorkers} engine workers`);
     const numTotalWorkers = numEngineWorkers + 1;
@@ -64,26 +62,14 @@ class AppWorker {
   }
   
   private async initRayCaster() {
-    this.rayCaster = new RayCaster();
-    const rayCasterParams: RayCasterParams = {
+    this.rayCaster = new RayCasterEngine();
+    const rayCasterParams: RayCasterEngineParams = {
       engineCanvas: this.params.engineCanvas,
       assetManager: this.assetManager,
-      inputManager: this.inputManager,
       engineWorkers: [],
       mainWorkerIdx: MAIN_WORKER_IDX,
     };
     await this.rayCaster.init(rayCasterParams);
-  }
-
-  private initInput() {
-    this.initInputManager();
-  }
-
-  private initInputManager() {
-    this.inputManager = new InputManager();
-    // this.inputManager.addKeyHandlers(keys.KEY_A, () => { console.log('A down') }, () => { console.log('A up') });
-    // this.inputManager.addKeyHandlers(keys.KEY_S, () => { console.log('S down') }, () => { console.log('S up') });
-    // this.inputManager.addKeyHandlers(keys.KEY_D, () => { console.log('D down') }, () => { console.log('D up') });
   }
 
   private async initAssetManager() {

@@ -12,10 +12,9 @@ import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 import { EngineWorkerCommandEnum } from '../engineWorker';
 import { EngineWorkerDesc } from '../engineWorker';
 
-type RayCasterParams = {
+type RayCasterEngineParams = {
   engineCanvas: OffscreenCanvas;
   assetManager: AssetManager;
-  inputManager: InputManager;
   engineWorkers: EngineWorkerDesc[];
   mainWorkerIdx: number;
 };
@@ -47,8 +46,8 @@ type KeyOffset = {
   KeyD: number,
 };
 
-class RayCaster {
-  private params: RayCasterParams;
+class RayCasterEngine {
+  private params: RayCasterEngineParams;
   private wasmEngine: WasmEngine;
   private wasmViews: WasmViews;
   private wasmMem: WebAssembly.Memory;
@@ -73,7 +72,7 @@ class RayCaster {
   private map: Map;
   private textures: BitImageRGBA[];
 
-  public async init(params: RayCasterParams) {
+  public async init(params: RayCasterEngineParams) {
     this.params = params;
     this.initInputManager();
     await this.initWasmEngine(); // TODO:
@@ -425,4 +424,4 @@ class RayCaster {
   }
 }
 
-export { RayCaster, RayCasterParams };
+export { RayCasterEngine, RayCasterEngineParams };
