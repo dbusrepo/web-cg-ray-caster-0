@@ -56,7 +56,6 @@ class RayCaster {
 
   private inputManager: InputManager;
   private key2Offset: KeyOffset;
-  private inputView: Uint8Array;
 
   private pX: number;
   private pY: number;
@@ -367,18 +366,20 @@ class RayCaster {
 
   public update(time: number) {
 
+    const inputKeys = this.wasmEngine.WasmViews.inputKeys;
+
     const moveSpeed = time * 0.005;
-    // console.log(this.inputView[this.input2Idx.keyW]);
-    if (this.inputView[this.key2Offset.KeyW] !== 0) {
+
+    if (inputKeys[this.key2Offset.KeyW] !== 0) {
       this.moveForward(moveSpeed, 1);
     }
-    if (this.inputView[this.key2Offset.KeyS] !== 0) {
+    if (inputKeys[this.key2Offset.KeyS] !== 0) {
       this.moveForward(moveSpeed, -1);
     }
-    if (this.inputView[this.key2Offset.KeyA] !== 0) {
+    if (inputKeys[this.key2Offset.KeyA] !== 0) {
       this.rotate(-moveSpeed);
     }
-    if (this.inputView[this.key2Offset.KeyD] !== 0) {
+    if (inputKeys[this.key2Offset.KeyD] !== 0) {
       this.rotate(moveSpeed);
     }
   }

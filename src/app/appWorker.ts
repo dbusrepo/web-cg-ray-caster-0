@@ -15,8 +15,6 @@ import type { KeyHandler, Key } from '../input/inputManager';
 import { InputManager, keys } from '../input/inputManager';
 import type { EngineWorkerParams } from '../engine/engineWorker';
 import { EngineWorkerCommandEnum, EngineWorkerDesc } from '../engine/engineWorker';
-import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
-import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
 import * as utils from '../engine/utils';
 import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCaster';
 
@@ -48,7 +46,6 @@ class AppWorker {
   private sleepArray: Int32Array;
 
   private rayCaster: RayCaster;
-  private wasmEngine: WasmEngine;
 
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
@@ -153,19 +150,6 @@ Date.now() - initStart
     } catch (error) {
       console.error(`Error during workers init: ${JSON.stringify(error)}`);
     }
-  }
-
-  private async initWasmEngine() {
-    this.wasmEngine = new WasmEngine();
-    const wasmEngineParams: WasmEngineParams = {
-      engineCanvas: this.params.engineCanvas,
-      assetManager: this.assetManager,
-      inputManager: this.inputManager,
-      engineWorkers: this.engineWorkers,
-      mainWorkerIdx: MAIN_WORKER_IDX,
-      runLoopInWorker: true,
-    };
-    await this.wasmEngine.init(wasmEngineParams);
   }
 
   public run(): void {
@@ -284,7 +268,7 @@ Date.now() - initStart
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
         // this.syncWorkers();
         // this.waitWorkers();
-        this.wasmEngine.render();
+        this.rayCaster.render();
         saveFrameTime();
       }
     };
