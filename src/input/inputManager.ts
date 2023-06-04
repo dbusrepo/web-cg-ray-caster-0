@@ -1,5 +1,5 @@
 import type { Key } from '../app/keys';
-import { keys } from '../app/keys';
+import { keys, keyOffsets } from '../app/keys';
 
 type KeyHandler = () => void;
 
@@ -32,4 +32,4 @@ class InputManager {
 }
 
 export type { KeyHandler, Key };
-export { InputManager, keys };
+export { InputManager, keys, keyOffsets };

@@ -7,7 +7,7 @@ import * as initStrings from './wasmMemInitStrings';
 import * as initFontChars from './wasmMemInitFontChars';
 import { AssetManager } from '../assets/assetManager';
 import type { Key } from '../../input/inputManager';
-import { InputManager, keys } from '../../input/inputManager';
+import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 import { BPP_RGBA } from '../assets/images/bitImageRGBA';
 import type { WasmRunParams } from './wasmRun';
 import { WasmRun } from './wasmRun';
@@ -78,8 +78,8 @@ class WasmEngine {
     const keyHandler = (keyOffset: number, state: number) => () => {
       inputKeys[keyOffset] = state;
     };
-    Object.values(keys).forEach((key: Key, index: number) => {
-      const keyOffset = index;
+
+    (Object.entries(keyOffsets) as [Key, number][]).forEach(([key, keyOffset]) => {
       const keyDownHandler = keyHandler(keyOffset, 1);
       const keyUpHandler = keyHandler(keyOffset, 0);
       this.params.inputManager.addKeyHandlers(key, keyDownHandler, keyUpHandler);
