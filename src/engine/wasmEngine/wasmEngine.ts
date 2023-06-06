@@ -52,7 +52,7 @@ class WasmEngine {
     this.params = params;
     this.initGfx();
     await this.initWasm();
-    this.initInputHandlers();
+    this.initKeyHandlers();
   }
 
   private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
@@ -73,7 +73,7 @@ class WasmEngine {
       this.params.engineCanvas.height);
   }
 
-  private initInputHandlers() {
+  private initKeyHandlers() {
     const { inputKeys } = this.wasmViews;
     const keyHandler = (keyOffset: number, state: number) => () => {
       inputKeys[keyOffset] = state;

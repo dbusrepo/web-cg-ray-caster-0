@@ -39,13 +39,6 @@ type Map = {
   data: Uint8Array;
 };
 
-type KeyOffset = {
-  KeyW: number,
-  KeyS: number,
-  KeyA: number,
-  KeyD: number,
-};
-
 class RayCasterEngine {
   private params: RayCasterEngineParams;
   private wasmEngine: WasmEngine;
@@ -54,7 +47,6 @@ class RayCasterEngine {
   private wasmModules: WasmModules;
 
   private inputManager: InputManager;
-  private key2Offset: KeyOffset;
 
   private pX: number;
   private pY: number;
@@ -74,7 +66,7 @@ class RayCasterEngine {
 
   public async init(params: RayCasterEngineParams) {
     this.params = params;
-    this.initInputManager();
+    this.initInput();
     await this.initWasmEngine(); // TODO:
     // ray caster init stuff
     this.initMap();
@@ -397,23 +389,18 @@ class RayCasterEngine {
     this.pY += dir * this.dirY * moveSpeed;
   }
 
-  private initInputManager() {
+  private initInput() {
     this.inputManager = new InputManager();
-    this.key2Offset = {
-      KeyW: 0,
-      KeyS: 1,
-      KeyA: 2,
-      KeyD: 3,
-      // check mem size inputKeysSize
-    };
-    this.initInputHandlers();
+    // no key handlers added here, we use the wasm engine key handlers
+    // and we check for key status with wasm view
+    // this.initKeyHandlers();
   }
 
-  private initInputHandlers() {
-    this.inputManager.addKeyHandlers(keys.KEY_A, () => { }, () => { });
-    // this.inputManager.addKeyHandlers(keys.KEY_S, () => { }, () => { });
-    // this.inputManager.addKeyHandlers(keys.KEY_D, () => { }, () => { });
-  }
+  // private initKeyHandlers() {
+  //   this.inputManager.addKeyHandlers(keys.KEY_A, () => {}, () => {});
+  //   this.inputManager.addKeyHandlers(keys.KEY_S, () => {}, () => {});
+  //   this.inputManager.addKeyHandlers(keys.KEY_D, () => {}, () => {});
+  // }
 
   public onKeyDown(inputEvent: InputEvent) {
     this.inputManager.onKeyDown(inputEvent.code);
