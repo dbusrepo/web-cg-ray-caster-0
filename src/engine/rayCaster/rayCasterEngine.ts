@@ -123,8 +123,7 @@ class RayCasterEngine {
   }
 
   initTextures() {
-    const NUM_TEXTURES = 1;
-    this.textures = new Array(NUM_TEXTURES);
+    this.textures = [];
     this.textures[0] = loadTexture(this.wasmViews, images.GREYSTONE);
     this.textures[1] = loadTexture(this.wasmViews, images.BLUESTONE);
     this.textures[2] = loadTexture(this.wasmViews, images.REDBRICK);
