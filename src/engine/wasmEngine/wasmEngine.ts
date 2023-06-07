@@ -87,7 +87,8 @@ class WasmEngine {
   }
 
   private async initWasm(): Promise<void> {
-    this.initWasmMemConfig();
+    this.initWasmMemParams();
+    this.initWasmMemRegions();
     this.allocWasmMem();
     this.initMemViews();
     this.initWasmAssets();
@@ -120,14 +121,14 @@ class WasmEngine {
     console.log(`wasm mem config start pages: ${initial}`);
   }
 
-  private initWasmMemConfig(): void {
+  private initWasmMemParams(): void {
 
     const { width: engineImageWidth, height: engineImageHeight } = this.engineImageData
 
     const numWorkers = this.params.engineWorkers.length + 1;
 
     // set wasm mem regions sizes
-    const wasmMemParams: WasmMemParams = {
+    this.wasmMemParams = {
       // frameBufferPalSize: 0, // this._cfg.usePalette ? numPixels : 0,
       // paletteSize: 0, // this._cfg.usePalette ? PALETTE_SIZE * PAL_ENTRY_SIZE : 0,
       startOffset: mainConfig.wasmMemStartOffset,
@@ -148,7 +149,9 @@ class WasmEngine {
       hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
     };
 
-    this.wasmMemParams = wasmMemParams;
+  }
+
+  private initWasmMemRegions(): void {
     const [sizes, offsets] = WasmUtils.getMemRegionsSizesAndOffsets(this.wasmMemParams);
     this.wasmRegionsSizes = sizes;
     this.wasmRegionsOffsets = offsets;
