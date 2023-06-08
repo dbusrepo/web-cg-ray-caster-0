@@ -16,7 +16,7 @@ import { InputManager, keys } from '../input/inputManager';
 import type { EngineWorkerParams } from '../engine/engineWorker';
 import { EngineWorkerCommandEnum, EngineWorkerDesc } from '../engine/engineWorker';
 import * as utils from '../engine/utils';
-import { RayCasterEngine, RayCasterEngineParams } from '../engine/rayCaster/rayCasterEngine';
+import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCasterEngine';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -44,7 +44,7 @@ class AppWorker {
   private syncArray: Int32Array;
   private sleepArray: Int32Array;
 
-  private rayCaster: RayCasterEngine;
+  private rayCaster: RayCaster;
 
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
@@ -62,8 +62,8 @@ class AppWorker {
   }
   
   private async initRayCaster() {
-    this.rayCaster = new RayCasterEngine();
-    const rayCasterParams: RayCasterEngineParams = {
+    this.rayCaster = new RayCaster();
+    const rayCasterParams: RayCasterParams = {
       engineCanvas: this.params.engineCanvas,
       assetManager: this.assetManager,
       engineWorkers: [],
