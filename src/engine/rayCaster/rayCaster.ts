@@ -115,7 +115,7 @@ class RayCaster {
       engineWorkers: this.params.engineWorkers,
       mainWorkerIdx: this.params.mainWorkerIdx,
       inputManager: this.inputManager,
-      runLoopInWorker: false, // WARN:
+      runWasmLoopEngineWorkers: false,
     };
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmViews = this.wasmEngine.WasmRun.WasmViews
