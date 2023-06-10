@@ -27,6 +27,7 @@ import {
 } from '../../common';
 
 type WasmEngineParams = {
+  engineDataSize: number;
   engineCanvas: OffscreenCanvas;
   assetManager: AssetManager;
   inputManager: InputManager;
@@ -123,7 +124,8 @@ class WasmEngine {
 
   private initWasmMemParams(): void {
 
-    const { width: engineImageWidth, height: engineImageHeight } = this.engineImageData
+    const { width: engineImageWidth, height: engineImageHeight } = this.engineImageData;
+    const { engineDataSize } = this.params;
 
     const numWorkers = this.params.engineWorkers.length + 1;
 
@@ -147,8 +149,8 @@ class WasmEngine {
       workersMemCountersSize: numWorkers * Uint32Array.BYTES_PER_ELEMENT,
       inputKeysSize: Object.values(keys).length * Uint8Array.BYTES_PER_ELEMENT,
       hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
+      engineDataSize,
     };
-
   }
 
   private initWasmMemRegions(): void {

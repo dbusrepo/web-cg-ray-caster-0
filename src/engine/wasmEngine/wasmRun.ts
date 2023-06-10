@@ -101,6 +101,7 @@ class WasmRun {
       inputKeysPtr: memOffsets[WasmUtils.MemRegionsEnum.INPUT_KEYS],
       inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
       hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
+      engineDataPtr: memOffsets[WasmUtils.MemRegionsEnum.ENGINE_DATA],
 
       FONT_X_SIZE,
       FONT_Y_SIZE,
