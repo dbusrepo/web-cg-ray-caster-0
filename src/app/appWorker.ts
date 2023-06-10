@@ -10,13 +10,13 @@ import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
 import { AssetManager } from '../engine/assets/assetManager';
 import type { InputEvent } from './events';
-import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from '../app/appTypes';
-import type { KeyHandler, Key } from '../input/inputManager';
-import { InputManager, keys } from '../input/inputManager';
+import { AppCommandEnum } from '../app/appTypes';
+// import type { KeyHandler, Key } from '../input/inputManager';
+// import { InputManager, keys } from '../input/inputManager';
 import type { EngineWorkerParams } from '../engine/engineWorker';
 import { EngineWorkerCommandEnum, EngineWorkerDesc } from '../engine/engineWorker';
 import * as utils from '../engine/utils';
-import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCasterEngine';
+import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCaster';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
