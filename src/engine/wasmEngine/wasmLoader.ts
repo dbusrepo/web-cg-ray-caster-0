@@ -48,8 +48,6 @@ type WasmImports = {
   inputKeysPtr: number;
   inputKeysSize: number;
   hrTimerPtr: number;
-  engineDataPtr: number;
-
   FONT_X_SIZE: number;
   FONT_Y_SIZE: number;
   FONT_SPACING: number;

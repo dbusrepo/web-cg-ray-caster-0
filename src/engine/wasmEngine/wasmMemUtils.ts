@@ -18,7 +18,6 @@ type WasmMemParams = {
   workersMemCountersSize: number;
   inputKeysSize: number;
   hrTimerSize: number;
-  engineDataSize: number;
 };
 
 // all regions have bounds except for the last part, the shared heap that can grow
@@ -39,7 +38,6 @@ const enum MemRegionsEnum {
   INPUT_KEYS = 'INPUT_KEYS',
   MEM_COUNTERS = 'MEM_COUNTERS',
   HR_TIMER = 'HR_TIMER',
-  ENGINE_DATA = 'ENGINE_DATA',
   START_MEM = 'START_MEM', // for the size/offset of all previous mem regions
 }
 
@@ -66,7 +64,6 @@ function getMemRegionsSizes(params: WasmMemParams): WasmMemRegionsData {
     stringsSize,
     workersMemCountersSize,
     inputKeysSize,
-    engineDataSize,
     hrTimerSize,
   } = params;
 
@@ -86,7 +83,6 @@ function getMemRegionsSizes(params: WasmMemParams): WasmMemRegionsData {
     [MemRegionsEnum.MEM_COUNTERS]: workersMemCountersSize,
     [MemRegionsEnum.INPUT_KEYS]: inputKeysSize,
     [MemRegionsEnum.HR_TIMER]: hrTimerSize,
-    [MemRegionsEnum.ENGINE_DATA]: engineDataSize,
     [MemRegionsEnum.START_MEM]: 0,
   };
 
@@ -117,7 +113,6 @@ function getMemRegionsOffsets(
     [MemRegionsEnum.MEM_COUNTERS]: 2,
     [MemRegionsEnum.INPUT_KEYS]: 0,
     [MemRegionsEnum.HR_TIMER]: 3,
-    [MemRegionsEnum.ENGINE_DATA]: 4,
     [MemRegionsEnum.START_MEM]: 0,
   };
 
@@ -136,7 +131,6 @@ function getMemRegionsOffsets(
     MemRegionsEnum.IMAGES_INDEX,
     MemRegionsEnum.IMAGES,
     MemRegionsEnum.INPUT_KEYS,
-    MemRegionsEnum.ENGINE_DATA,
     MemRegionsEnum.WORKERS_HEAPS,
     MemRegionsEnum.HEAP,
   ];

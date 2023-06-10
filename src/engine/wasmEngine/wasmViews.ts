@@ -13,7 +13,6 @@ type WasmViews = {
   workersMemCounters: Uint32Array;
   inputKeys: Uint8Array;
   hrTimer: BigUint64Array;
-  engineData: Uint8Array;
 };
 
 function buildWasmMemViews(
@@ -92,12 +91,6 @@ function buildWasmMemViews(
     memSizes[MemRegionsEnum.HR_TIMER] / BigUint64Array.BYTES_PER_ELEMENT,
   );
 
-  const engineData = new Uint8Array(
-    wasmMem.buffer,
-    memOffsets[MemRegionsEnum.ENGINE_DATA],
-    memSizes[MemRegionsEnum.ENGINE_DATA],
-  );
-
   const memViews: WasmViews = {
       memUI8,
       rgbaSurface0,
@@ -111,7 +104,6 @@ function buildWasmMemViews(
       workersMemCounters,
       inputKeys,
       hrTimer,
-      engineData,
   };
 
   return memViews;

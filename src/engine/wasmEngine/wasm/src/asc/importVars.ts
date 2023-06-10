@@ -36,8 +36,6 @@ export declare const fontCharsSize: usize;
 
 export declare const hrTimerPtr: usize;
 
-export declare const engineDataPtr: usize;
-
 // export declare const memCountersPtr: usize
 // export declare const memCountersSize: usize
 
