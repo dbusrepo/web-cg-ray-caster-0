@@ -14,11 +14,19 @@ import { logi } from './importVars';
   }
 
   new(): T {
-    return changetype<T>(this.arena.alloc());
+    const ptr = this.arena.alloc();
+    // logi(-2);
+    // logi(ptr);
+    // logi(-2);
+    return changetype<T>(ptr);
   }
 
   delete(v: T): void {
-    this.arena.free(changetype<PTR_T>(v));
+    const ptr = changetype<PTR_T>(v);
+    // logi(-3);
+    // logi(ptr);
+    // logi(-3);
+    this.arena.free(ptr);
   }
 }
 

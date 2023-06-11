@@ -1,9 +1,10 @@
 import { myAssert } from './myAssert';
 import { Pointer } from './pointer';
-import { ArenaAlloc, newArena } from './arenaAlloc';
 import { PTR_T, NULL_PTR, getTypeSize } from './memUtils';
+import { ObjectAllocator, newObjectAllocator } from './objectAllocator';
 import { logi } from './importVars';
 
+// non owning reference
 // @ts-ignore: decorator
 @final @unmanaged class Ref<T> {
   private ptr: Pointer<T>;
@@ -20,36 +21,40 @@ import { logi } from './importVars';
     this.ptr = new Pointer<T>(ptr);
   }
 
-  @inline get deref(): T {
-    myAssert(!this.isNull);
+  @inline get Deref(): T {
+    myAssert(!this.IsNull);
     return this.ptr.value;
   }
 
-  set deref(v: T) {
-    myAssert(!this.isNull);
+  set Deref(v: T) {
+    myAssert(!this.IsNull);
     this.ptr.value = v;
   }
 
-  @inline get isNull(): boolean {
+  @inline get IsNull(): boolean {
     return this.Ptr == NULL_PTR;
   }
 }
 
-let refArena = changetype<ArenaAlloc>(NULL_PTR);
+type RefObject = Ref<Object>;
 
-function initRefArena(): void {
-  const NUM_REFS_PER_BLOCK: u32 = 128;
-  const objSize = getTypeSize<Ref<Object>>();
-  refArena = newArena(objSize, NUM_REFS_PER_BLOCK);
+let refAllocator = changetype<ObjectAllocator<RefObject>>(NULL_PTR);
+
+function initRefAllocator(): void {
+  refAllocator = newObjectAllocator<RefObject>(16);
 }
 
 function newRef<T>(ptr: PTR_T = NULL_PTR): Ref<T> {
-  if (changetype<PTR_T>(refArena) == NULL_PTR) {
-    initRefArena();
+  if (changetype<PTR_T>(refAllocator) == NULL_PTR) {
+    initRefAllocator();
   }
-  const ref = changetype<Ref<T>>(refArena.alloc());
+  const ref = changetype<Ref<T>>(refAllocator.new());
   ref.init(ptr);
   return ref;
 }
 
-export { Ref, initRefArena as initRefAllocator, newRef };
+function deleteRef<T>(ref: Ref<T>): void {
+  refAllocator.delete(changetype<RefObject>(ref));
+}
+
+export { Ref, newRef, deleteRef };

@@ -311,3 +311,10 @@ $ npm ninstall -g assemblyscript
 
 export const url
 https://stackoverflow.com/questions/68612239/referenceerror-document-is-not-defined-service-worker-workbox
+
+asc pointer notes
+https://github.com/AssemblyScript/assemblyscript/issues/1363
+
+from asc builtin doc: (sec. Static type checks)
+function isVector<T>(value?: T): bool
+Tests if the specified type or expression is of a SIMD vector type. Compiles to a constant.

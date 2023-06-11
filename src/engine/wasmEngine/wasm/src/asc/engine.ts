@@ -1,12 +1,12 @@
 import { myAssert } from './myAssert';
-import { initSharedHeap } from './heapAlloc';
+import { initSharedHeap, heapAlloc } from './heapAlloc';
 import {
   initMemManager,
   alloc,
   free,
 } from './workerHeapManager';
-import { heapAlloc } from './heapAlloc';
-// import { ObjectAllocator } from './objectAllocator';
+import { ArenaAlloc, newArena } from './arenaAlloc';
+import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
 import * as draw from './draw';
 import {
@@ -30,6 +30,7 @@ import { initImages } from './initImages';
 // import { DArray, newDArray, deleteDArray } from './darray';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
+import { DArray, newDArray } from './darray';
 import { test } from './test/test';
 import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
 
@@ -68,16 +69,17 @@ function init(): void {
     // const t1 = <u64>process.hrtime();
     // store<u64>(hrTimerPtr, t1 - t0);
   }
-  initMemManager();
-  images = initImages();
   // logi(workerIdx as i32);
 
-  // logi(MYIMG);
+  initMemManager();
+  images = initImages();
 
   // myAssert(images != null);
   // const image = images.at(0);
   // logi(image.Width as i32);
   // logi(image.Height as i32);
+
+  // const arr = newDArray<u32>(1);
   // test();
 }
 

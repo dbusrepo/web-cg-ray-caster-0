@@ -61,7 +61,6 @@ class WasmRun {
     const logf = (f: number) => console.log(`[wasm] Worker [${workerIdx}]: ${f}`);
 
     const logi = (i: number) => {
-      // console.trace();
       console.log(`[wasm] Worker [${workerIdx}]: ${i}`);
     };
 

@@ -1,13 +1,37 @@
 import { myAssert } from '../myAssert';
 import { SArray, newSArray, deleteSArray } from '../sarray';
 import { Pointer } from '../pointer';
+import { PTR_T, NULL_PTR, GET_PTR, getTypeSize } from '../memUtils';
 // import { Vec3, vec3Alloc, newVec3 } from '../vec3';
 import { logi, logf } from '../importVars';
-import {alloc} from '../workerHeapManager';
-import { Ref, newRef } from '../ref';
+import { alloc } from '../workerHeapManager';
+import { Ref, newRef, deleteRef } from '../ref';
+import { TestClass, newTestClass, deleteTestClass } from './testClass';
+
+// @final @unmanaged class MyRefValType {
+//   x: u32;
+//   y: u32;
+// }
 
 function refTest(): void {
   logi(-8);
+
+  const testObj = newTestClass<u32>();
+
+
+  // const ref = newRef<TestClass<u32>>(GET_PTR(testObj));
+  // logi(ref.Ptr);
+  // ref.Deref.a = 12;
+  // logi(ref.Deref.a);
+  // deleteRef(ref);
+  // deleteTestClass(testObj);
+
+  // const ref = newRef<u32>();
+  // ref.Ptr = alloc(sizeof<u32>());
+  // ref.Deref = 2;
+  // logi(ref.Deref);
+  // logi(ref.Ptr);
+  // deleteRef(ref);
 
   // // TEST REFS ALONE (no arrays of refs)
   // const v0 = newVec3(1,2,3);

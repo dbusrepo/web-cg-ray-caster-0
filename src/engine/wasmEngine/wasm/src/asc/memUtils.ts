@@ -64,7 +64,7 @@ const CHAR_BIT = 8;
 
 // @ts-ignore: decorator
 @inline function getTypeAlignMask<T>(): SIZE_T {
-  let align = 0;
+  let align: SIZE_T = 0;
   if (isReference<T>()) {
     const objSize = nextPowerOfTwo(getTypeSize<T>());
     align = ilog2(objSize);

@@ -46,20 +46,25 @@ const imageDataPtr: PTR_T = imagesDataPtr;
   }
 }
 
-let bitImageAlloc = changetype<ObjectAllocator<BitImage>>(NULL_PTR);
+let bitImageAllocator = changetype<ObjectAllocator<BitImage>>(NULL_PTR);
 
 function initBitImageAllocator(): void {
-  bitImageAlloc = newObjectAllocator<BitImage>(16);
+  bitImageAllocator = newObjectAllocator<BitImage>(16);
 }
 
 // TODO: test
 function newBitImage(imgIdx: usize): BitImage {
-  if (changetype<PTR_T>(bitImageAlloc) === NULL_PTR) {
+  if (changetype<PTR_T>(bitImageAllocator) === NULL_PTR) {
     initBitImageAllocator();
   }
-  const bitImage = bitImageAlloc.new();
+  const bitImage = bitImageAllocator.new();
   bitImage.init(imgIdx);
   return bitImage;
 }
 
-export { BitImage, newBitImage };
+// TODO: test
+function deleteBitImage(bitImage: BitImage): void {
+  bitImageAllocator.delete(changetype<BitImage>(bitImage));
+}
+
+export { BitImage, newBitImage, deleteBitImage };
