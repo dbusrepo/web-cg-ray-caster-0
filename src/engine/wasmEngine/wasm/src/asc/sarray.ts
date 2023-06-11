@@ -13,7 +13,7 @@ import { logi } from './importVars';
 // @ts-ignore: decorator
 @final @unmanaged class Header {
   arrayPtr: PTR_T = NULL_PTR; // address returned by alloc (used for dealloc only)
-  objSizeLg2: SIZE_T = 0; // lg2 of the array elements size (includes padding for the alignment)
+  alignLg2: SIZE_T = 0; // lg2 size array objects
   length: SIZE_T = 0; // to do some checks
 }
 
@@ -37,7 +37,7 @@ const HEADER_SIZE = getTypeSize<Header>();
   private idx2Ptr(idx: SIZE_T): PTR_T {
     const header = getHeader(this);
     myAssert(idx < header.length);
-    const offset = idx << header.objSizeLg2;
+    const offset = idx << header.alignLg2;
     const ptr = changetype<PTR_T>(this) + offset;
     return ptr;
   }
@@ -79,17 +79,17 @@ function newSArray<T>(length: SIZE_T, objAlignLg2: SIZE_T = alignof<T>()): SArra
   let objSize = getTypeSize<T>();
   myAssert(objSize > 0);
   objSize = nextPowerOfTwo(objSize);
-  const objSizeAlign = max(<SIZE_T>(1) << objAlignLg2, objSize);
-  const alignMask =  objSizeAlign - 1;
+  const objAlign = max(<SIZE_T>(1) << objAlignLg2, objSize);
+  const alignMask =  objAlign - 1;
   // myAssert(isPowerOfTwo(objSizeAlign));
-  const dataSize: SIZE_T = length * objSizeAlign + alignMask;
+  const dataSize: SIZE_T = length * objAlign + alignMask;
   const arraySize = HEADER_SIZE + dataSize;
   const arrayPtr = alloc(arraySize);
   const dataPtr = (arrayPtr + HEADER_SIZE + alignMask) & ~alignMask;
   const sarray = changetype<SArray<T>>(dataPtr);
   const header = getHeader(sarray);
   header.arrayPtr = arrayPtr;
-  header.objSizeLg2 = ilog2(objSizeAlign);
+  header.alignLg2 = ilog2(objAlign);
   header.length = length;
   return sarray;
 }

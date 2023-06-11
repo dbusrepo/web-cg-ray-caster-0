@@ -12,7 +12,7 @@ import { logi } from './importVars';
   private dataEnd: PTR_T = 0;
   private next: PTR_T = 0;
   private capacity: SIZE_T = 0;
-  private objSizeLg2: SIZE_T = 0;
+  private alignLg2: SIZE_T = 0;
   private alignMask: SIZE_T = 0;
   // private allocSize: SIZE_T; // not used
 
@@ -22,16 +22,16 @@ import { logi } from './importVars';
     let objSize = getTypeSize<T>();
     myAssert(objSize > 0);
     objSize = nextPowerOfTwo(objSize);
-    const objSizeAlign = max(<SIZE_T>(1) << objAlignLg2, objSize);
-    const alignMask =  objSizeAlign - 1;
+    const objAlign = max(<SIZE_T>(1) << objAlignLg2, objSize);
+    const alignMask =  objAlign - 1;
     // myAssert(isPowerOfTwo(objSizeAlign));
-    const numBytesData = capacity * objSizeAlign;
+    const numBytesData = capacity * objAlign;
     const allocSize = numBytesData + alignMask;
     this.array = alloc(allocSize);
     this.dataStart = (this.array + alignMask) & ~alignMask;
     this.dataEnd = this.dataStart + numBytesData;
     this.next = this.dataStart;
-    this.objSizeLg2 = ilog2(objSizeAlign);
+    this.alignLg2 = ilog2(objAlign);
     this.alignMask = alignMask;
     this.capacity = capacity;
     myAssert((this.dataStart & alignMask) === 0);
@@ -39,11 +39,11 @@ import { logi } from './importVars';
   }
 
   @inline get Length(): SIZE_T {
-    return <SIZE_T>((this.next - this.dataStart) >> this.objSizeLg2);
+    return <SIZE_T>((this.next - this.dataStart) >> this.alignLg2);
   }
 
   @inline get Capacity(): SIZE_T {
-    return <SIZE_T>(this.dataEnd - this.dataStart) >> this.objSizeLg2;
+    return <SIZE_T>(this.dataEnd - this.dataStart) >> this.alignLg2;
   }
 
   @inline get ArrayStart(): PTR_T {
@@ -52,7 +52,7 @@ import { logi } from './importVars';
 
   private idx2Ptr(idx: SIZE_T): PTR_T {
     myAssert(idx < this.Length);
-    const offset = idx << this.objSizeLg2;
+    const offset = idx << this.alignLg2;
     return this.dataStart + offset;
   }
 
@@ -70,7 +70,7 @@ import { logi } from './importVars';
     if (this.next >= this.dataEnd) {
       myAssert(this.next == this.dataEnd);
       const newCapacity: SIZE_T = 2 * this.capacity;
-      const newNumBytesData = newCapacity << this.objSizeLg2; 
+      const newNumBytesData = newCapacity << this.alignLg2; 
       const newAllocSize = newNumBytesData + this.alignMask;
       const newArray = alloc(newAllocSize);
       const newDataStart = (newArray + this.alignMask) & ~this.alignMask;
@@ -88,7 +88,7 @@ import { logi } from './importVars';
   }
 
   private get ObjSize(): SIZE_T {
-    return 1 << this.objSizeLg2;
+    return 1 << this.alignLg2;
   }
 
   // add a new uninitialized element at the end and returns a pointer to it
