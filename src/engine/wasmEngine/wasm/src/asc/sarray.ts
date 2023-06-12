@@ -1,6 +1,5 @@
 import { myAssert } from './myAssert';
 import { alloc, free } from './workerHeapManager';
-// import { ArenaAlloc, newArena } from './arenaAlloc';
 import { ilog2, nextPowerOfTwo, isPowerOfTwo, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, SIZE_T } from './memUtils';
 import { Pointer } from './pointer';
 import { logi } from './importVars';

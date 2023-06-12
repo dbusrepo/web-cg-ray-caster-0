@@ -30,7 +30,7 @@ import { logi } from './importVars';
     this.alignMask = 0;
   }
 
-  init(objSize: SIZE_T, objAlignLg2: SIZE_T, numObjsPerBlock: u32): void {
+  init(objSize: SIZE_T, numObjsPerBlock: SIZE_T, objAlignLg2: SIZE_T): void {
     myAssert(objSize > 0);
     myAssert(numObjsPerBlock > 0);
     const objSizeNoPad = max(objSize, PTR_SIZE);
@@ -87,11 +87,11 @@ import { logi } from './importVars';
 
 }
 
-function newArena(objSize: SIZE_T, numObjPerBlock: u32, objAlignLg2: SIZE_T = alignof<PTR_T>()): ArenaAlloc {
+function newArena(objSize: SIZE_T, numObjsPerBlock: SIZE_T, objAlignLg2: SIZE_T = alignof<PTR_T>()): ArenaAlloc {
   const arenaSize = getTypeSize<ArenaAlloc>();
   const ptr: PTR_T = alloc(arenaSize);
   const arena = changetype<ArenaAlloc>(ptr);
-  arena.init(objSize, objAlignLg2, numObjPerBlock);
+  arena.init(objSize, numObjsPerBlock, objAlignLg2);
   return arena;
 }
 
