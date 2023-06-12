@@ -1,5 +1,9 @@
 import { myAssert } from './myAssert';
-import { initSharedHeap, heapAlloc } from './heapAlloc';
+import {
+  initSharedHeap,
+  heapAlloc,
+  heapFree
+} from './heapAlloc';
 import {
   initMemManager,
   alloc,
@@ -30,22 +34,27 @@ import { initImages } from './initImages';
 // import { DArray, newDArray, deleteDArray } from './darray';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
-import { DArray, newDArray } from './darray';
 import { test } from './test/test';
-import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
+import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
+// import { initRayCaster } from './rayCaster/init';
+import { Viewport, newViewport } from './rayCaster/viewport';
 
 // import { MYIMG, IMG1 } from './gen_importImages';
 // import * as strings from './gen_importStrings';
 
-import {
-  imagesIndexPtr,
-  imagesIndexSize,
-  imagesDataSize,
-  imagesDataPtr,
-  numImages,
-} from './importVars';
-import { stringsDataPtr, stringsDataSize } from './importVars';
-import { FONT_Y_SIZE, fontCharsPtr, fontCharsSize } from './importVars';
+// import {
+//   imagesIndexPtr,
+//   imagesIndexSize,
+//   imagesDataSize,
+//   imagesDataPtr,
+//   numImages,
+// } from './importVars';
+// import { stringsDataPtr, stringsDataSize } from './importVars';
+// import { FONT_Y_SIZE, fontCharsPtr, fontCharsSize } from './importVars';
+
+// import { test } from './test/test';
+
+
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -53,6 +62,8 @@ const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 const MAIN_THREAD_IDX = mainWorkerIdx;
 
 let images = changetype<SArray<BitImage>>(NULL_PTR);
+
+let viewport = changetype<Viewport>(NULL_PTR);
 
 // @ts-ignore: decorator
 @inline function align<T>(): SIZE_T {
@@ -62,6 +73,12 @@ let images = changetype<SArray<BitImage>>(NULL_PTR);
 function init(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     initSharedHeap();
+
+    // viewport = heapAlloc(getTypeSize<Viewport>());
+    viewport = newViewport();
+
+    // initRayCaster();
+
     // logi(align<u64>());
     // logi(hrTimerPtr);
     // const t0 = <u64>process.hrtime();
@@ -81,6 +98,16 @@ function init(): void {
 
   // const arr = newDArray<u32>(1);
   // test();
+}
+
+function getViewPort(): PTR_T {
+  logi(changetype<PTR_T>(viewport));
+  logi(offsetof<Viewport>("startX"));
+  logi(offsetof<Viewport>("startY"));
+  logi(getTypeSize<Viewport>());
+  logi(alignof<Viewport>());
+  // logi(sizeof<usize>());
+  return changetype<PTR_T>(viewport);
 }
 
 function allocMap(width: usize, height: usize): PTR_T {
@@ -240,4 +267,4 @@ function run(): void {
 //   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
 // }
 
-export { init, render, run, allocMap };
+export { init, render, run, allocMap, getViewPort };

@@ -8,6 +8,8 @@ TARGET_SPEED := release-speed
 TARGET_SIZE := release-size
 TARGET ?= $(TARGET_DEBUG)
 
+ASC := asc
+
 ASC_BINDINGS := esm
 
 ASC_CONFIG_FILE := asconfig.json
@@ -71,7 +73,11 @@ endif
 
 $(ASC_BUILD_DIR)/%.wasm: $(ASC_SOURCE_DIR)/%.ts build_flags $(ASC_CONFIG_FILE)
 	$(info GEN $@)
-	asc --config $(ASC_CONFIG_FILE) $< -o $@ -t $(basename $@).wat -b $(ASC_BINDINGS) --target $(TARGET)
+	@echo 'asc' `$(ASC) --version`
+	@echo 'asc config:'
+	@$(ASC) --config $(ASC_CONFIG_FILE) $< --showConfig
+	@echo -e '\nCompile:' $<
+	$(ASC) --config $(ASC_CONFIG_FILE) $< -o $@ --textFile $(basename $@).wat --bindings $(ASC_BINDINGS) --target $(TARGET)
 
 %.d: %.ts
 	$(info GEN $@)

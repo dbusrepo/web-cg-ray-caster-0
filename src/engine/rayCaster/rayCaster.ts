@@ -68,6 +68,9 @@ class RayCaster {
     this.params = params;
     this.initInput();
     await this.initWasmEngine(); // TODO:
+
+    this.wasmEngine.WasmRun.WasmModules.engine.getViewPort();
+
     // ray caster init stuff
     this.initMap();
     this.initTextures();
@@ -166,7 +169,7 @@ class RayCaster {
   public render() {
     this.wasmEngine.syncWorkers();
     try {
-      this.castScene();
+      // this.castScene();
     }
     catch (e) {
       console.error(e);
