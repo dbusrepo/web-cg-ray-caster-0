@@ -80,7 +80,7 @@ const options = [
   '--enable', 'relaxed-simd',
   '--enable', 'bulk-memory',
   '--enable', 'reference-types',
-  // '--enable', 'stringref',
+  // '--enable', 'stringref', // CompileError: WebAssembly.instantiate(): Unknown type code 0x4f, enable with --experimental-wasm-gc @+11
   '--enable', 'sign-extension',
   '--enable', 'nontrapping-f2i',
   // '--enable', 'multi-value',

@@ -138,6 +138,19 @@ Date.now() - initStart
     }
   }
 
+  // private async initWasmEngine() {
+  //   this.wasmEngine = new WasmEngine();
+  //   const wasmEngineParams: WasmEngineParams = {
+  //     engineCanvas: this.params.engineCanvas,
+  //     assetManager: this.assetManager,
+  //     inputManager: this.inputManager,
+  //     engineWorkers: this.engineWorkers,
+  //     mainWorkerIdx: MAIN_WORKER_IDX,
+  //     runEngineWorkersLoop: true,
+  //   };
+  //   await this.wasmEngine.init(wasmEngineParams);
+  // }
+
   public run(): void {
     let lastFrameStartTime: number;
     // let last_render_t: number;

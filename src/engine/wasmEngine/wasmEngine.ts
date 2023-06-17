@@ -32,7 +32,7 @@ type WasmEngineParams = {
   inputManager: InputManager;
   engineWorkers: EngineWorkerDesc[];
   mainWorkerIdx: number;
-  runWasmLoopEngineWorkers: boolean;
+  runEngineWorkersLoop: boolean;
 };
 
 class WasmEngine {
@@ -95,8 +95,8 @@ class WasmEngine {
     await this.initWasmRun();
     if (this.params.engineWorkers.length) {
       await this.initEngineWorkers();
-      if (this.params.runWasmLoopEngineWorkers) {
-        this.launchWasmLoopInEngineWorkers();
+      if (this.params.runEngineWorkersLoop) {
+        this.runEngineWorkersLoop();
       }
     }
   }
@@ -247,8 +247,8 @@ class WasmEngine {
     }
   }
 
-  private launchWasmLoopInEngineWorkers() {
-    assert(this.params.runWasmLoopEngineWorkers);
+  private runEngineWorkersLoop() {
+    assert(this.params.runEngineWorkersLoop);
     this.params.engineWorkers.forEach(({ worker }) => {
       worker.postMessage({
         command: EngineWorkerCommandEnum.RUN_WASM,
