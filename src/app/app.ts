@@ -118,9 +118,9 @@ class App {
       if (commands.hasOwnProperty(command)) {
         try {
           commands[command as keyof typeof commands]!(params);
-        } catch (err) {
+        } catch (ex) {
           console.error('error in engine panel message handler');
-          console.error(err);
+          console.error(ex);
         }
       }
     };

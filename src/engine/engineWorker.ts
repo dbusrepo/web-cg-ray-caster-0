@@ -37,9 +37,9 @@ class EngineWorker {
         Atomics.store(syncArray, workerIndex, 0);
         Atomics.notify(syncArray, workerIndex);
       }
-    } catch (e) {
+    } catch (ex) {
       console.log(`Error while running engine worker ${this.params.workerIndex}`);
-      console.error(e);
+      console.error(ex);
     }
   }
 
@@ -58,9 +58,9 @@ class EngineWorker {
     console.log(`Worker ${workerIndex} running wasm!`);
     try {
       this.wasmRun.WasmModules.engine.run();
-    } catch (e) {
+    } catch (ex) {
       console.log(`Error while running engine worker ${this.params.workerIndex} in wasm run`);
-      console.error(e);
+      console.error(ex);
     }
   }
 

@@ -4,8 +4,8 @@
 # MAKEFLAGS += --no-print-directory
 
 TARGET_DEBUG := debug
-TARGET_SPEED := release-speed
-TARGET_SIZE := release-size
+TARGET_SPEED := release_speed
+TARGET_SIZE := release_size
 TARGET ?= $(TARGET_DEBUG)
 
 ASC := asc
@@ -13,6 +13,8 @@ ASC := asc
 ASC_BINDINGS := esm
 
 ASC_CONFIG_FILE := asconfig.json
+ASC_COMPILE_SCRIPT := compile_asc.mjs
+ASC_COMPILE_SCRIPT_DEP := wasmConfig.mjs
 
 SOURCE_DIR := src
 BUILD_DIR := build
@@ -71,18 +73,21 @@ ifeq (,$(findstring clean,$(MAKECMDGOALS)))
 -include $(ASC_DEP_FILES)
 endif
 
-$(ASC_BUILD_DIR)/%.wasm: $(ASC_SOURCE_DIR)/%.ts build_flags $(ASC_CONFIG_FILE)
+## compile with asc from node script
+$(ASC_BUILD_DIR)/%.wasm: $(ASC_SOURCE_DIR)/%.ts build_flags $(ASC_COMPILE_SCRIPT) $(ASC_COMPILE_SCRIPT_DEP)
 	$(info GEN $@)
-	@echo 'asc' `$(ASC) --version`
-	@echo 'asc config:'
-	@$(ASC) --config $(ASC_CONFIG_FILE) $< --showConfig
-	@echo -e '\nCompile:' $<
-	$(ASC) --config $(ASC_CONFIG_FILE) $< -o $@ --textFile $(basename $@).wat --bindings $(ASC_BINDINGS) --target $(TARGET)
+	@time node ./compile_asc.mjs $< $@ $(ASC_BINDINGS) $(TARGET)
+
+## compile with asc directly
+# $(ASC_BUILD_DIR)/%.wasm: $(ASC_SOURCE_DIR)/%.ts build_flags $(ASC_CONFIG_FILE)
+# 	$(info GEN $@)
+# 	$(info input $<)
+# 	asc --config $(ASC_CONFIG_FILE) $< -o $@ -t $(basename $@).wat -b $(ASC_BINDINGS) --target $(TARGET)
 
 %.d: %.ts
 	$(info GEN $@)
-	@rm -f $@; \
-	node ./genDepList.mjs $< > $@
+	@rm -f $@;
+	@node ./genDepList.mjs $< > $@
 
 # **************************************************
 # COMPILE WAT

@@ -318,3 +318,9 @@ https://github.com/AssemblyScript/assemblyscript/issues/1363
 from asc builtin doc: (sec. Static type checks)
 function isVector<T>(value?: T): bool
 Tests if the specified type or expression is of a SIMD vector type. Compiles to a constant.
+
+notes makefile:
+A backslash ( \ ) followed by a newline character is interpreted as a space in the command
+
+@rm -f $@; \                 
+node ./genDepList.mjs $< > $@

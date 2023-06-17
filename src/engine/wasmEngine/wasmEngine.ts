@@ -241,9 +241,9 @@ class WasmEngine {
           };
         });
       }));
-    } catch (e) {
+    } catch (ex) {
       console.log('error initializing wasm in engine workers');
-      console.error(e);
+      console.error(ex);
     }
   }
 
@@ -260,8 +260,9 @@ class WasmEngine {
     this.syncWorkers();
     try {
       this.wasmModules.engine.render();
-    } catch (e) {
-      console.error(e);
+    } catch (ex) {
+      // console.error(ex);
+      throw ex;
     }
     this.waitWorkers();
     this.drawFrame();

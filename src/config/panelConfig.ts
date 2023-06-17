@@ -9,18 +9,43 @@ const enum StartViewMode {
 const panelConfig = {
   title: 'Panel',
 
-  canvasWidth: 800,
-  canvasHeight: 600,
+  startViewMode: StartViewMode.WIN as StartViewMode,
+
+  canvasWidth: 320,
+  canvasHeight: 200,
+
+  // canvasWidth: 400,
+  // canvasHeight: 300,
+
+  // canvasWidth: 512,
+  // canvasHeight: 384,
+
+  // canvasWidth: 640,
+  // canvasHeight: 480,
+
+  // canvasWidth: 800,
+  // canvasHeight: 600,
+
+  // canvasWidth: 1024,
+  // canvasHeight: 768,
+
+  // canvasWidth: 1280,
+  // canvasHeight: 1024,
+
+  // canvasDisplayWidthWinMode: 320,
+  // canvasDisplayHeightWinMode: 200,
+
+  // canvasDisplayWidthWinMode: 512,
+  // canvasDisplayHeightWinMode: 384,
 
   canvasDisplayWidthWinMode: 800,
   canvasDisplayHeightWinMode: 600,
 
-  // canvasDisplayWidthWinMode: 512,
-  // canvasDisplayHeightWinMode: 384,
-  // canvasDisplayWidthWinMode: 320,
-  // canvasDisplayHeightWinMode: 200,
+  // canvasDisplayWidthWinMode: 1024,
+  // canvasDisplayHeightWinMode: 768,
 
-  startViewMode: StartViewMode.WIN as StartViewMode,
+  // canvasDisplayWidthWinMode: 1280,
+  // canvasDisplayHeightWinMode: 1024,
 
   // FULL_WIN_KEY: 'F1',
   // FULL_SCREEN_KEY: 'F2',
