@@ -32,8 +32,11 @@ import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
 import { test } from './test/test';
 import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
+import { Viewport, newViewport,
+  getViewportStartXOffset, getViewportStartYOffset, 
+  getViewportWidthOffset, getViewportHeightOffset,
+} from './rayCaster/viewport';
 // import { initRayCaster } from './rayCaster/init';
-import { Viewport, newViewport } from './rayCaster/viewport';
 
 // import { MYIMG, IMG1 } from './gen_importImages';
 // import * as strings from './gen_importStrings';
@@ -99,11 +102,11 @@ function init(): void {
 }
 
 function getViewPort(): PTR_T {
-  logi(changetype<PTR_T>(viewport));
-  logi(offsetof<Viewport>("startX"));
-  logi(offsetof<Viewport>("startY"));
-  logi(getTypeSize<Viewport>());
-  logi(alignof<Viewport>());
+  // logi(changetype<PTR_T>(viewport));
+  // logi(offsetof<Viewport>("startX"));
+  // logi(offsetof<Viewport>("startY"));
+  // logi(getTypeSize<Viewport>());
+  // logi(alignof<Viewport>());
   // logi(sizeof<usize>());
   return changetype<PTR_T>(viewport);
 }
@@ -266,4 +269,14 @@ function run(): void {
 //   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
 // }
 
-export { init, render, run, allocMap, getViewPort };
+export { 
+  init,
+  render,
+  run,
+  allocMap,
+  getViewPort,
+  getViewportStartXOffset,
+  getViewportStartYOffset,
+  getViewportWidthOffset,
+  getViewportHeightOffset,
+};

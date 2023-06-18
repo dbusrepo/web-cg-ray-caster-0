@@ -3,6 +3,8 @@ import type { WasmViews } from './wasmEngine/wasmViews';
 import { buildWasmMemViews } from './wasmEngine/wasmViews';
 import type { WasmRunParams } from './wasmEngine/wasmRun';
 import { WasmRun } from './wasmEngine/wasmRun';
+import type { Viewport } from './rayCaster/viewport';
+import { getWasmViewport } from './rayCaster/viewport';
 
 const enum EngineWorkerCommandEnum {
   INIT = 'worker_init',
@@ -30,8 +32,17 @@ class EngineWorker {
   async run() {
     const { syncArray, workerIndex } = this.params;
     console.log(`Worker ${workerIndex} running`);
+
+    // assert(this.wasmRun);
+    // const wasmModules = this.wasmRun.WasmModules;
+    // const viewport = getWasmViewport(wasmModules, this.wasmRun.WasmMem.buffer);
+    // console.log('this.viewport.startX', viewport.startX);
+    // console.log('this.viewport.startY', viewport.startY);
+
     try {
       while (true) {
+        console.log('worker rendering...', workerIndex)
+        console.log(Atomics.load(syncArray, workerIndex));
         Atomics.wait(syncArray, workerIndex, 0);
         // TODO:
         Atomics.store(syncArray, workerIndex, 0);

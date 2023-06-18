@@ -66,7 +66,7 @@ class AppWorker {
     const rayCasterParams: RayCasterParams = {
       engineCanvas: this.params.engineCanvas,
       assetManager: this.assetManager,
-      engineWorkers: [],
+      engineWorkers: this.engineWorkers,
       mainWorkerIdx: MAIN_WORKER_IDX,
     };
     await this.rayCaster.init(rayCasterParams);

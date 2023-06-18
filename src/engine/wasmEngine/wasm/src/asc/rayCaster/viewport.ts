@@ -5,11 +5,10 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
 @final @unmanaged class Viewport {
-  startX: u8;
-  startY: u8;
-  width: u8;
-  height: u8;
-  abc: u8;
+  startX: u16;
+  startY: u16;
+  width: u16;
+  height: u16;
 }
 
 let viewportAlloc = changetype<ObjectAllocator<Viewport>>(NULL_PTR);
@@ -26,4 +25,22 @@ function newViewport(): Viewport {
   return viewport;
 }
 
-export { Viewport, newViewport };
+function getViewportStartXOffset(): SIZE_T {
+  return offsetof<Viewport>("startX");
+}
+
+function getViewportStartYOffset(): SIZE_T {
+  return offsetof<Viewport>("startY");
+}
+
+function getViewportWidthOffset(): SIZE_T {
+  return offsetof<Viewport>("width");
+}
+
+function getViewportHeightOffset(): SIZE_T {
+  return offsetof<Viewport>("height");
+}
+
+export { Viewport, newViewport, 
+  getViewportStartXOffset, getViewportStartYOffset, 
+  getViewportWidthOffset, getViewportHeightOffset};
