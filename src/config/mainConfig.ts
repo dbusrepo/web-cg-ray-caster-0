@@ -5,7 +5,8 @@ import { startOffset, initialMemoryPages, maximumMemoryPages, memoryBase } from 
 
 const mainConfig = {
 
-  numEngineWorkers: 1,
+  numAuxAppWorkers: 0,
+  numAuxWasmWorkers: 0,
 
   wasmMemStartOffset: startOffset,
   wasmMemStartPages: initialMemoryPages,

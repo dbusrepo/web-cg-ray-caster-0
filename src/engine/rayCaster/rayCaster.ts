@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { mainConfig } from '../../config/mainConfig';
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import type { InputEvent } from '../../app/events';
@@ -9,23 +10,20 @@ import { loadTexture } from './textureUtils';
 import { images } from '../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
-import { EngineWorkerCommandEnum } from '../engineWorker';
-import { EngineWorkerDesc } from '../engineWorker';
 import type { Viewport } from './viewport';
 import { getWasmViewport } from './viewport';
+import type { AuxAppWorkerParams } from '../../app/auxAppWorker';
+import { AuxAppWorkerCommandEnum, AuxAppWorkerDesc } from '../../app/auxAppWorker';
 
 type RayCasterParams = {
   engineCanvas: OffscreenCanvas;
-  assetManager: AssetManager;
-  engineWorkers: EngineWorkerDesc[];
-  mainWorkerIdx: number;
 };
 
 type FrameBuffer = {
   buf8: Uint8ClampedArray;
   buf32: Uint32Array;
   pitch: number;
-}
+};
 
 type Map = {
   width: number;
@@ -35,12 +33,17 @@ type Map = {
 
 class RayCaster {
   private params: RayCasterParams;
+  private assetManager: AssetManager;
+  private inputManager: InputManager;
+
   private wasmEngine: WasmEngine;
   private wasmViews: WasmViews;
   private wasmMem: WebAssembly.Memory;
   private wasmModules: WasmModules;
 
-  private inputManager: InputManager;
+  private auxAppWorkers: AuxAppWorkerDesc[];
+  private syncArray: Int32Array;
+  private sleepArray: Int32Array;
 
   private viewport: Viewport;
 
@@ -61,21 +64,24 @@ class RayCaster {
 
   public async init(params: RayCasterParams) {
     this.params = params;
-    this.initInput();
+    await this.initAssetManager(); // TODO:
     await this.initWasmEngine(); // TODO:
+    await this.runAuxAppWorkers();
+    this.initInputManager();
 
     // this.wasmEngine.WasmRun.WasmModules.engine.getViewPort();
     // this.wasmEngine.WasmRun.WasmModules.engine.Viewport::startX;
     // this.wasmModules.engine.getViewPort();
 
-    this.viewport = getWasmViewport(this.wasmModules, this.wasmMem.buffer);
-    this.viewport.startX = 12;
-    this.viewport.startY = 11;
-    console.log('this.viewport.startX', this.viewport.startX);
-    console.log('this.viewport.startY', this.viewport.startY);
-
-    console.log('launching workers...');
-    this.runEngineWorkers();
+    // TODO: test this here
+    // this.viewport = getWasmViewport(this.wasmModules, this.wasmMem.buffer);
+    // this.viewport.startX = 12;
+    // this.viewport.startY = 11;
+    // console.log('this.viewport.startX', this.viewport.startX);
+    // console.log('this.viewport.startY', this.viewport.startY);
+    //
+    // console.log('launching workers...');
+    // this.runEngineWorkers();
 
     // const VIEWPORT_BORDER = 0;
     // this.viewport = {
@@ -117,21 +123,140 @@ class RayCaster {
     // // this.castScene(); // TODO:
   }
 
+  private async initAssetManager() {
+    this.assetManager = new AssetManager();
+    await this.assetManager.init();
+  }
+
+  private initInputManager() {
+    this.inputManager = new InputManager();
+    // no key handlers added here, we use the wasm engine key handlers
+    // and we check for key status with wasm view
+    // this.initKeyHandlers();
+  }
+
+  // private initKeyHandlers() {
+  //   this.inputManager.addKeyHandlers(keys.KEY_A, () => {}, () => {});
+  //   this.inputManager.addKeyHandlers(keys.KEY_S, () => {}, () => {});
+  //   this.inputManager.addKeyHandlers(keys.KEY_D, () => {}, () => {});
+  // }
+
   private async initWasmEngine() {
     this.wasmEngine = new WasmEngine();
     const wasmEngineParams: WasmEngineParams = {
       engineCanvas: this.params.engineCanvas,
-      assetManager: this.params.assetManager,
-      engineWorkers: this.params.engineWorkers,
-      mainWorkerIdx: this.params.mainWorkerIdx,
+      assetManager: this.assetManager,
       inputManager: this.inputManager,
-      runEngineWorkersLoop: false,
+      numAuxWorkers: mainConfig.numAuxWasmWorkers,
     };
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmViews = this.wasmEngine.WasmRun.WasmViews
     this.wasmMem = this.wasmEngine.WasmMem;
     this.wasmModules = this.wasmEngine.WasmRun.WasmModules;
   }
+
+  private async runAuxAppWorkers() {
+    const numWorkers = mainConfig.numAuxAppWorkers;
+    console.log(`num aux app workers: ${numWorkers}`);
+    const numTotalWorkers = numWorkers + 1;
+    this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
+    Atomics.store(this.sleepArray, 0, 0); // main worker idx 0
+    this.auxAppWorkers = [];
+    if (numWorkers) {
+      this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
+      Atomics.store(this.syncArray, 0, 0);
+      await this.initAuxAppWorkers(numWorkers);
+      for (let i = 0; i < this.auxAppWorkers.length; ++i) {
+        const { index: workerIdx } = this.auxAppWorkers[i];
+        Atomics.store(this.sleepArray, workerIdx, 0);
+        Atomics.store(this.syncArray, workerIdx, 0);
+      }
+      this.auxAppWorkers.forEach(({ worker }) => {
+        worker.postMessage({
+          command: AuxAppWorkerCommandEnum.RUN,
+        });
+      });
+    }
+  }
+
+  private async initAuxAppWorkers(numAuxAppWorkers: number) {
+    assert(numAuxAppWorkers > 0);
+    const initStart = Date.now();
+    try {
+      let nextWorkerIdx = 1; // start from 1, 0 is for the main worker
+      const genWorkerIdx = () => {
+        return nextWorkerIdx++;
+      };
+      let remWorkers = numAuxAppWorkers;
+      await new Promise<void>((resolve, reject) => {
+        for (let i = 0; i < numAuxAppWorkers; ++i) {
+          const workerIndex = genWorkerIdx();
+          const engineWorker = {
+            index: workerIndex,
+            worker: new Worker(
+              new URL('../../app/appWorker.ts', import.meta.url),
+              {
+                name: `aux-app-worker-${workerIndex}`,
+                type: 'module',
+              },
+            )
+          };
+          this.auxAppWorkers.push(engineWorker);
+          const workerParams: AuxAppWorkerParams = {
+            workerIndex,
+            numWorkers: numAuxAppWorkers,
+            syncArray: this.syncArray,
+            sleepArray: this.sleepArray,
+            wasmRunParams: {
+              ...this.wasmEngine.WasmRunParams,
+              workerIdx: workerIndex,
+            },
+          };
+          engineWorker.worker.postMessage({
+            command: AuxAppWorkerCommandEnum.INIT,
+            params: workerParams,
+          });
+          engineWorker.worker.onmessage = ({ data }) => {
+            --remWorkers;
+            console.log(
+              `Aux app worker id=${workerIndex} init, left count=${remWorkers}, time=${
+Date.now() - initStart
+}ms with data = ${JSON.stringify(data)}`,
+            );
+            if (remWorkers === 0) {
+              console.log(
+                `Aux app workers init done. After ${Date.now() - initStart}ms`,
+              );
+              resolve();
+            }
+          };
+          engineWorker.worker.onerror = (error) => {
+            console.log(`Aux app worker id=${workerIndex} error: ${error.message}\n`);
+            reject(error);
+          };
+        }
+      });
+    } catch (error) {
+      console.error(`Error during aux app workers init: ${JSON.stringify(error)}`);
+    }
+  }
+
+  private syncWorkers() {
+    for (let i = 0; i < this.auxAppWorkers.length; ++i) {
+      const { index: workerIdx } = this.auxAppWorkers[i];
+      Atomics.store(this.syncArray, workerIdx, 1);
+      Atomics.notify(this.syncArray, workerIdx);
+    }
+  }
+
+  private waitWorkers() {
+    for (let i = 0; i < this.auxAppWorkers.length; ++i) {
+      const { index: workerIdx } = this.auxAppWorkers[i];
+      Atomics.wait(this.syncArray, workerIdx, 1);
+    }
+  }
+
+  // TODO: raycaster methods
 
   initTextures() {
     this.textures = [];
@@ -175,24 +300,15 @@ class RayCaster {
   }
 
   public render() {
-    console.log('main rendering...')
-    this.wasmEngine.syncWorkers();
+    this.syncWorkers();
     try {
       // this.castScene();
     }
     catch (e) {
       console.error(e);
     }
-    this.wasmEngine.waitWorkers();
+    this.waitWorkers();
     this.wasmEngine.drawFrame();
-  }
-
-  private runEngineWorkers() {
-    this.params.engineWorkers.forEach(({ worker }) => {
-      worker.postMessage({
-        command: EngineWorkerCommandEnum.RUN,
-      });
-    });
   }
 
  //  private renderBorders() {
@@ -377,7 +493,6 @@ class RayCaster {
   public update(time: number) {
 
     const inputKeys = this.wasmEngine.WasmViews.inputKeys;
-
     const moveSpeed = time * 0.005;
 
     if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
@@ -407,19 +522,6 @@ class RayCaster {
     this.pX += dir * this.dirX * moveSpeed;
     this.pY += dir * this.dirY * moveSpeed;
   }
-
-  private initInput() {
-    this.inputManager = new InputManager();
-    // no key handlers added here, we use the wasm engine key handlers
-    // and we check for key status with wasm view
-    // this.initKeyHandlers();
-  }
-
-  // private initKeyHandlers() {
-  //   this.inputManager.addKeyHandlers(keys.KEY_A, () => {}, () => {});
-  //   this.inputManager.addKeyHandlers(keys.KEY_S, () => {}, () => {});
-  //   this.inputManager.addKeyHandlers(keys.KEY_D, () => {}, () => {});
-  // }
 
   public onKeyDown(inputEvent: InputEvent) {
     this.inputManager.onKeyDown(inputEvent.code);

@@ -126,14 +126,12 @@ class ConsolePanel extends React.Component<
   ) {
     // console.log('update');
 
-    this.histLines = [
-      ...new Set(
-        this.props.history
-          .map((e) => e.stmt)
-          .filter((l) => l.substring(this.props.prompt.length).trim()),
-      ),
-    ];
-    this.histLines.push(this.props.prompt); // add new entry val
+    this.histLines = this.props.history
+      .map((e) => e.stmt)
+      .filter((line, index, array) => line.substring(this.props.prompt.length).trim())
+      .filter((line, index, array) => array[index - 1] !== line)
+
+    this.histLines.push(this.props.prompt); // add empty prompt
     this.histSearchIdx = this.histLines.length - 1;
 
     // console.log('is grabbing: ' + this.state.isGrabbing);
@@ -264,11 +262,11 @@ class ConsolePanel extends React.Component<
         break;
       case 'ArrowUp': // TODO
         event.preventDefault();
-        this.historySearch('backward');
+        this.historySearchUp();
         break;
       case 'ArrowDown': // TODO
         event.preventDefault();
-        this.historySearch('forward');
+        this.historySearchDown();
         break;
       case 'ArrowLeft': // block cursor when moving left in the prompt prefix
         {
@@ -336,9 +334,7 @@ class ConsolePanel extends React.Component<
     const { prompt } = this.props;
     const input = inputEl.value;
     const line = this.props.prompt + input.substring(prompt.length);
-    assert(
-      this.histSearchIdx >= 0 && this.histSearchIdx < this.histLines.length,
-    );
+    assert(this.histSearchIdx >= 0 && this.histSearchIdx < this.histLines.length);
     this.histLines[this.histSearchIdx] = line;
     inputEl.value = line;
   }
@@ -356,17 +352,22 @@ class ConsolePanel extends React.Component<
   }
 
   // TODO
-  private historySearch(direction: 'forward' | 'backward'): void {
+  private historySearchUp() {
+    this.historySearch(-1);
+  }
+
+  private historySearchDown() {
+    this.historySearch(1);
+  }
+
+  private historySearch(direction: number): void {
     // console.log('historySearch: ', direction, this.histSearchIdx, this.histLines);
-    const dir = direction === 'forward' ? 1 : -1;
-    if (this.histLines.length) {
-      assert(
-        this.histSearchIdx >= 0 && this.histSearchIdx < this.histLines.length,
-      );
-      const numLines = this.histLines.length;
-      const nextHistIdx = (this.histSearchIdx + dir + numLines) % numLines;
-      this.inputRef.value = this.histLines[nextHistIdx];
-      this.histSearchIdx = nextHistIdx;
+    assert(direction === 1 || direction === -1);
+    const numLines = this.histLines.length;
+    if (numLines) {
+      assert(this.histSearchIdx >= 0 && this.histSearchIdx < numLines);
+      this.histSearchIdx = (this.histSearchIdx + direction + numLines) % numLines;
+      this.inputRef.value = this.histLines[this.histSearchIdx];
     }
   }
 

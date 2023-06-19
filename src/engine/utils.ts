@@ -47,25 +47,10 @@ function sleep(sleepArr: Int32Array, idx: number, timeoutMs: number): void {
   Atomics.wait(sleepArr, idx, 0, Math.max(1, timeoutMs | 0));
 }
 
-function syncStore(syncArr: TypedArray, idx: number, value: number): void {
-  Atomics.store(syncArr, idx, value);
-}
-
-function syncWait(syncArr: Int32Array, idx: number, value: number): void {
-  Atomics.wait(syncArr, idx, value);
-}
-
-function syncNotify(syncArr: Int32Array, idx: number): void {
-  Atomics.notify(syncArr, idx);
-}
-
 export {
   arrAvg,
   range,
   Range,
   randColor,
-  syncStore,
-  syncWait,
-  syncNotify,
   sleep,
 };

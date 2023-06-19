@@ -4,25 +4,24 @@ import {
   // BPP_RGBA,
   MILLI_IN_SEC,
 } from '../common';
-
 import { mainConfig } from '../config/mainConfig';
 import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
 import { AssetManager } from '../engine/assets/assetManager';
 import type { InputEvent } from './events';
-import { AppCommandEnum } from '../app/appTypes';
-// import type { KeyHandler, Key } from '../input/inputManager';
-// import { InputManager, keys } from '../input/inputManager';
-import type { EngineWorkerParams } from '../engine/engineWorker';
-import { EngineWorkerCommandEnum, EngineWorkerDesc } from '../engine/engineWorker';
+import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from '../app/appTypes';
+import type { KeyHandler, Key } from '../input/inputManager';
+import { InputManager, keys } from '../input/inputManager';
+import type { AuxAppWorkerParams } from './auxAppWorker';
+import { AuxAppWorkerCommandEnum, AuxAppWorkerDesc } from './auxAppWorker';
+import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
+import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
 import * as utils from '../engine/utils';
 import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCaster';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
 };
-
-const MAIN_WORKER_IDX = 0;
 
 class AppWorker {
   private static readonly RENDER_PERIOD_MS = MILLI_IN_SEC / mainConfig.targetRPS;
@@ -38,26 +37,10 @@ class AppWorker {
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
 
   private params: AppWorkerParams;
-  private assetManager: AssetManager;
-
-  private engineWorkers: EngineWorkerDesc[];
-  private syncArray: Int32Array;
-  private sleepArray: Int32Array;
-
   private rayCaster: RayCaster;
 
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
-    await this.initAssetManager();
-    const numEngineWorkers = mainConfig.numEngineWorkers;
-    console.log(`Using 1 main worker and ${numEngineWorkers} aux workers`);
-    const numTotalWorkers = numEngineWorkers + 1;
-    this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
-    this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
-    this.engineWorkers = [];
-    if (numEngineWorkers) {
-      await this.initEngineWorkers(numEngineWorkers);
-    }
     await this.initRayCaster();
   }
   
@@ -65,91 +48,9 @@ class AppWorker {
     this.rayCaster = new RayCaster();
     const rayCasterParams: RayCasterParams = {
       engineCanvas: this.params.engineCanvas,
-      assetManager: this.assetManager,
-      engineWorkers: this.engineWorkers,
-      mainWorkerIdx: MAIN_WORKER_IDX,
     };
     await this.rayCaster.init(rayCasterParams);
   }
-
-  private async initAssetManager() {
-    this.assetManager = new AssetManager();
-    await this.assetManager.init();
-  }
-
-  private async initEngineWorkers(numEngineWorkers: number) {
-    assert(numEngineWorkers > 0);
-    const initStart = Date.now();
-    try {
-      let nextWorkerIdx = 0;
-      const getWorkerIdx = () => {
-        if (nextWorkerIdx === MAIN_WORKER_IDX) {
-          nextWorkerIdx++;
-        }
-        return nextWorkerIdx++;
-      };
-      let remWorkers = numEngineWorkers;
-      await new Promise<void>((resolve, reject) => {
-        for (let i = 0; i < numEngineWorkers; ++i) {
-          const workerIndex = getWorkerIdx();
-          const engineWorker = {
-            index: workerIndex,
-            worker: new Worker(
-              new URL('../engine/engineWorker.ts', import.meta.url),
-              {
-                name: `engine-worker-${workerIndex}`,
-                type: 'module',
-              },
-            )
-          };
-          this.engineWorkers.push(engineWorker);
-          const workerParams: EngineWorkerParams = {
-            workerIndex,
-            numWorkers: numEngineWorkers,
-            syncArray: this.syncArray,
-            sleepArray: this.sleepArray,
-          };
-          engineWorker.worker.postMessage({
-            command: EngineWorkerCommandEnum.INIT,
-            params: workerParams,
-          });
-          engineWorker.worker.onmessage = ({ data }) => {
-            --remWorkers;
-            console.log(
-              `Worker id=${workerIndex} init, left count=${remWorkers}, time=${
-Date.now() - initStart
-}ms with data = ${JSON.stringify(data)}`,
-            );
-            if (remWorkers === 0) {
-              console.log(
-                `Workers init done. After ${Date.now() - initStart}ms`,
-              );
-              resolve();
-            }
-          };
-          engineWorker.worker.onerror = (error) => {
-            console.log(`Worker id=${workerIndex} error: ${error.message}\n`);
-            reject(error);
-          };
-        }
-      });
-    } catch (error) {
-      console.error(`Error during workers init: ${JSON.stringify(error)}`);
-    }
-  }
-
-  // private async initWasmEngine() {
-  //   this.wasmEngine = new WasmEngine();
-  //   const wasmEngineParams: WasmEngineParams = {
-  //     engineCanvas: this.params.engineCanvas,
-  //     assetManager: this.assetManager,
-  //     inputManager: this.inputManager,
-  //     engineWorkers: this.engineWorkers,
-  //     mainWorkerIdx: MAIN_WORKER_IDX,
-  //     runEngineWorkersLoop: true,
-  //   };
-  //   await this.wasmEngine.init(wasmEngineParams);
-  // }
 
   public run(): void {
     let lastFrameStartTime: number;
@@ -265,8 +166,6 @@ Date.now() - initStart
       renderTimeAcc += avgTimeLastFrame;
       if (renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
-        // this.syncWorkers();
-        // this.waitWorkers();
         this.rayCaster.render();
         saveFrameTime();
       }
@@ -316,19 +215,6 @@ Date.now() - initStart
     //     params: Math.floor(Math.random() * 100),
     //   });
     // }, 2000);
-  }
-
-  private syncWorkers() {
-    for (let i = 1; i <= this.engineWorkers.length; ++i) {
-      Atomics.store(this.syncArray, i, 1);
-      Atomics.notify(this.syncArray, i);
-    }
-  }
-
-  private waitWorkers() {
-    for (let i = 1; i <= this.engineWorkers.length; ++i) {
-      Atomics.wait(this.syncArray, i, 1);
-    }
   }
 
   public onKeyDown(inputEvent: InputEvent) {
