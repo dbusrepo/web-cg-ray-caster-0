@@ -36,6 +36,9 @@ class RayCaster {
   private assetManager: AssetManager;
   private inputManager: InputManager;
 
+  private ctx2d: OffscreenCanvasRenderingContext2D;
+  private imageData: ImageData;
+
   private wasmEngine: WasmEngine;
   private wasmViews: WasmViews;
   private wasmMem: WebAssembly.Memory;
@@ -64,6 +67,7 @@ class RayCaster {
 
   public async init(params: RayCasterParams) {
     this.params = params;
+    this.initGfx();
     await this.initAssetManager(); // TODO:
     await this.initWasmEngine(); // TODO:
     await this.runAuxAppWorkers();
@@ -123,6 +127,24 @@ class RayCaster {
     // // this.castScene(); // TODO:
   }
 
+  private initGfx() {
+    this.ctx2d = this.get2dCtxFromCanvas(this.params.engineCanvas);
+    this.imageData = this.ctx2d.createImageData(
+      this.params.engineCanvas.width,
+      this.params.engineCanvas.height);
+  }
+
+  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
+    const ctx = <OffscreenCanvasRenderingContext2D>(
+      canvas.getContext('2d', {
+        alpha: false,
+        desynchronized: true,
+      })
+    );
+    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
+    return ctx;
+  }
+
   private async initAssetManager() {
     this.assetManager = new AssetManager();
     await this.assetManager.init();
@@ -144,10 +166,11 @@ class RayCaster {
   private async initWasmEngine() {
     this.wasmEngine = new WasmEngine();
     const wasmEngineParams: WasmEngineParams = {
-      engineCanvas: this.params.engineCanvas,
+      imageWidth: this.imageData.width,
+      imageHeight: this.imageData.height,
       assetManager: this.assetManager,
       inputManager: this.inputManager,
-      numAuxWorkers: mainConfig.numAuxWasmWorkers,
+      numAuxWasmWorkers: mainConfig.numAuxWasmWorkers,
     };
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmViews = this.wasmEngine.WasmRun.WasmViews
@@ -308,7 +331,12 @@ Date.now() - initStart
       console.error(e);
     }
     this.waitWorkers();
-    this.wasmEngine.drawFrame();
+    this.drawWasmFrame();
+  }
+
+  private drawWasmFrame() {
+    this.imageData.data.set(this.wasmEngine.WasmRun.WasmViews.rgbaSurface0);
+    this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
  //  private renderBorders() {

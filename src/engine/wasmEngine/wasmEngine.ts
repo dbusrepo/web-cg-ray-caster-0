@@ -1,4 +1,5 @@
 import assert from 'assert';
+// import * as utils from './../utils';
 import { randColor, sleep } from '../utils';
 import type { WasmMemParams, WasmMemRegionsData } from './wasmMemUtils';
 import type { WasmModules } from './wasmLoader';
@@ -17,7 +18,6 @@ import { buildWasmMemViews } from './wasmViews';
 import { FONT_Y_SIZE, fontChars } from '../../../assets/fonts/font';
 import { stringsArrayData } from '../../../assets/build/strings';
 import { AuxWasmWorkerDesc, AuxWasmWorkerCommandEnum } from './auxWasmWorker';
-import * as utils from './../utils';
 import { mainConfig } from '../../config/mainConfig';
 import {
   // BPP_PAL,
@@ -27,16 +27,15 @@ import {
 } from '../../common';
 
 type WasmEngineParams = {
-  engineCanvas: OffscreenCanvas;
+  imageWidth: number;
+  imageHeight: number;
   assetManager: AssetManager;
   inputManager: InputManager;
-  numAuxWorkers: number;
+  numAuxWasmWorkers: number;
 };
 
 class WasmEngine {
   private params: WasmEngineParams;
-  private ctx2d: OffscreenCanvasRenderingContext2D;
-  private imageData: ImageData;
   private wasmMem: WebAssembly.Memory;
   private wasmMemParams: WasmMemParams;
   private wasmRegionsSizes: WasmMemRegionsData;
@@ -49,30 +48,11 @@ class WasmEngine {
 
   public async init(params: WasmEngineParams) {
     this.params = params;
-    this.initGfx();
     await this.initWasm();
-    this.initKeyHandlers();
+    this.addWasmInputKeyHandlers();
   }
 
-  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
-    const ctx = <OffscreenCanvasRenderingContext2D>(
-      canvas.getContext('2d', {
-        alpha: false,
-        desynchronized: true,
-      })
-    );
-    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
-    return ctx;
-  }
-
-  private initGfx() {
-    this.ctx2d = this.get2dCtxFromCanvas(this.params.engineCanvas);
-    this.imageData = this.ctx2d.createImageData(
-      this.params.engineCanvas.width,
-      this.params.engineCanvas.height);
-  }
-
-  private initKeyHandlers() {
+  private addWasmInputKeyHandlers() {
     const { inputKeys } = this.wasmViews;
     const keyHandler = (keyOffset: number, state: number) => () => {
       inputKeys[keyOffset] = state;
@@ -117,16 +97,15 @@ class WasmEngine {
 
   private initWasmMemParams(): void {
 
-    const { width: engineImageWidth, height: engineImageHeight } = this.imageData;
-
-    const numTotalWorkers = 1 + this.params.numAuxWorkers;
+    const { imageWidth, imageHeight } = this.params;
+    const numTotalWorkers = 1 + this.params.numAuxWasmWorkers;
 
     // set wasm mem regions sizes
     this.wasmMemParams = {
       // frameBufferPalSize: 0, // this._cfg.usePalette ? numPixels : 0,
       // paletteSize: 0, // this._cfg.usePalette ? PALETTE_SIZE * PAL_ENTRY_SIZE : 0,
       startOffset: mainConfig.wasmMemStartOffset,
-      rgbaSurface0size: engineImageWidth * engineImageHeight * BPP_RGBA,
+      rgbaSurface0size: imageWidth * imageHeight * BPP_RGBA,
       rgbaSurface1size: 0,
       syncArraySize: numTotalWorkers * Int32Array.BYTES_PER_ELEMENT,
       sleepArraySize: numTotalWorkers * Int32Array.BYTES_PER_ELEMENT,
@@ -196,9 +175,9 @@ class WasmEngine {
 
   private async initWasmRun() {
 
-    const { width: engineImageWidth, height: engineImageHeight } = this.imageData;
-
     this.wasmRun = new WasmRun();
+
+    const { imageWidth, imageHeight } = this.params;
 
     this.wasmRunParams = {
       wasmMem: this.wasmMem,
@@ -209,7 +188,7 @@ class WasmEngine {
       workerIdx: 0,
       numWorkers: this.wasmMemParams.numWorkers,
       numImages: this.params.assetManager.Images.length,
-      surface0sizes: [engineImageWidth, engineImageHeight],
+      surface0sizes: [imageWidth, imageHeight],
       surface1sizes: [0, 0], // not used
     };
 
@@ -221,9 +200,9 @@ class WasmEngine {
   }
 
   private async runAuxWasmWorkers() {
-    console.log(`num aux wasm workers: ${this.params.numAuxWorkers}`);
+    console.log(`num aux wasm workers: ${this.params.numAuxWasmWorkers}`);
     this.auxWasmWorkers = [];
-    if (this.params.numAuxWorkers > 0) {
+    if (this.params.numAuxWasmWorkers > 0) {
       await this.initAuxWasmWorkers();
       for (let i = 0; i < this.auxWasmWorkers.length; ++i) {
         const { index: workerIdx } = this.auxWasmWorkers[i];
@@ -239,16 +218,16 @@ class WasmEngine {
   }
 
   private async initAuxWasmWorkers() {
-    assert(this.params.numAuxWorkers > 0);
+    assert(this.params.numAuxWasmWorkers > 0);
     const initStart = Date.now();
     try {
       let nextWorkerIdx = 1; // start from 1, main worker idx is 0
       const genWorkerIdx = () => {
         return nextWorkerIdx++;
       };
-      let remWorkers = this.params.numAuxWorkers;
+      let remWorkers = this.params.numAuxWasmWorkers;
       await new Promise<void>((resolve, reject) => {
-        for (let i = 0; i < this.params.numAuxWorkers; ++i) {
+        for (let i = 0; i < this.params.numAuxWasmWorkers; ++i) {
           const workerIndex = genWorkerIdx();
           const wasmWorker: AuxWasmWorkerDesc = {
             index: workerIndex,
@@ -301,12 +280,11 @@ Date.now() - initStart
       throw ex;
     }
     this.waitWorkers();
-    this.drawFrame();
     // const views = this.wasmRun.WasmViews;
     // console.log(views.hrTimer[0]);
   }
 
-  public syncWorkers() {
+  private syncWorkers() {
     for (let i = 0; i < this.auxWasmWorkers.length; ++i) {
       const { index: workerIdx } = this.auxWasmWorkers[i];
       Atomics.store(this.wasmViews.syncArr, workerIdx, 1);
@@ -314,16 +292,11 @@ Date.now() - initStart
     }
   }
 
-  public waitWorkers() {
+  private waitWorkers() {
     for (let i = 0; i < this.auxWasmWorkers.length; ++i) {
       const { index: workerIdx } = this.auxWasmWorkers[i];
       Atomics.wait(this.wasmViews.syncArr, workerIdx, 1);
     }
-  }
-
-  public drawFrame() {
-    this.imageData.data.set(this.wasmViews.rgbaSurface0);
-    this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
   public get WasmRun(): WasmRun {
@@ -354,12 +327,8 @@ Date.now() - initStart
     return this.wasmModules;
   }
   
-  get WasmViews(): WasmViews {
+  public get WasmViews(): WasmViews {
     return this.wasmViews;
-  }
-
-  public get ImageData(): ImageData {
-    return this.imageData;
   }
 }
 
