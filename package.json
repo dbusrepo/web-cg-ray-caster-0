@@ -106,6 +106,7 @@
   },
   "dependencies": {
     "@tweakpane/plugin-essentials": "^0.1.8",
+    "circular-dependency-plugin": "^5.2.2",
     "dom-css": "^2.1.0",
     "fast-glob": "^3.2.12",
     "file-type": "^18.5.0",

@@ -2,6 +2,16 @@ import { MemRegionsEnum, WasmMemRegionsData } from './wasmMemUtils';
 
 type WasmViews = {
   memUI8: Uint8Array;
+  memUIC8: Uint8ClampedArray;
+  memUI16: Uint16Array;
+  memUI32: Uint32Array;
+  memI8: Int8Array;
+  memI16: Int16Array;
+  memI32: Int32Array;
+  memF32: Float32Array;
+  memF64: Float64Array;
+  memBUI64: BigUint64Array;
+  memBI64: BigInt64Array;
   rgbaSurface0: Uint8ClampedArray;
   rgbaSurface1: Uint8ClampedArray;
   syncArr: Int32Array;
@@ -24,6 +34,16 @@ function buildWasmMemViews(
   const startOffset = memOffsets[MemRegionsEnum.START_MEM];
   const wasmTotalStartSize = startOffset + startSize;
   const memUI8 = new Uint8Array(wasmMem.buffer, 0, wasmTotalStartSize);
+  const memUIC8 = new Uint8ClampedArray(wasmMem.buffer, 0, wasmTotalStartSize);
+  const memUI16 = new Uint16Array(wasmMem.buffer, 0, wasmTotalStartSize / Uint16Array.BYTES_PER_ELEMENT);
+  const memUI32 = new Uint32Array(wasmMem.buffer, 0, wasmTotalStartSize / Uint32Array.BYTES_PER_ELEMENT);
+  const memI8 = new Int8Array(wasmMem.buffer, 0, wasmTotalStartSize);
+  const memI16 = new Int16Array(wasmMem.buffer, 0, wasmTotalStartSize / Int16Array.BYTES_PER_ELEMENT);
+  const memI32 = new Int32Array(wasmMem.buffer, 0, wasmTotalStartSize / Int32Array.BYTES_PER_ELEMENT);
+  const memF32 = new Float32Array(wasmMem.buffer, 0, wasmTotalStartSize / Float32Array.BYTES_PER_ELEMENT);
+  const memF64 = new Float64Array(wasmMem.buffer, 0, wasmTotalStartSize / Float64Array.BYTES_PER_ELEMENT);
+  const memBUI64 = new BigUint64Array(wasmMem.buffer, 0, wasmTotalStartSize / BigUint64Array.BYTES_PER_ELEMENT);
+  const memBI64 = new BigInt64Array(wasmMem.buffer, 0, wasmTotalStartSize / BigInt64Array.BYTES_PER_ELEMENT);
 
   const rgbaSurface0 = new Uint8ClampedArray(
     wasmMem.buffer,
@@ -93,6 +113,16 @@ function buildWasmMemViews(
 
   const memViews: WasmViews = {
       memUI8,
+      memUIC8,
+      memUI16,
+      memUI32,
+      memI8,
+      memI16,
+      memI32,
+      memF32,
+      memF64,
+      memBUI64,
+      memBI64,
       rgbaSurface0,
       rgbaSurface1,
       syncArr,

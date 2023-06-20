@@ -324,3 +324,6 @@ A backslash ( \ ) followed by a newline character is interpreted as a space in t
 
 @rm -f $@; \                 
 node ./genDepList.mjs $< > $@
+
+circular dependency webpack:
+https://stackoverflow.com/questions/73157442/webpack-warning-using-webworker-circular-dependency-between-chunks-with-runtime
