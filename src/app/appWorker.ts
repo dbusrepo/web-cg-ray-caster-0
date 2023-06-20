@@ -7,7 +7,6 @@ import {
 import { mainConfig } from '../config/mainConfig';
 import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
-import { AssetManager } from '../engine/assets/assetManager';
 import type { InputEvent } from './events';
 import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from '../app/appTypes';
 import type { KeyHandler, Key } from '../input/inputManager';

@@ -84,7 +84,10 @@ function init(): void {
     // draw.clearBg(0, frameHeight, 0xff_00_00_00);
     // const t1 = <u64>process.hrtime();
     // store<u64>(hrTimerPtr, t1 - t0);
+  } else {
+
   }
+
   // logi(workerIdx as i32);
 
   initMemManager();

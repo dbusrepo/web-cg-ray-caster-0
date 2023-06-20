@@ -6,8 +6,8 @@ import type { InputEvent } from '../../app/events';
 import type { WasmViews } from '../wasmEngine/wasmViews';
 import type { WasmModules } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
-import { loadTexture } from './textureUtils';
-import { images } from '../../assets/build/images';
+// import { loadTexture } from './textureUtils';
+// import { images } from '../../../assets/build/images';
 import { AssetManager } from '../assets/assetManager';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 import type { Viewport } from './viewport';
@@ -68,21 +68,23 @@ class RayCaster {
   public async init(params: RayCasterParams) {
     this.params = params;
     this.initGfx();
-    await this.initAssetManager(); // TODO:
-    await this.initWasmEngine(); // TODO:
-    await this.runAuxAppWorkers();
     this.initInputManager();
+    await this.initAssetManager();
+    await this.initWasmEngine();
 
     // this.wasmEngine.WasmRun.WasmModules.engine.getViewPort();
     // this.wasmEngine.WasmRun.WasmModules.engine.Viewport::startX;
     // this.wasmModules.engine.getViewPort();
 
-    // TODO: test this here
+    // // TODO: test this here
     // this.viewport = getWasmViewport(this.wasmModules, this.wasmMem.buffer);
     // this.viewport.startX = 12;
     // this.viewport.startY = 11;
     // console.log('this.viewport.startX', this.viewport.startX);
     // console.log('this.viewport.startY', this.viewport.startY);
+
+    await this.runAuxAppWorkers();
+
     //
     // console.log('launching workers...');
     // this.runEngineWorkers();
@@ -283,9 +285,9 @@ Date.now() - initStart
 
   initTextures() {
     this.textures = [];
-    this.textures[0] = loadTexture(this.wasmViews, images.GREYSTONE);
-    this.textures[1] = loadTexture(this.wasmViews, images.BLUESTONE);
-    this.textures[2] = loadTexture(this.wasmViews, images.REDBRICK);
+    // this.textures[0] = loadTexture(this.wasmViews, images.GREYSTONE);
+    // this.textures[1] = loadTexture(this.wasmViews, images.BLUESTONE);
+    // this.textures[2] = loadTexture(this.wasmViews, images.REDBRICK);
   }
 
   initMap() {
@@ -325,6 +327,7 @@ Date.now() - initStart
   public render() {
     this.syncWorkers();
     try {
+      this.wasmEngine.render();
       // this.castScene();
     }
     catch (e) {

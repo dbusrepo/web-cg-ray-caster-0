@@ -1,7 +1,8 @@
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { WasmViews} from '../wasmEngine/wasmViews';
-import { images } from '../../assets/build/images';
+import { images } from '../../../assets/build/images';
 
+// TODO: rename
 const loadTexture = (wasmViews: WasmViews, imageName: string): BitImageRGBA => {
   const imagesList = Object.values(images);
 

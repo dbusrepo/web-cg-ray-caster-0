@@ -181,8 +181,8 @@ class App {
     // parentNode.style.zIndex = '1'; // TODO:
     const panelConfig: EnginePanelConfig = {
       ...enginePanelConfig,
-      // startViewMode: StartViewMode.FULL_WIN,
-      startViewMode: StartViewMode.WIN,
+      startViewMode: StartViewMode.FULL_WIN,
+      // startViewMode: StartViewMode.WIN,
       title: 'Engine view',
       id: PanelIdEnum.ENGINE,
       focusOnStart: true,
