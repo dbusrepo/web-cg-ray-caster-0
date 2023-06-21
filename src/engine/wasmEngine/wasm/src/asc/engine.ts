@@ -24,6 +24,7 @@ import {
   sleepArrayPtr,
   inputKeysPtr,
   hrTimerPtr,
+  viewportPtr,
 } from './importVars';
 import { BitImage } from './bitImage';
 import { initImages } from './initImages';
@@ -60,14 +61,15 @@ const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
 const MAIN_THREAD_IDX = mainWorkerIdx;
 
+// images view array
 let images = changetype<SArray<BitImage>>(NULL_PTR);
 
 let viewport = changetype<Viewport>(NULL_PTR);
 
 // @ts-ignore: decorator
-@inline function align<T>(): SIZE_T {
-  return alignof<T>();
-}
+// @inline function align<T>(): SIZE_T {
+//   return alignof<T>();
+// }
 
 function init(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
@@ -85,7 +87,7 @@ function init(): void {
     // const t1 = <u64>process.hrtime();
     // store<u64>(hrTimerPtr, t1 - t0);
   } else {
-
+    viewport = changetype<Viewport>(viewportPtr);
   }
 
   // logi(workerIdx as i32);

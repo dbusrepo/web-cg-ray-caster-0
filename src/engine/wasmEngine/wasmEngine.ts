@@ -190,6 +190,7 @@ class WasmEngine {
       numImages: this.params.assetManager.Images.length,
       surface0sizes: [imageWidth, imageHeight],
       surface1sizes: [0, 0], // not used
+      viewportPtr: 0, // 0 here
     };
 
     await this.wasmRun.init(this.wasmRunParams, this.wasmViews);

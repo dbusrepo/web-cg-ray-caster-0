@@ -52,6 +52,8 @@ type WasmImports = {
   FONT_Y_SIZE: number;
   FONT_SPACING: number;
 
+  viewportPtr: number;
+
   logi: (v: number) => void;
   logf: (v: number) => void;
 };

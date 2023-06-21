@@ -1,0 +1,88 @@
+import assert from 'assert';
+import type { WasmViews } from '../wasmEngine/wasmViews';
+import { buildWasmMemViews } from '../wasmEngine/wasmViews';
+import type { WasmRunParams } from '../wasmEngine/wasmRun';
+import { WasmRun } from '../wasmEngine/wasmRun';
+import { getWasmViewport } from '../rayCaster/viewport';
+
+const enum AuxWorkerCommandEnum {
+  INIT = 'aux_worker_init',
+  RUN = 'aux_worker_run',
+}
+
+type AuxWorkerParams = {
+  workerIndex: number,
+  numWorkers: number,
+  wasmRunParams: WasmRunParams,
+  syncArray: Int32Array;
+  sleepArray: Int32Array;
+};
+
+class AuxWorker {
+  private params: AuxWorkerParams;
+  private wasmRun: WasmRun;
+
+  async init(params: AuxWorkerParams): Promise<void> {
+    const { workerIndex, wasmRunParams } = params;
+    console.log(`Aux worker ${workerIndex} initializing...`);
+    this.params = params;
+    this.wasmRun = new WasmRun();
+    const wasmViews = buildWasmMemViews(
+      wasmRunParams.wasmMem,
+      wasmRunParams.wasmMemRegionsOffsets,
+      wasmRunParams.wasmMemRegionsSizes);
+    await this.wasmRun.init(wasmRunParams, wasmViews);
+  }
+
+  async run() {
+    const { syncArray, workerIndex } = this.params;
+    console.log(`Aux worker ${workerIndex} running`);
+
+    const viewport = getWasmViewport(this.wasmRun.WasmModules, this.wasmRun.WasmMem.buffer);
+    // this.viewport.startX = 12;
+    // this.viewport.startY = 11;
+    console.log('worker viewport.startX', viewport.startX);
+    console.log('worker viewport.startY', viewport.startY);
+
+    try {
+      while (true) {
+        Atomics.wait(syncArray, workerIndex, 0);
+        // TODO:
+        Atomics.store(syncArray, workerIndex, 0);
+        Atomics.notify(syncArray, workerIndex);
+      }
+    } catch (ex) {
+      console.log(`Error while running aux app worker ${this.params.workerIndex}`);
+      console.error(ex);
+    }
+  }
+}
+
+let auxWorker: AuxWorker;
+
+const commands = {
+  [AuxWorkerCommandEnum.INIT]: async (params: AuxWorkerParams) => {
+    auxWorker = new AuxWorker();
+    await auxWorker.init(params);
+    postMessage({ status: `aux app worker ${params.workerIndex} init completed` });
+  },
+  [AuxWorkerCommandEnum.RUN]: async () => {
+    await auxWorker.run();
+  },
+};
+
+self.addEventListener('message', async ({ data: { command, params } }) => {
+  if (commands.hasOwnProperty(command)) {
+    try {
+      commands[command as keyof typeof commands](params);
+    } catch (err) {}
+  }
+});
+
+class AuxWorkerDesc {
+  index: number;
+  worker: Worker;
+}
+
+export type { AuxWorkerParams };
+export { AuxWorker, AuxWorkerDesc, AuxWorkerCommandEnum };

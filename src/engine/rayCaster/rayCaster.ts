@@ -1,19 +1,22 @@
 import assert from 'assert';
 import { mainConfig } from '../../config/mainConfig';
+import type { InputEvent } from '../../app/events';
+import type { AuxWorkerParams } from './auxWorker';
+import { AuxWorkerCommandEnum, AuxWorkerDesc } from './auxWorker';
+import { AssetManager } from '../assets/assetManager';
+import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import { InputManager, keys, keyOffsets } from '../../input/inputManager';
+
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
-import type { InputEvent } from '../../app/events';
 import type { WasmViews } from '../wasmEngine/wasmViews';
 import type { WasmModules } from '../wasmEngine/wasmLoader';
-import { BitImageRGBA } from '../assets/images/bitImageRGBA';
-// import { loadTexture } from './textureUtils';
-// import { images } from '../../../assets/build/images';
-import { AssetManager } from '../assets/assetManager';
-import { InputManager, keys, keyOffsets } from '../../input/inputManager';
+
+import { images } from '../../../assets/build/images';
+import { loadTexture } from './textureUtils'; // TODO: rename
+
 import type { Viewport } from './viewport';
 import { getWasmViewport } from './viewport';
-import type { AuxAppWorkerParams } from '../../app/auxAppWorker';
-import { AuxAppWorkerCommandEnum, AuxAppWorkerDesc } from '../../app/auxAppWorker';
 
 type RayCasterParams = {
   engineCanvas: OffscreenCanvas;
@@ -36,6 +39,10 @@ class RayCaster {
   private assetManager: AssetManager;
   private inputManager: InputManager;
 
+  private auxAppWorkers: AuxWorkerDesc[];
+  private syncArray: Int32Array;
+  private sleepArray: Int32Array;
+
   private ctx2d: OffscreenCanvasRenderingContext2D;
   private imageData: ImageData;
 
@@ -44,27 +51,25 @@ class RayCaster {
   private wasmMem: WebAssembly.Memory;
   private wasmModules: WasmModules;
 
-  private auxAppWorkers: AuxAppWorkerDesc[];
-  private syncArray: Int32Array;
-  private sleepArray: Int32Array;
-
   private viewport: Viewport;
 
-  private pX: number;
-  private pY: number;
-  private dirX: number;
-  private dirY: number;
-  private planeX: number;
-  private planeY: number;
-  // private pitch: number;
-  // private posZ: number;
-  private wallHeight: number;
-  private zBuffer: Float32Array;
-  private frameBuffer: FrameBuffer;
-  private backgroundColor: number;
-  private map: Map;
   private textures: BitImageRGBA[];
 
+  // private pX: number;
+  // private pY: number;
+  // private dirX: number;
+  // private dirY: number;
+  // private planeX: number;
+  // private planeY: number;
+  // // private pitch: number;
+  // // private posZ: number;
+  // private wallHeight: number;
+  // private zBuffer: Float32Array;
+  // private frameBuffer: FrameBuffer;
+  // private backgroundColor: number;
+  // private map: Map;
+
+  //
   public async init(params: RayCasterParams) {
     this.params = params;
     this.initGfx();
@@ -72,20 +77,16 @@ class RayCaster {
     await this.initAssetManager();
     await this.initWasmEngine();
 
-    // this.wasmEngine.WasmRun.WasmModules.engine.getViewPort();
-    // this.wasmEngine.WasmRun.WasmModules.engine.Viewport::startX;
-    // this.wasmModules.engine.getViewPort();
-
     // // TODO: test this here
-    // this.viewport = getWasmViewport(this.wasmModules, this.wasmMem.buffer);
-    // this.viewport.startX = 12;
-    // this.viewport.startY = 11;
-    // console.log('this.viewport.startX', this.viewport.startX);
-    // console.log('this.viewport.startY', this.viewport.startY);
+    this.viewport = getWasmViewport(this.wasmModules, this.wasmMem.buffer);
+    this.viewport.startX = 12;
+    this.viewport.startY = 11;
+    console.log('this.viewport.startX', this.viewport.startX);
+    console.log('this.viewport.startY', this.viewport.startY);
 
+    // TODO: init workers after wasm engine is ready, use assert
     await this.runAuxAppWorkers();
 
-    //
     // console.log('launching workers...');
     // this.runEngineWorkers();
 
@@ -147,16 +148,16 @@ class RayCaster {
     return ctx;
   }
 
-  private async initAssetManager() {
-    this.assetManager = new AssetManager();
-    await this.assetManager.init();
-  }
-
   private initInputManager() {
     this.inputManager = new InputManager();
     // no key handlers added here, we use the wasm engine key handlers
     // and we check for key status with wasm view
     // this.initKeyHandlers();
+  }
+
+  private async initAssetManager() {
+    this.assetManager = new AssetManager();
+    await this.assetManager.init();
   }
 
   // private initKeyHandlers() {
@@ -198,7 +199,7 @@ class RayCaster {
       }
       this.auxAppWorkers.forEach(({ worker }) => {
         worker.postMessage({
-          command: AuxAppWorkerCommandEnum.RUN,
+          command: AuxWorkerCommandEnum.RUN,
         });
       });
     }
@@ -219,7 +220,8 @@ class RayCaster {
           const engineWorker = {
             index: workerIndex,
             worker: new Worker(
-              new URL('../../app/appWorker.ts', import.meta.url),
+              // new URL('../../app/appWorker.ts', import.meta.url),
+              new URL('./auxWorker.ts', import.meta.url),
               {
                 name: `aux-app-worker-${workerIndex}`,
                 type: 'module',
@@ -227,7 +229,7 @@ class RayCaster {
             )
           };
           this.auxAppWorkers.push(engineWorker);
-          const workerParams: AuxAppWorkerParams = {
+          const workerParams: AuxWorkerParams = {
             workerIndex,
             numWorkers: numAuxAppWorkers,
             syncArray: this.syncArray,
@@ -235,10 +237,11 @@ class RayCaster {
             wasmRunParams: {
               ...this.wasmEngine.WasmRunParams,
               workerIdx: workerIndex,
+              viewportPtr: this.viewport.Ptr,
             },
           };
           engineWorker.worker.postMessage({
-            command: AuxAppWorkerCommandEnum.INIT,
+            command: AuxWorkerCommandEnum.INIT,
             params: workerParams,
           });
           engineWorker.worker.onmessage = ({ data }) => {
@@ -285,44 +288,44 @@ Date.now() - initStart
 
   initTextures() {
     this.textures = [];
-    // this.textures[0] = loadTexture(this.wasmViews, images.GREYSTONE);
+    this.textures[0] = loadTexture(this.wasmViews, images.GREYSTONE);
     // this.textures[1] = loadTexture(this.wasmViews, images.BLUESTONE);
     // this.textures[2] = loadTexture(this.wasmViews, images.REDBRICK);
   }
 
-  initMap() {
-    const mapWidth = 16;
-    const mapHeight = 16;
-    const mapPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth, mapHeight);
-    this.map = {
-      width: mapWidth,
-      height: mapHeight,
-      data: new Uint8Array(
-        this.wasmMem.buffer,
-        mapPtr,
-        mapWidth * mapHeight,
-      )
-    };
-    const mapBuf = this.map.data;
-    for (let i = 0; i < mapHeight; i++) {
-      mapBuf[i * mapWidth] = 1;
-      mapBuf[i * mapWidth + mapWidth - 1] = 1;
-      if (i === 0 || i === mapHeight - 1) {
-        const rowOffset = i * mapWidth;
-        for (let j = 0; j < mapWidth; j++) {
-          mapBuf[rowOffset + j] = 1;
-        }
-      }
-      // let mapStr = '';
-      // for (let j = 0; j < width; j++) {
-      //   mapStr += this.map[i * width + j] + ' ';
-      // }
-      // console.log(mapStr);
-    } 
-    mapBuf[2] = 2;
-    mapBuf[3] = 3;
-    mapBuf[mapWidth*2 + 2] = 3;
-  }
+  // initMap() {
+  //   const mapWidth = 16;
+  //   const mapHeight = 16;
+  //   const mapPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth, mapHeight);
+  //   this.map = {
+  //     width: mapWidth,
+  //     height: mapHeight,
+  //     data: new Uint8Array(
+  //       this.wasmMem.buffer,
+  //       mapPtr,
+  //       mapWidth * mapHeight,
+  //     )
+  //   };
+  //   const mapBuf = this.map.data;
+  //   for (let i = 0; i < mapHeight; i++) {
+  //     mapBuf[i * mapWidth] = 1;
+  //     mapBuf[i * mapWidth + mapWidth - 1] = 1;
+  //     if (i === 0 || i === mapHeight - 1) {
+  //       const rowOffset = i * mapWidth;
+  //       for (let j = 0; j < mapWidth; j++) {
+  //         mapBuf[rowOffset + j] = 1;
+  //       }
+  //     }
+  //     // let mapStr = '';
+  //     // for (let j = 0; j < width; j++) {
+  //     //   mapStr += this.map[i * width + j] + ' ';
+  //     // }
+  //     // console.log(mapStr);
+  //   } 
+  //   mapBuf[2] = 2;
+  //   mapBuf[3] = 3;
+  //   mapBuf[mapWidth*2 + 2] = 3;
+  // }
 
   public render() {
     this.syncWorkers();
@@ -521,38 +524,37 @@ Date.now() - initStart
   //   }
   // }
 
-  public update(time: number) {
+  // public update(time: number) {
+  //   const inputKeys = this.wasmEngine.WasmViews.inputKeys;
+  //   const moveSpeed = time * 0.005;
+  //
+  //   if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
+  //     this.moveForward(moveSpeed, 1);
+  //   }
+  //   if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
+  //     this.moveForward(moveSpeed, -1);
+  //   }
+  //   if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
+  //     this.rotate(-moveSpeed);
+  //   }
+  //   if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
+  //     this.rotate(moveSpeed);
+  //   }
+  // }
 
-    const inputKeys = this.wasmEngine.WasmViews.inputKeys;
-    const moveSpeed = time * 0.005;
+  // private rotate(moveSpeed: number) {
+  //   const oldDirX = this.dirX;
+  //   this.dirX = this.dirX * Math.cos(moveSpeed) - this.dirY * Math.sin(moveSpeed);
+  //   this.dirY = oldDirX * Math.sin(moveSpeed) + this.dirY * Math.cos(moveSpeed);
+  //   const oldPlaneX = this.planeX;
+  //   this.planeX = this.planeX * Math.cos(moveSpeed) - this.planeY * Math.sin(moveSpeed);
+  //   this.planeY = oldPlaneX * Math.sin(moveSpeed) + this.planeY * Math.cos(moveSpeed);
+  // }
 
-    if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
-      this.moveForward(moveSpeed, 1);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
-      this.moveForward(moveSpeed, -1);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
-      this.rotate(-moveSpeed);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
-      this.rotate(moveSpeed);
-    }
-  }
-
-  private rotate(moveSpeed: number) {
-    const oldDirX = this.dirX;
-    this.dirX = this.dirX * Math.cos(moveSpeed) - this.dirY * Math.sin(moveSpeed);
-    this.dirY = oldDirX * Math.sin(moveSpeed) + this.dirY * Math.cos(moveSpeed);
-    const oldPlaneX = this.planeX;
-    this.planeX = this.planeX * Math.cos(moveSpeed) - this.planeY * Math.sin(moveSpeed);
-    this.planeY = oldPlaneX * Math.sin(moveSpeed) + this.planeY * Math.cos(moveSpeed);
-  }
-
-  private moveForward(moveSpeed: number, dir: number) {
-    this.pX += dir * this.dirX * moveSpeed;
-    this.pY += dir * this.dirY * moveSpeed;
-  }
+  // private moveForward(moveSpeed: number, dir: number) {
+  //   this.pX += dir * this.dirX * moveSpeed;
+  //   this.pY += dir * this.dirY * moveSpeed;
+  // }
 
   public onKeyDown(inputEvent: InputEvent) {
     this.inputManager.onKeyDown(inputEvent.code);

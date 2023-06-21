@@ -8,13 +8,7 @@ import { mainConfig } from '../config/mainConfig';
 import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
 import type { InputEvent } from './events';
-import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from '../app/appTypes';
-import type { KeyHandler, Key } from '../input/inputManager';
-import { InputManager, keys } from '../input/inputManager';
-import type { AuxAppWorkerParams } from './auxAppWorker';
-import { AuxAppWorkerCommandEnum, AuxAppWorkerDesc } from './auxAppWorker';
-import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
-import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
+import { AppCommandEnum } from '../app/appTypes';
 import * as utils from '../engine/utils';
 import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCaster';
 
@@ -150,7 +144,7 @@ class AppWorker {
         // TODO: see multiplier in update_period def
         // update state with UPDATE_PERIOD_MS
         // updateState(STEP, t / MULTIPLIER);
-        this.rayCaster.update(AppWorker.UPDATE_PERIOD_MS / 2); // TODO:
+        // this.rayCaster.update(AppWorker.UPDATE_PERIOD_MS / 2); // TODO:
         updTimeAcc -= AppWorker.UPDATE_PERIOD_MS;
         updateCnt++;
       }
@@ -217,11 +211,11 @@ class AppWorker {
   }
 
   public onKeyDown(inputEvent: InputEvent) {
-    this.rayCaster.onKeyDown(inputEvent);
+    // this.rayCaster.onKeyDown(inputEvent);
   }
 
   public onKeyUp(inputEvent: InputEvent) {
-    this.rayCaster.onKeyUp(inputEvent);
+    // this.rayCaster.onKeyUp(inputEvent);
   }
 }
 
