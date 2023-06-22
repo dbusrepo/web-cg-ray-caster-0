@@ -7,6 +7,8 @@ import { PTR_SIZE, PTR_ALIGN_MASK, SIZE_T, MAX_ALLOC_SIZE, MEM_BLOCK_USAGE_BIT_M
 const LOCK_SIZE = getTypeSize<LOCK_T>();
 const MUTEX_ALIGN_MASK = getTypeAlignMask<LOCK_T>();
 
+let hmInitialized = false;
+
 const HEAP_BASE: PTR_T = heapPtr;
 const MUTEX_PTR: PTR_T = (heapPtr + MUTEX_ALIGN_MASK) & ~MUTEX_ALIGN_MASK; // align to 4 bytes
 const ALLOC_PTR_PTR: PTR_T = (MUTEX_PTR + LOCK_SIZE + PTR_ALIGN_MASK) & ~PTR_ALIGN_MASK; // after the mutex, align to X bytes
@@ -130,6 +132,7 @@ function searchFreeList(reqSize: SIZE_T): PTR_T {
 }
 
 function heapAlloc(reqSize: SIZE_T): PTR_T {
+  myAssert(hmInitialized);
   myAssert(reqSize > 0);
   myAssert(reqSize <= MAX_ALLOC_SIZE);
   let dataPtr: PTR_T = NULL_PTR;
@@ -155,6 +158,7 @@ function heapAlloc(reqSize: SIZE_T): PTR_T {
 }
 
 function heapFree(ptr: PTR_T): void {
+  myAssert(hmInitialized);
   myAssert(ptr >= START_ALLOC_PTR);
   lock(MUTEX_PTR);
   const blockPtr = ptr - HEADER_SIZE;
@@ -170,6 +174,7 @@ function initSharedHeap(): void {
   // logi(START_ALLOC_PTR);
   store<PTR_T>(ALLOC_PTR_PTR, START_ALLOC_PTR);
   store<PTR_T>(FREE_PTR_PTR, NULL_PTR);
+  hmInitialized = true;
 }
 
 export { initSharedHeap, heapAlloc, heapFree };

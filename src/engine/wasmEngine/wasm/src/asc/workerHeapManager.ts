@@ -14,6 +14,7 @@ const WORKER_HEAP_BASE: PTR_T = workersHeapPtr + workerIdx * workerHeapSize;
 const WORKER_HEAP_LIMIT: PTR_T = WORKER_HEAP_BASE + workerHeapSize;
 
 let freeBlockPtr: PTR_T;
+let whmInitialized = false;
 
 // @ts-ignore: decorator
 @unmanaged class Block {
@@ -113,6 +114,7 @@ function removeOrReplaceFromFreeList(nodePtr: PTR_T, newNodePtr: PTR_T = NULL_PT
 }
 
 function alloc(reqSize: SIZE_T): PTR_T {
+  myAssert(whmInitialized);
   // print();
   // logi(reqSize);
   myAssert(reqSize > 0);
@@ -161,6 +163,7 @@ function alloc(reqSize: SIZE_T): PTR_T {
 }
 
 function free(ptr: PTR_T): void {
+  myAssert(whmInitialized);
   myAssert(ptr != NULL_PTR);
   if (ptr >= WORKER_HEAP_LIMIT) {
     return heapFree(ptr);
@@ -278,6 +281,8 @@ function initMemManager(): void {
   header.next = header.prev = headerPtr;
 
   freeBlockPtr = headerPtr;
+
+  whmInitialized = true;
 }
 
 // function print(): void {
