@@ -18,7 +18,6 @@ class BitImageRGBA extends BitImage {
   get Buf32() {
     return this.buf32;
   }
-
 }
 
 export { BitImageRGBA, BPP_RGBA };

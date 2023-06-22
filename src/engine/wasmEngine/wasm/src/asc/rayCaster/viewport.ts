@@ -41,6 +41,6 @@ function getViewportHeightOffset(): SIZE_T {
   return offsetof<Viewport>("height");
 }
 
-export { Viewport, newViewport, 
+export { Viewport, newViewport,
   getViewportStartXOffset, getViewportStartYOffset, 
-  getViewportWidthOffset, getViewportHeightOffset};
+  getViewportWidthOffset, getViewportHeightOffset };

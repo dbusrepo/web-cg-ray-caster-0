@@ -5,6 +5,12 @@ abstract class BitImage {
 
   // constructor() {}
 
+  init(width: number, height: number, buf8: Uint8Array) {
+    this.Width = width;
+    this.Height = height;
+    this.Buf8 = buf8;
+  }
+
   get Width() {
     return this.width;
   }

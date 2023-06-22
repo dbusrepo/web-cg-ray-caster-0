@@ -1,6 +1,7 @@
 import { MemRegionsEnum, WasmMemRegionsData } from './wasmMemUtils';
 
 type WasmViews = {
+  view: DataView;
   memUI8: Uint8Array;
   memUIC8: Uint8ClampedArray;
   memUI16: Uint16Array;
@@ -30,20 +31,22 @@ function buildWasmMemViews(
   memOffsets: WasmMemRegionsData,
   memSizes: WasmMemRegionsData,
 ): WasmViews {
-  const startSize = memSizes[MemRegionsEnum.START_MEM];
-  const startOffset = memOffsets[MemRegionsEnum.START_MEM];
-  const wasmTotalStartSize = startOffset + startSize;
-  const memUI8 = new Uint8Array(wasmMem.buffer, 0, wasmTotalStartSize);
-  const memUIC8 = new Uint8ClampedArray(wasmMem.buffer, 0, wasmTotalStartSize);
-  const memUI16 = new Uint16Array(wasmMem.buffer, 0, wasmTotalStartSize / Uint16Array.BYTES_PER_ELEMENT);
-  const memUI32 = new Uint32Array(wasmMem.buffer, 0, wasmTotalStartSize / Uint32Array.BYTES_PER_ELEMENT);
-  const memI8 = new Int8Array(wasmMem.buffer, 0, wasmTotalStartSize);
-  const memI16 = new Int16Array(wasmMem.buffer, 0, wasmTotalStartSize / Int16Array.BYTES_PER_ELEMENT);
-  const memI32 = new Int32Array(wasmMem.buffer, 0, wasmTotalStartSize / Int32Array.BYTES_PER_ELEMENT);
-  const memF32 = new Float32Array(wasmMem.buffer, 0, wasmTotalStartSize / Float32Array.BYTES_PER_ELEMENT);
-  const memF64 = new Float64Array(wasmMem.buffer, 0, wasmTotalStartSize / Float64Array.BYTES_PER_ELEMENT);
-  const memBUI64 = new BigUint64Array(wasmMem.buffer, 0, wasmTotalStartSize / BigUint64Array.BYTES_PER_ELEMENT);
-  const memBI64 = new BigInt64Array(wasmMem.buffer, 0, wasmTotalStartSize / BigInt64Array.BYTES_PER_ELEMENT);
+  // const startSize = memSizes[MemRegionsEnum.START_MEM];
+  // const startOffset = memOffsets[MemRegionsEnum.START_MEM];
+  // const wasmTotalStartSize = startOffset + startSize;
+
+  const view = new DataView(wasmMem.buffer);
+  const memUI8 = new Uint8Array(wasmMem.buffer);
+  const memUIC8 = new Uint8ClampedArray(wasmMem.buffer);
+  const memUI16 = new Uint16Array(wasmMem.buffer);
+  const memUI32 = new Uint32Array(wasmMem.buffer);
+  const memI8 = new Int8Array(wasmMem.buffer);
+  const memI16 = new Int16Array(wasmMem.buffer);
+  const memI32 = new Int32Array(wasmMem.buffer);
+  const memF32 = new Float32Array(wasmMem.buffer);
+  const memF64 = new Float64Array(wasmMem.buffer);
+  const memBUI64 = new BigUint64Array(wasmMem.buffer);
+  const memBI64 = new BigInt64Array(wasmMem.buffer);
 
   const rgbaSurface0 = new Uint8ClampedArray(
     wasmMem.buffer,
@@ -112,6 +115,7 @@ function buildWasmMemViews(
   );
 
   const memViews: WasmViews = {
+      view,
       memUI8,
       memUIC8,
       memUI16,

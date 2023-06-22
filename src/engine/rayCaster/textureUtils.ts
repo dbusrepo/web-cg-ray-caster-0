@@ -1,21 +1,21 @@
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
-import { WasmViews} from '../wasmEngine/wasmViews';
+import { gWasmRun } from '../wasmEngine/wasmRun';
 import { images } from '../../../assets/build/images';
 
-// TODO: rename
-const loadTexture = (wasmViews: WasmViews, imageName: string): BitImageRGBA => {
+const loadTexture = (image: string): BitImageRGBA => {
   const imagesList = Object.values(images);
 
-  const imageIdx = imagesList.findIndex((value) => value === imageName);
+  const imageIdx = imagesList.findIndex((value) => value === image);
 
   if (imageIdx === -1) {
-    throw new Error(`image ${imageName} not found`)
+    throw new Error(`image ${image} not found`)
   }
 
   // get view on images index in wasm mem
-  const { imagesIndex, imagesPixels } = wasmViews;
+  const { imagesIndex, imagesPixels } = gWasmRun.WasmViews;
 
-  const numImages = imagesList.length;
+  const { length: numImages } = imagesList;
+
   // get images index regions offsets: address, widths, heights
   const address_index = 0;
   const width_index = address_index + numImages;
@@ -25,14 +25,15 @@ const loadTexture = (wasmViews: WasmViews, imageName: string): BitImageRGBA => {
   const imageWidth = imagesIndex[width_index + imageIdx];
   const imageHeight = imagesIndex[height_index + imageIdx];
 
-  const bitImage = new BitImageRGBA();
-  bitImage.Width = imageWidth;
-  bitImage.Height = imageHeight;
-  bitImage.Buf8 = new Uint8Array(imagesPixels.buffer, // wasm memory buffer
+
+  const imageBuf8 = new Uint8Array(imagesPixels.buffer,
                                  imagesPixels.byteOffset + imageAddress, 
                                  imageWidth * imageHeight * BPP_RGBA);
 
+  const bitImage = new BitImageRGBA();
+  bitImage.init(imageWidth, imageHeight, imageBuf8);
+
   return bitImage;
-} 
+};
 
 export { loadTexture };

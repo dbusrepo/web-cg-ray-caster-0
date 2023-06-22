@@ -2,7 +2,7 @@ import assert from 'assert';
 import type { WasmViews } from './wasmViews';
 import { buildWasmMemViews } from './wasmViews';
 import type { WasmRunParams } from './wasmRun';
-import { WasmRun } from './wasmRun';
+import { WasmRun, gWasmRun } from './wasmRun';
 
 const enum AuxWasmWorkerCommandEnum {
   INIT = 'aux_wasm_worker_init',

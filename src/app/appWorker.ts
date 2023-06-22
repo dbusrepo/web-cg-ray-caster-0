@@ -144,7 +144,7 @@ class AppWorker {
         // TODO: see multiplier in update_period def
         // update state with UPDATE_PERIOD_MS
         // updateState(STEP, t / MULTIPLIER);
-        // this.rayCaster.update(AppWorker.UPDATE_PERIOD_MS / 2); // TODO:
+        this.rayCaster.update(AppWorker.UPDATE_PERIOD_MS / 2); // TODO:
         updTimeAcc -= AppWorker.UPDATE_PERIOD_MS;
         updateCnt++;
       }
@@ -211,11 +211,11 @@ class AppWorker {
   }
 
   public onKeyDown(inputEvent: InputEvent) {
-    // this.rayCaster.onKeyDown(inputEvent);
+    this.rayCaster.onKeyDown(inputEvent);
   }
 
   public onKeyUp(inputEvent: InputEvent) {
-    // this.rayCaster.onKeyUp(inputEvent);
+    this.rayCaster.onKeyUp(inputEvent);
   }
 }
 

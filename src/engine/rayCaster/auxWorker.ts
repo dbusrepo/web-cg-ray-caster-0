@@ -38,11 +38,11 @@ class AuxWorker {
     const { syncArray, workerIndex } = this.params;
     console.log(`Aux worker ${workerIndex} running`);
 
-    const viewport = getWasmViewport(this.wasmRun.WasmModules, this.wasmRun.WasmMem.buffer);
-    // this.viewport.startX = 12;
-    // this.viewport.startY = 11;
-    console.log('worker viewport.startX', viewport.startX);
-    console.log('worker viewport.startY', viewport.startY);
+    const viewport = getWasmViewport();
+    // viewport.StartX = 12;
+    // viewport.StartY = 11;
+    console.log('worker viewport.startX', viewport.StartX);
+    console.log('worker viewport.startY', viewport.StartY);
 
     try {
       while (true) {

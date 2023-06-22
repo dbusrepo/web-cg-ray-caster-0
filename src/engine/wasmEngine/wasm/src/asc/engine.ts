@@ -54,8 +54,6 @@ import { Viewport, newViewport,
 
 // import { test } from './test/test';
 
-
-
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
@@ -71,13 +69,10 @@ let viewport = changetype<Viewport>(NULL_PTR);
 //   return alignof<T>();
 // }
 
-function init(): void {
+function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
-    initSharedHeap();
-
     // viewport = heapAlloc(getTypeSize<Viewport>());
     viewport = newViewport();
-
     // initRayCaster();
 
     // logi(align<u64>());
@@ -90,10 +85,19 @@ function init(): void {
     viewport = changetype<Viewport>(viewportPtr);
   }
 
+  images = initImages();
+}
+
+function init(): void {
+  if (workerIdx == MAIN_THREAD_IDX) {
+    initSharedHeap();
+  }
+
   // logi(workerIdx as i32);
 
   initMemManager();
-  images = initImages();
+
+  initData();
 
   // logi(memory.size());
 

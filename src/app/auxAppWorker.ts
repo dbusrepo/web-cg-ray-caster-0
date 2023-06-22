@@ -2,7 +2,7 @@ import assert from 'assert';
 import type { WasmViews } from '../engine/wasmEngine/wasmViews';
 import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
 import type { WasmRunParams } from '../engine/wasmEngine/wasmRun';
-import { WasmRun } from '../engine/wasmEngine/wasmRun';
+import { WasmRun, gWasmRun } from '../engine/wasmEngine/wasmRun';
 import { getWasmViewport } from '../engine/rayCaster/viewport';
 
 const enum AuxAppWorkerCommandEnum {
@@ -36,13 +36,7 @@ class AuxAppWorker {
 
   async run() {
     const { syncArray, workerIndex } = this.params;
-    console.log(`Worker ${workerIndex} running`);
-
-    const viewport = getWasmViewport(this.wasmRun.WasmModules, this.wasmRun.WasmMem.buffer);
-    // this.viewport.startX = 12;
-    // this.viewport.startY = 11;
-    console.log('worker viewport.startX', viewport.startX);
-    console.log('worker viewport.startY', viewport.startY);
+    console.log(`Aux app worker ${workerIndex} running`);
 
     try {
       while (true) {
@@ -64,7 +58,7 @@ const commands = {
   [AuxAppWorkerCommandEnum.INIT]: async (params: AuxAppWorkerParams) => {
     auxAppWorker = new AuxAppWorker();
     await auxAppWorker.init(params);
-    postMessage({ status: `aux app worker ${params.workerIndex} init completed` });
+    postMessage({ status: `Aux app worker ${params.workerIndex} init completed` });
   },
   [AuxAppWorkerCommandEnum.RUN]: async () => {
     await auxAppWorker.run();
