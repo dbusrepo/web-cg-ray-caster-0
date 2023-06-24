@@ -42,7 +42,6 @@
     "@babel/preset-env": "^7.22.5",
     "@babel/preset-react": "^7.22.5",
     "@babel/register": "^7.22.5",
-    "@swc/cli": "^0.1.62",
     "@tweakpane/core": "^1.1.8",
     "@types/assert": "^1.5.6",
     "@types/jquery": "^3.5.16",
