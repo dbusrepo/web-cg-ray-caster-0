@@ -18,6 +18,9 @@ import { loadTexture } from './textureUtils'; // TODO: rename
 import type { Viewport } from './viewport';
 import { getWasmViewport } from './viewport';
 
+import type { Player } from './player';
+import { getWasmPlayer } from './player';
+
 type RayCasterParams = {
   engineCanvas: OffscreenCanvas;
 };
@@ -39,7 +42,7 @@ class RayCaster {
   private assetManager: AssetManager;
   private inputManager: InputManager;
 
-  private auxAppWorkers: AuxWorkerDesc[];
+  private auxWorkers: AuxWorkerDesc[];
   private syncArray: Int32Array;
   private sleepArray: Int32Array;
 
@@ -56,14 +59,17 @@ class RayCaster {
 
   private textures: BitImageRGBA[];
 
-  private pX: number;
-  private pY: number;
-  private dirX: number;
-  private dirY: number;
-  private planeX: number;
-  private planeY: number;
-  private pitch: number;
-  private posZ: number;
+  private player: Player;
+
+  // private pX: number;
+  // private pY: number;
+  // private dirX: number;
+  // private dirY: number;
+  // private planeX: number;
+  // private planeY: number;
+  // private pitch: number;
+  // private posZ: number;
+
   private wallHeight: number;
   private zBuffer: Float32Array;
   private frameBuffer: FrameBuffer;
@@ -84,15 +90,32 @@ class RayCaster {
     this.viewport.StartY = VIEWPORT_BORDER;
     this.viewport.Width = this.params.engineCanvas.width - VIEWPORT_BORDER * 2;
     this.viewport.Height = this.params.engineCanvas.height - VIEWPORT_BORDER * 2;
-    console.log('this.viewport.startX', this.viewport.StartX);
-    console.log('this.viewport.startY', this.viewport.StartY);
-    console.log('this.viewport.Width', this.viewport.Width);
-    console.log('this.viewport.Height', this.viewport.Height);
+    // console.log('this.viewport.startX', this.viewport.StartX);
+    // console.log('this.viewport.startY', this.viewport.StartY);
+    // console.log('this.viewport.Width', this.viewport.Width);
+    // console.log('this.viewport.Height', this.viewport.Height);
 
     this.borderColor = 0xff444444, // TODO:
 
+    this.player = getWasmPlayer();
+    this.player.PosX = 1.0;
+    this.player.PosY = 1.5;
+    this.player.DirX = 1;
+    this.player.DirY = 0;
+    this.player.PlaneX = 0;
+    this.player.PlaneY = 0.66;
+    // this.pX = 1.0;
+    // this.pY = 1.5;
+    // this.dirX = 1;
+    // this.dirY = 0;
+    // this.planeX = 0;
+    // this.planeY = 0.66;
+    // this.pitch = 0; // TODO: rename this plz
+    // this.posZ = 0.0;
+
+
     // TODO: init workers after wasm engine is ready, use assert
-    await this.runAuxAppWorkers();
+    await this.runAuxWorkers();
 
     // const VIEWPORT_BORDER = 0;
     // this.viewport = {
@@ -106,14 +129,6 @@ class RayCaster {
     // // ray caster init stuff
     this.initMap();
     this.initTextures();
-    this.pX = 1.0;
-    this.pY = 1.5;
-    this.dirX = 1;
-    this.dirY = 0;
-    this.planeX = 0;
-    this.planeY = 0.66;
-    this.pitch = 0; // TODO: rename this plz
-    this.posZ = 0.0;
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height;
@@ -185,23 +200,23 @@ class RayCaster {
     this.wasmModules = this.wasmEngine.WasmRun.WasmModules;
   }
 
-  private async runAuxAppWorkers() {
+  private async runAuxWorkers() {
     const numWorkers = mainConfig.numAuxAppWorkers;
-    console.log(`num aux app workers: ${numWorkers}`);
+    console.log(`num aux workers: ${numWorkers}`);
     const numTotalWorkers = numWorkers + 1;
     this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
     Atomics.store(this.sleepArray, 0, 0); // main worker idx 0
-    this.auxAppWorkers = [];
+    this.auxWorkers = [];
     if (numWorkers) {
       this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
       Atomics.store(this.syncArray, 0, 0);
-      await this.initAuxAppWorkers(numWorkers);
-      for (let i = 0; i < this.auxAppWorkers.length; ++i) {
-        const { index: workerIdx } = this.auxAppWorkers[i];
+      await this.initAuxWorkers(numWorkers);
+      for (let i = 0; i < this.auxWorkers.length; ++i) {
+        const { index: workerIdx } = this.auxWorkers[i];
         Atomics.store(this.sleepArray, workerIdx, 0);
         Atomics.store(this.syncArray, workerIdx, 0);
       }
-      this.auxAppWorkers.forEach(({ worker }) => {
+      this.auxWorkers.forEach(({ worker }) => {
         worker.postMessage({
           command: AuxWorkerCommandEnum.RUN,
         });
@@ -209,17 +224,17 @@ class RayCaster {
     }
   }
 
-  private async initAuxAppWorkers(numAuxAppWorkers: number) {
-    assert(numAuxAppWorkers > 0);
+  private async initAuxWorkers(numAuxWorkers: number) {
+    assert(numAuxWorkers > 0);
     const initStart = Date.now();
     try {
       let nextWorkerIdx = 1; // start from 1, 0 is for the main worker
       const genWorkerIdx = () => {
         return nextWorkerIdx++;
       };
-      let remWorkers = numAuxAppWorkers;
+      let remWorkers = numAuxWorkers;
       await new Promise<void>((resolve, reject) => {
-        for (let i = 0; i < numAuxAppWorkers; ++i) {
+        for (let i = 0; i < numAuxWorkers; ++i) {
           const workerIndex = genWorkerIdx();
           const engineWorker = {
             index: workerIndex,
@@ -232,16 +247,17 @@ class RayCaster {
               },
             )
           };
-          this.auxAppWorkers.push(engineWorker);
+          this.auxWorkers.push(engineWorker);
           const workerParams: AuxWorkerParams = {
             workerIndex,
-            numWorkers: numAuxAppWorkers,
+            numWorkers: numAuxWorkers,
             syncArray: this.syncArray,
             sleepArray: this.sleepArray,
             wasmRunParams: {
               ...this.wasmEngine.WasmRunParams,
               workerIdx: workerIndex,
               viewportPtr: this.viewport.Ptr,
+              playerPtr: this.player.Ptr,
             },
           };
           engineWorker.worker.postMessage({
@@ -274,16 +290,16 @@ Date.now() - initStart
   }
 
   private syncWorkers() {
-    for (let i = 0; i < this.auxAppWorkers.length; ++i) {
-      const { index: workerIdx } = this.auxAppWorkers[i];
+    for (let i = 0; i < this.auxWorkers.length; ++i) {
+      const { index: workerIdx } = this.auxWorkers[i];
       Atomics.store(this.syncArray, workerIdx, 1);
       Atomics.notify(this.syncArray, workerIdx);
     }
   }
 
   private waitWorkers() {
-    for (let i = 0; i < this.auxAppWorkers.length; ++i) {
-      const { index: workerIdx } = this.auxAppWorkers[i];
+    for (let i = 0; i < this.auxWorkers.length; ++i) {
+      const { index: workerIdx } = this.auxWorkers[i];
       Atomics.wait(this.syncArray, workerIdx, 1);
     }
   }
@@ -374,7 +390,9 @@ Date.now() - initStart
     this.renderBackground();
 
     const { StartX: startX, StartY: startY, Width: width, Height: height } = this.viewport;
-    const { map, pX, pY, dirX, dirY, planeX, planeY } = this;
+    const { PosX: pX, PosY: pY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
+
+    const { map } = this;
 
     // TODO:
     // const mid = (startY + height / 2) | 0;
@@ -527,7 +545,7 @@ Date.now() - initStart
   }
 
   public update(time: number) {
-    const inputKeys = this.wasmEngine.WasmViews.inputKeys;
+    const { inputKeys } = this.wasmEngine.WasmViews;
     const moveSpeed = time * 0.005;
 
     if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
@@ -545,17 +563,19 @@ Date.now() - initStart
   }
 
   private rotate(moveSpeed: number) {
-    const oldDirX = this.dirX;
-    this.dirX = this.dirX * Math.cos(moveSpeed) - this.dirY * Math.sin(moveSpeed);
-    this.dirY = oldDirX * Math.sin(moveSpeed) + this.dirY * Math.cos(moveSpeed);
-    const oldPlaneX = this.planeX;
-    this.planeX = this.planeX * Math.cos(moveSpeed) - this.planeY * Math.sin(moveSpeed);
-    this.planeY = oldPlaneX * Math.sin(moveSpeed) + this.planeY * Math.cos(moveSpeed);
+    const { player } = this;
+    const oldDirX = player.DirX;
+    player.DirX = player.DirX * Math.cos(moveSpeed) - player.DirY * Math.sin(moveSpeed);
+    player.DirY = oldDirX * Math.sin(moveSpeed) + player.DirY * Math.cos(moveSpeed);
+    const oldPlaneX = player.PlaneX;
+    player.PlaneX = player.PlaneX * Math.cos(moveSpeed) - player.PlaneY * Math.sin(moveSpeed);
+    player.PlaneY = oldPlaneX * Math.sin(moveSpeed) + player.PlaneY * Math.cos(moveSpeed);
   }
 
   private moveForward(moveSpeed: number, dir: number) {
-    this.pX += dir * this.dirX * moveSpeed;
-    this.pY += dir * this.dirY * moveSpeed;
+    const { player } = this;
+    player.PosX += dir * player.DirX * moveSpeed;
+    player.PosY += dir * player.DirY * moveSpeed;
   }
 
   public onKeyDown(inputEvent: InputEvent) {

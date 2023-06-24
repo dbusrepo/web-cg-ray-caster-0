@@ -47,3 +47,4 @@ export declare const FONT_Y_SIZE: usize;
 export declare const FONT_SPACING: usize;
 
 export declare const viewportPtr: usize;
+export declare const playerPtr: usize;

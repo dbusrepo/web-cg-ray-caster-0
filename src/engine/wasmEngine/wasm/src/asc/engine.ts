@@ -25,6 +25,7 @@ import {
   inputKeysPtr,
   hrTimerPtr,
   viewportPtr,
+  playerPtr,
 } from './importVars';
 import { BitImage } from './bitImage';
 import { initImages } from './initImages';
@@ -37,6 +38,12 @@ import { Viewport, newViewport,
   getViewportStartXOffset, getViewportStartYOffset, 
   getViewportWidthOffset, getViewportHeightOffset,
 } from './rayCaster/viewport';
+import { Player, newPlayer,
+  getPlayerPosXOffset, getPlayerPosYOffset,
+  getPlayerDirXOffset, getPlayerDirYOffset,
+  getPlayerPlaneXOffset, getPlayerPlaneYOffset,
+  getPlayerPitchOffset, getPlayerPosZOffset,
+} from './rayCaster/player';
 // import { initRayCaster } from './rayCaster/init';
 
 // import { MYIMG, IMG1 } from './gen_importImages';
@@ -63,6 +70,7 @@ const MAIN_THREAD_IDX = mainWorkerIdx;
 let images = changetype<SArray<BitImage>>(NULL_PTR);
 
 let viewport = changetype<Viewport>(NULL_PTR);
+let player = changetype<Player>(NULL_PTR);
 
 // @ts-ignore: decorator
 // @inline function align<T>(): SIZE_T {
@@ -73,6 +81,7 @@ function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     // viewport = heapAlloc(getTypeSize<Viewport>());
     viewport = newViewport();
+    player = newPlayer();
     // initRayCaster();
 
     // logi(align<u64>());
@@ -83,6 +92,7 @@ function initData(): void {
     // store<u64>(hrTimerPtr, t1 - t0);
   } else {
     viewport = changetype<Viewport>(viewportPtr);
+    player = changetype<Player>(playerPtr);
   }
 
   images = initImages();
@@ -110,14 +120,12 @@ function init(): void {
   // test();
 }
 
-function getViewPort(): PTR_T {
-  // logi(changetype<PTR_T>(viewport));
-  // logi(offsetof<Viewport>("startX"));
-  // logi(offsetof<Viewport>("startY"));
-  // logi(getTypeSize<Viewport>());
-  // logi(alignof<Viewport>());
-  // logi(sizeof<usize>());
+function getViewPortPtr(): PTR_T {
   return changetype<PTR_T>(viewport);
+}
+
+function getPlayerPtr(): PTR_T {
+  return changetype<PTR_T>(player);
 }
 
 function allocMap(width: usize, height: usize): PTR_T {
@@ -284,10 +292,19 @@ export {
   init,
   render,
   run,
-  allocMap,
-  getViewPort,
+  allocMap, // TODO:
+  getViewPortPtr,
   getViewportStartXOffset,
   getViewportStartYOffset,
   getViewportWidthOffset,
   getViewportHeightOffset,
+  getPlayerPtr,
+  getPlayerPosXOffset,
+  getPlayerPosYOffset,
+  getPlayerPosZOffset,
+  getPlayerDirXOffset,
+  getPlayerDirYOffset,
+  getPlayerPlaneXOffset,
+  getPlayerPlaneYOffset,
+  getPlayerPitchOffset,
 };

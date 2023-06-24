@@ -1,6 +1,5 @@
 import { myAssert } from '../myAssert';
 import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
-import { alloc, free } from '../workerHeapManager';
 import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
@@ -41,6 +40,11 @@ function getViewportHeightOffset(): SIZE_T {
   return offsetof<Viewport>("height");
 }
 
-export { Viewport, newViewport,
-  getViewportStartXOffset, getViewportStartYOffset, 
-  getViewportWidthOffset, getViewportHeightOffset };
+export { 
+  Viewport,
+  newViewport,
+  getViewportStartXOffset,
+  getViewportStartYOffset,
+  getViewportWidthOffset,
+  getViewportHeightOffset,
+};

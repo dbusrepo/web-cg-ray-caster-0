@@ -3,7 +3,10 @@ import type { WasmViews } from '../wasmEngine/wasmViews';
 import { buildWasmMemViews } from '../wasmEngine/wasmViews';
 import type { WasmRunParams } from '../wasmEngine/wasmRun';
 import { WasmRun } from '../wasmEngine/wasmRun';
+import type { Viewport } from './viewport';
 import { getWasmViewport } from '../rayCaster/viewport';
+import type { Player } from './player';
+import { getWasmPlayer } from './player';
 
 const enum AuxWorkerCommandEnum {
   INIT = 'aux_worker_init',
@@ -38,16 +41,20 @@ class AuxWorker {
     const { syncArray, workerIndex } = this.params;
     console.log(`Aux worker ${workerIndex} running`);
 
-    const viewport = getWasmViewport();
-    // viewport.StartX = 12;
-    // viewport.StartY = 11;
-    console.log('worker viewport.startX', viewport.StartX);
-    console.log('worker viewport.startY', viewport.StartY);
+    // const viewport = getWasmViewport();
+    // // viewport.StartX = 12;
+    // // viewport.StartY = 11;
+    // console.log('worker viewport.startX', viewport.StartX);
+    // console.log('worker viewport.startY', viewport.StartY);
+
+    const player = getWasmPlayer();
+    // console.log(player.PosX);
+    // console.log(player.PosY);
 
     try {
       while (true) {
         Atomics.wait(syncArray, workerIndex, 0);
-        // TODO:
+
         Atomics.store(syncArray, workerIndex, 0);
         Atomics.notify(syncArray, workerIndex);
       }

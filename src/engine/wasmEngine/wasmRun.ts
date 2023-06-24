@@ -25,9 +25,11 @@ type WasmRunParams = {
   surface0sizes: [number, number];
   surface1sizes: [number, number];
   viewportPtr: number;
+  playerPtr: number;
 };
 
 let gWasmRun: WasmRun;
+let gWasmView: DataView;
 
 class WasmRun {
   protected params: WasmRunParams;
@@ -39,6 +41,7 @@ class WasmRun {
     this.wasmViews = wasmViews;
     await this.loadWasmModules();
     gWasmRun = this;
+    gWasmView = this.wasmViews.view;
   }
 
   private buildWasmImports(): WasmImports {
@@ -54,6 +57,7 @@ class WasmRun {
       numImages,
       workerIdx,
       viewportPtr,
+      playerPtr,
     } = this.params;
 
     const logf = (f: number) => console.log(`[wasm] Worker [${workerIdx}]: ${f}`);
@@ -100,14 +104,15 @@ class WasmRun {
         inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
         hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
 
-        viewportPtr,
-
         FONT_X_SIZE,
         FONT_Y_SIZE,
         FONT_SPACING,
 
         logi,
         logf,
+
+        viewportPtr,
+        playerPtr,
     };
 
     return wasmImports;
@@ -132,4 +137,4 @@ class WasmRun {
 }
 
 export type { WasmRunParams };
-export { WasmRun, gWasmRun };
+export { WasmRun, gWasmRun, gWasmView };
