@@ -4,7 +4,7 @@ import { buildWasmMemViews } from '../wasmEngine/wasmViews';
 import type { WasmRunParams } from '../wasmEngine/wasmRun';
 import { WasmRun } from '../wasmEngine/wasmRun';
 import type { Viewport } from './viewport';
-import { getWasmViewport } from '../rayCaster/viewport';
+import { getWasmViewport } from '../raycaster/viewport';
 import type { Player } from './player';
 import { getWasmPlayer } from './player';
 

@@ -24,8 +24,7 @@ type WasmRunParams = {
   numImages: number;
   surface0sizes: [number, number];
   surface1sizes: [number, number];
-  viewportPtr: number;
-  playerPtr: number;
+  rayCasterPtr: number;
 };
 
 let gWasmRun: WasmRun;
@@ -56,8 +55,7 @@ class WasmRun {
       numWorkers,
       numImages,
       workerIdx,
-      viewportPtr,
-      playerPtr,
+      rayCasterPtr,
     } = this.params;
 
     const logf = (f: number) => console.log(`[wasm] Worker [${workerIdx}]: ${f}`);
@@ -111,8 +109,7 @@ class WasmRun {
         logi,
         logf,
 
-        viewportPtr,
-        playerPtr,
+        rayCasterPtr,
     };
 
     return wasmImports;

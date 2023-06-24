@@ -55,8 +55,7 @@ type WasmImports = {
   logi: (v: number) => void;
   logf: (v: number) => void;
 
-  viewportPtr: number;
-  playerPtr: number;
+  rayCasterPtr: number;
 };
 
 type WasmModules = {

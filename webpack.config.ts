@@ -55,9 +55,9 @@ const config: webpack.Configuration = {
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
+    // filename: 'bundle.js',
     clean: true,
-    // filename: (pathData) => `${pathData.chunk!.name}.${process.env.npm_package_version}.js`,
+    filename: (pathData) => `${pathData.chunk!.name}.${process.env.npm_package_version}.js`,
   },
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.

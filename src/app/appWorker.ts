@@ -10,7 +10,7 @@ import { StatsNameEnum } from '../ui/stats/stats';
 import type { InputEvent } from './events';
 import { AppCommandEnum } from '../app/appTypes';
 import * as utils from '../engine/utils';
-import { RayCaster, RayCasterParams } from '../engine/rayCaster/rayCaster';
+import { RayCaster, RayCasterParams } from '../engine/raycaster/raycaster';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;

@@ -6,14 +6,16 @@ import { AuxWorkerCommandEnum, AuxWorkerDesc } from './auxWorker';
 import { AssetManager } from '../assets/assetManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
+import { randColor, makeColor, sleep } from '../utils';
 
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import type { WasmViews } from '../wasmEngine/wasmViews';
 import type { WasmModules } from '../wasmEngine/wasmLoader';
+import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 import { images } from '../../../assets/build/images';
-import { loadTexture } from './textureUtils'; // TODO: rename
+import { loadImage } from './imageUtils'; // TODO: rename
 
 import type { Viewport } from './viewport';
 import { getWasmViewport } from './viewport';
@@ -23,12 +25,6 @@ import { getWasmPlayer } from './player';
 
 type RayCasterParams = {
   engineCanvas: OffscreenCanvas;
-};
-
-type FrameBuffer = {
-  buf8: Uint8ClampedArray;
-  buf32: Uint32Array;
-  pitch: number;
 };
 
 type Map = {
@@ -54,25 +50,20 @@ class RayCaster {
   private wasmMem: WebAssembly.Memory;
   private wasmModules: WasmModules;
 
-  private viewport: Viewport;
-  private borderColor: number;
-
   private textures: BitImageRGBA[];
 
-  private player: Player;
+  private wasmRayCasterPtr: number;
 
-  // private pX: number;
-  // private pY: number;
-  // private dirX: number;
-  // private dirY: number;
-  // private planeX: number;
-  // private planeY: number;
-  // private pitch: number;
-  // private posZ: number;
+  private player: Player;
+  private viewport: Viewport;
+
+  private borderColorOffset: number;
+
+  private frameBuf32: Uint32Array;
+  private frameStride: number;
 
   private wallHeight: number;
   private zBuffer: Float32Array;
-  private frameBuffer: FrameBuffer;
   private backgroundColor: number;
   private map: Map;
 
@@ -83,19 +74,20 @@ class RayCaster {
     await this.initAssetManager();
     await this.initWasmEngine();
 
-    // TODO: test this here
+    this.initTextures();
+
+    this.wasmRayCasterPtr = this.wasmModules.engine.getRayCasterPtr();
+
     this.viewport = getWasmViewport();
-    const VIEWPORT_BORDER = 0;
+    const VIEWPORT_BORDER = 10;
     this.viewport.StartX = VIEWPORT_BORDER;
     this.viewport.StartY = VIEWPORT_BORDER;
     this.viewport.Width = this.params.engineCanvas.width - VIEWPORT_BORDER * 2;
     this.viewport.Height = this.params.engineCanvas.height - VIEWPORT_BORDER * 2;
-    // console.log('this.viewport.startX', this.viewport.StartX);
-    // console.log('this.viewport.startY', this.viewport.StartY);
-    // console.log('this.viewport.Width', this.viewport.Width);
-    // console.log('this.viewport.Height', this.viewport.Height);
 
-    this.borderColor = 0xff444444, // TODO:
+    this.borderColorOffset = this.wasmModules.engine.getRayCasterBorderColorOffset(this.wasmRayCasterPtr);
+
+    this.BorderColor = makeColor(0xffff00ff);
 
     this.player = getWasmPlayer();
     this.player.PosX = 1.0;
@@ -104,18 +96,16 @@ class RayCaster {
     this.player.DirY = 0;
     this.player.PlaneX = 0;
     this.player.PlaneY = 0.66;
-    // this.pX = 1.0;
-    // this.pY = 1.5;
-    // this.dirX = 1;
-    // this.dirY = 0;
-    // this.planeX = 0;
-    // this.planeY = 0.66;
-    // this.pitch = 0; // TODO: rename this plz
-    // this.posZ = 0.0;
-
+    this.player.Pitch = 0;
+    this.player.PosZ = 0.0;
 
     // TODO: init workers after wasm engine is ready, use assert
     await this.runAuxWorkers();
+
+    const frameBuf8 = this.wasmViews.rgbaSurface0;
+    this.frameBuf32 = new Uint32Array(frameBuf8.buffer,
+      0, frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT);
+    this.frameStride = this.imageData.width;
 
     // const VIEWPORT_BORDER = 0;
     // this.viewport = {
@@ -128,23 +118,25 @@ class RayCaster {
 
     // // ray caster init stuff
     this.initMap();
-    this.initTextures();
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height;
     this.zBuffer = new Float32Array(this.viewport.Width);
-    const frameBuf = this.wasmViews.rgbaSurface0;
-    this.frameBuffer = {
-      buf8: frameBuf,
-      buf32: new Uint32Array(
-        frameBuf.buffer,
-        0,
-        frameBuf.byteLength / Uint32Array.BYTES_PER_ELEMENT),
-      pitch: this.params.engineCanvas.width,
-    };
+    // const frameBuf = this.wasmViews.rgbaSurface0;
+    // this.frameBuffer = {
+    //   buf8: frameBuf,
+    //   buf32: new Uint32Array(
+    //     frameBuf.buffer,
+    //     0,
+    //     frameBuf.byteLength / Uint32Array.BYTES_PER_ELEMENT),
+    //   pitch: this.params.engineCanvas.width,
+    // };
+
     this.renderBorders();
-    this.backgroundColor = 0xff000000; // TODO:
+
+    this.backgroundColor = makeColor(0x000000ff);
     // this.renderBackground();
+
     // this.rotate(Math.PI / 4);
     // this.castScene(); // TODO:
   }
@@ -160,7 +152,7 @@ class RayCaster {
     const ctx = <OffscreenCanvasRenderingContext2D>(
       canvas.getContext('2d', {
         alpha: false,
-        desynchronized: true,
+        desynchronized: true, // TODO:
       })
     );
     ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
@@ -256,8 +248,7 @@ class RayCaster {
             wasmRunParams: {
               ...this.wasmEngine.WasmRunParams,
               workerIdx: workerIndex,
-              viewportPtr: this.viewport.Ptr,
-              playerPtr: this.player.Ptr,
+              rayCasterPtr: this.wasmRayCasterPtr,
             },
           };
           engineWorker.worker.postMessage({
@@ -306,9 +297,9 @@ Date.now() - initStart
 
   private initTextures() {
     this.textures = [];
-    this.textures[0] = loadTexture(images.GREYSTONE);
-    this.textures[1] = loadTexture(images.BLUESTONE);
-    this.textures[2] = loadTexture(images.REDBRICK);
+    this.textures[0] = loadImage(images.GREYSTONE);
+    this.textures[1] = loadImage(images.BLUESTONE);
+    this.textures[2] = loadImage(images.REDBRICK);
   }
 
   private initMap() {
@@ -364,23 +355,26 @@ Date.now() - initStart
   }
 
   private renderBorders() {
-    const { buf32, pitch } = this.frameBuffer;
+    const { frameStride: stride, frameBuf32 } = this;
     const { StartX, StartY, Width, Height } = this.viewport;
-    const upperLimit = StartY * pitch;
-    const lowerLimit = (StartY + Height) * pitch;
-    buf32.fill(this.borderColor, 0, upperLimit);
-    buf32.fill(this.borderColor, lowerLimit, buf32.length);
-    for (let i = StartY, offset = StartY * pitch; i < StartY + Height; i++, offset += pitch) {
-      buf32.fill(this.borderColor, offset, offset + StartX);
-      buf32.fill(this.borderColor, offset + StartX + Width, offset + pitch);
-    }
- }
+    const upperLimit = StartY * stride;
+    const lowerLimit = (StartY + Height) * stride;
 
+    frameBuf32.fill(this.BorderColor, 0, upperLimit);
+    frameBuf32.fill(this.BorderColor, lowerLimit, frameBuf32.length);
+
+    for (let i = StartY, offset = StartY * stride; i < StartY + Height; i++, offset += stride) {
+      frameBuf32.fill(this.BorderColor, offset, offset + StartX);
+      frameBuf32.fill(this.BorderColor, offset + StartX + Width, offset + stride);
+    }
+  }
+
+  // TODO:
   private renderBackground() {
-    const { buf32, pitch } = this.frameBuffer;
+    const { frameStride: stride, frameBuf32 } = this;
     const { StartX, StartY, Width, Height } = this.viewport;
-    for (let i = StartY, offset = StartY * pitch; i < StartY + Height; i++, offset += pitch) {
-      buf32.fill(this.backgroundColor, offset + StartX, offset + StartX + Width);
+    for (let i = StartY, offset = StartY * stride; i < StartY + Height; i++, offset += stride) {
+      frameBuf32.fill(this.backgroundColor, offset + StartX, offset + StartX + Width);
     }
   }
 
@@ -388,6 +382,8 @@ Date.now() - initStart
     // this.engine.WasmModules.engine.render();
 
     this.renderBackground();
+
+    const { frameStride: stride, frameBuf32 } = this;
 
     const { StartX: startX, StartY: startY, Width: width, Height: height } = this.viewport;
     const { PosX: pX, PosY: pY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
@@ -409,8 +405,7 @@ Date.now() - initStart
     // => x = width - 1, 2 * (width - 1) / (width - 1) - 1 = 1, x = 0, 2 * 0 / (width - 1) - 1 = -1
     // console.log(cameraX);
 
-    const frameBufPitch = this.frameBuffer.pitch;
-    const scrStartPtr = startY * frameBufPitch + startX;
+    const scrStartPtr = startY * stride + startX;
 
     for (let x = 0; x < width; x++) {
       // const cameraX = 2 * x / width - 1;
@@ -523,14 +518,14 @@ Date.now() - initStart
       let texPos = (wallTop - midY + wallSliceHeight / 2) * step;
 
       const colPtr = scrStartPtr + x;
-      let scrPtr = colPtr + wallTop * frameBufPitch; 
+      let scrPtr = colPtr + wallTop * stride; 
 
       for (let y = wallTop; y < wallBottom; y++) {
         const texY = texPos | 0;
         texPos += step;
         const color = texture.Buf32[texY * texWidth + texX];
-        this.frameBuffer.buf32[scrPtr] = color;
-        scrPtr += frameBufPitch;
+        frameBuf32[scrPtr] = color;
+        scrPtr += stride;
       }
 
       // // solid color
@@ -585,6 +580,18 @@ Date.now() - initStart
   public onKeyUp(inputEvent: InputEvent) {
     this.inputManager.onKeyUp(inputEvent.code);
   }
+
+  // public onMouseMove(inputEvent: InputEvent) {
+  // }
+
+  get BorderColor(): number {
+    return this.wasmViews.view.getUint32(this.borderColorOffset, true);
+  }
+
+  set BorderColor(value: number) {
+    this.wasmViews.view.setUint32(this.borderColorOffset, value, true);
+  }
+
 }
 
 export { RayCaster, RayCasterParams };

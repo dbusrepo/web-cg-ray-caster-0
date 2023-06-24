@@ -22,11 +22,22 @@ function range(workerIdx: number, numWorkers: number, numTasks: number): Range {
   return [start, end];
 }
 
+function makeColorRGB(r: number, g: number, b: number): number {
+  return (0xff << 24) | (b << 16) | (g << 8) | r; // ABGR
+}
+
+function makeColor(color: number): number { // RGBA -> ABGR
+  const r = (color >> 24) & 0xff;
+  const g = (color >> 16) & 0xff;
+  const b = (color >> 8) & 0xff;
+  return makeColorRGB(r, g, b);
+}
+
 function randColor(): number {
   const r = (Math.random() * 255) | 0;
   const g = (Math.random() * 255) | 0;
   const b = (Math.random() * 255) | 0;
-  const color = (0xff << 24) | (b << 16) | (g << 8) | r; // abgr
+  const color = makeColorRGB(r, g, b);
   return color;
 }
 
@@ -52,5 +63,7 @@ export {
   range,
   Range,
   randColor,
+  makeColor,
+  makeColorRGB,
   sleep,
 };

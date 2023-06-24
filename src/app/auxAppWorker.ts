@@ -3,7 +3,7 @@ import type { WasmViews } from '../engine/wasmEngine/wasmViews';
 import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
 import type { WasmRunParams } from '../engine/wasmEngine/wasmRun';
 import { WasmRun, gWasmRun } from '../engine/wasmEngine/wasmRun';
-import { getWasmViewport } from '../engine/rayCaster/viewport';
+import { getWasmViewport } from '../engine/raycaster/viewport';
 
 const enum AuxAppWorkerCommandEnum {
   INIT = 'aux_app_worker_init',

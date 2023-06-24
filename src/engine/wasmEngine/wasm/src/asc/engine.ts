@@ -24,8 +24,7 @@ import {
   sleepArrayPtr,
   inputKeysPtr,
   hrTimerPtr,
-  viewportPtr,
-  playerPtr,
+  rayCasterPtr,
 } from './importVars';
 import { BitImage } from './bitImage';
 import { initImages } from './initImages';
@@ -37,14 +36,19 @@ import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
 import { Viewport, newViewport,
   getViewportStartXOffset, getViewportStartYOffset, 
   getViewportWidthOffset, getViewportHeightOffset,
-} from './rayCaster/viewport';
+} from './raycaster/viewport';
 import { Player, newPlayer,
   getPlayerPosXOffset, getPlayerPosYOffset,
   getPlayerDirXOffset, getPlayerDirYOffset,
   getPlayerPlaneXOffset, getPlayerPlaneYOffset,
   getPlayerPitchOffset, getPlayerPosZOffset,
-} from './rayCaster/player';
-// import { initRayCaster } from './rayCaster/init';
+} from './raycaster/player';
+import { RayCaster, newRayCaster,
+  getRayCasterBorderColorOffset,
+} from './raycaster/raycaster';
+
+// TODO:
+// import { initRayCaster } from './raycaster/raycaster';
 
 // import { MYIMG, IMG1 } from './gen_importImages';
 // import * as strings from './gen_importStrings';
@@ -69,8 +73,7 @@ const MAIN_THREAD_IDX = mainWorkerIdx;
 // images view array
 let images = changetype<SArray<BitImage>>(NULL_PTR);
 
-let viewport = changetype<Viewport>(NULL_PTR);
-let player = changetype<Player>(NULL_PTR);
+let rayCaster = changetype<RayCaster>(NULL_PTR);
 
 // @ts-ignore: decorator
 // @inline function align<T>(): SIZE_T {
@@ -80,9 +83,11 @@ let player = changetype<Player>(NULL_PTR);
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     // viewport = heapAlloc(getTypeSize<Viewport>());
-    viewport = newViewport();
-    player = newPlayer();
-    // initRayCaster();
+    rayCaster = newRayCaster();
+    const viewport = newViewport();
+    const player = newPlayer();
+    rayCaster.Viewport = viewport;
+    rayCaster.Player = player;
 
     // logi(align<u64>());
     // logi(hrTimerPtr);
@@ -91,8 +96,7 @@ function initData(): void {
     // const t1 = <u64>process.hrtime();
     // store<u64>(hrTimerPtr, t1 - t0);
   } else {
-    viewport = changetype<Viewport>(viewportPtr);
-    player = changetype<Player>(playerPtr);
+    rayCaster = changetype<RayCaster>(rayCasterPtr);
   }
 
   images = initImages();
@@ -120,12 +124,16 @@ function init(): void {
   // test();
 }
 
+function getRayCasterPtr(): PTR_T {
+  return changetype<PTR_T>(rayCaster);
+}
+
 function getViewPortPtr(): PTR_T {
-  return changetype<PTR_T>(viewport);
+  return rayCaster.ViewportPtr;
 }
 
 function getPlayerPtr(): PTR_T {
-  return changetype<PTR_T>(player);
+  return rayCaster.PlayerPtr;
 }
 
 function allocMap(width: usize, height: usize): PTR_T {
@@ -293,11 +301,16 @@ export {
   render,
   run,
   allocMap, // TODO:
+
+  getRayCasterPtr,
+  getRayCasterBorderColorOffset,
+
   getViewPortPtr,
   getViewportStartXOffset,
   getViewportStartYOffset,
   getViewportWidthOffset,
   getViewportHeightOffset,
+
   getPlayerPtr,
   getPlayerPosXOffset,
   getPlayerPosYOffset,

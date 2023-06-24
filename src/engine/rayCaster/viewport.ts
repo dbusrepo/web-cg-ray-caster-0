@@ -3,61 +3,56 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 class Viewport {
   constructor(
     private viewportPtr: number,
-    private startXoffset: number, 
-    private startYoffset: number,
-    private widthOffset: number,
-    private heightOffset: number) {
-    this.startXoffset = viewportPtr + startXoffset;
-    this.startYoffset = viewportPtr + startYoffset;
-    this.widthOffset = viewportPtr + widthOffset;
-    this.heightOffset = viewportPtr + heightOffset;
-  }
+    private startXPtr: number, 
+    private startYPtr: number,
+    private widthPtr: number,
+    private heightPtr: number) {}
 
-  get Ptr(): number {
+  get WasmPtr(): number {
     return this.viewportPtr;
   }
 
   get StartX(): number {
-    return gWasmView.getUint16(this.startXoffset, true);
+    return gWasmView.getUint16(this.startXPtr, true);
   }
 
   set StartX(value: number) {
-    gWasmView.setUint16(this.startXoffset, value, true);
+    gWasmView.setUint16(this.startXPtr, value, true);
   }
 
   get StartY(): number {
-    return gWasmView.getUint16(this.startYoffset, true);
+    return gWasmView.getUint16(this.startYPtr, true);
   }
 
   set StartY(value: number) {
-    gWasmView.setUint16(this.startYoffset, value, true);
+    gWasmView.setUint16(this.startYPtr, value, true);
   }
 
   get Width(): number {
-    return gWasmView.getUint16(this.widthOffset, true);
+    return gWasmView.getUint16(this.widthPtr, true);
   }
 
   set Width(value: number) {
-    gWasmView.setUint16(this.widthOffset, value, true);
+    gWasmView.setUint16(this.widthPtr, value, true);
   }
 
   get Height(): number {
-    return gWasmView.getUint16(this.heightOffset, true);
+    return gWasmView.getUint16(this.heightPtr, true);
   }
 
   set Height(value: number) {
-    gWasmView.setUint16(this.heightOffset, value, true);
+    gWasmView.setUint16(this.heightPtr, value, true);
   }
 }
 
 function getWasmViewport(): Viewport {
   const wasmEngine = gWasmRun.WasmModules.engine;
   const viewportPtr = wasmEngine.getViewPortPtr();
-  const startXoffset = wasmEngine.getViewportStartXOffset();
-  const startYoffset = wasmEngine.getViewportStartYOffset();
-  const widthOffset = wasmEngine.getViewportWidthOffset();
-  const heightOffset = wasmEngine.getViewportHeightOffset();
-  const viewport = new Viewport(viewportPtr, startXoffset, startYoffset, widthOffset, heightOffset);
+  const startXPtr = wasmEngine.getViewportStartXOffset(viewportPtr);
+  const startYPtr = wasmEngine.getViewportStartYOffset(viewportPtr);
+  const widthPtr = wasmEngine.getViewportWidthOffset(viewportPtr);
+  const heightPtr = wasmEngine.getViewportHeightOffset(viewportPtr);
+  const viewport = new Viewport(viewportPtr, startXPtr, startYPtr, widthPtr, heightPtr);
   return viewport;
 }
 
