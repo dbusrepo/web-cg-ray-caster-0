@@ -6,17 +6,14 @@ import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
 import { SArray, newSArray } from '../sarray';
 
-@final @unmanaged class RayCaster {
+@final @unmanaged class Raycaster {
   public borderColor: u32;
   public viewport: Viewport;
   public player: Player;
   public zBuffer: SArray<f32>;
 
-  init(viewport: Viewport, player: Player): void {
-    this.viewport = viewport;
-    this.player = player;
-    this.zBuffer = newSArray<f32>(viewport.Width);
-    this.borderColor = 0x000000;
+  postInit(): void {
+    this.zBuffer = newSArray<f32>(this.Viewport.Width);
   }
 
   // constructor() {
@@ -47,34 +44,38 @@ import { SArray, newSArray } from '../sarray';
   get PlayerPtr(): PTR_T {
     return changetype<PTR_T>(this.player);
   }
-}
 
-let rayCasterAlloc = changetype<ObjectAllocator<RayCaster>>(NULL_PTR);
-
-function initRayCasterAllocator(): void {
-  rayCasterAlloc = newObjectAllocator<RayCaster>(1);
-}
-
-function newRayCaster(): RayCaster {
-  if (changetype<PTR_T>(rayCasterAlloc) === NULL_PTR) {
-    initRayCasterAllocator();
+  get ZBufferPtr(): SArray<f32> {
+    return this.zBuffer;
   }
-  const rayCaster = rayCasterAlloc.new();
-  return rayCaster;
 }
 
-function getRayCasterBorderColorOffset(basePtr: PTR_T): SIZE_T {
-  return basePtr + offsetof<RayCaster>("borderColor");
+let raycasterAlloc = changetype<ObjectAllocator<Raycaster>>(NULL_PTR);
+
+function initRaycasterAllocator(): void {
+  raycasterAlloc = newObjectAllocator<Raycaster>(1);
 }
 
-function getRayCasterZBufferPtr(basePtr: PTR_T): SIZE_T {
-  const rayCaster = changetype<RayCaster>(basePtr);
-  return rayCaster.zBuffer.DataPtr;
+function newRaycaster(): Raycaster {
+  if (changetype<PTR_T>(raycasterAlloc) === NULL_PTR) {
+    initRaycasterAllocator();
+  }
+  const raycaster = raycasterAlloc.new();
+  return raycaster;
+}
+
+function getRaycasterBorderColorOffset(basePtr: PTR_T): SIZE_T {
+  return basePtr + offsetof<Raycaster>("borderColor");
+}
+
+function getRaycasterZBufferPtr(basePtr: PTR_T): SIZE_T {
+  const raycaster = changetype<Raycaster>(basePtr);
+  return raycaster.zBuffer.DataPtr;
 }
 
 export {
-  RayCaster,
-  newRayCaster,
-  getRayCasterBorderColorOffset,
-  getRayCasterZBufferPtr,
+  Raycaster,
+  newRaycaster,
+  getRaycasterBorderColorOffset,
+  getRaycasterZBufferPtr,
 };

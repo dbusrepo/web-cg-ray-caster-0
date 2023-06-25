@@ -47,7 +47,7 @@ class Viewport {
 
 function getWasmViewport(): Viewport {
   const wasmEngine = gWasmRun.WasmModules.engine;
-  const viewportPtr = wasmEngine.getViewPortPtr();
+  const viewportPtr = wasmEngine.getViewportPtr();
   const startXPtr = wasmEngine.getViewportStartXOffset(viewportPtr);
   const startYPtr = wasmEngine.getViewportStartYOffset(viewportPtr);
   const widthPtr = wasmEngine.getViewportWidthOffset(viewportPtr);

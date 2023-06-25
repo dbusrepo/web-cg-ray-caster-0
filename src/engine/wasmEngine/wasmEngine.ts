@@ -190,7 +190,7 @@ class WasmEngine {
       numImages: this.params.assetManager.Images.length,
       surface0sizes: [imageWidth, imageHeight],
       surface1sizes: [0, 0], // not used
-      rayCasterPtr: 0, // main thread init this in wasm engine
+      raycasterPtr: 0, // main thread init this in wasm engine
     };
 
     await this.wasmRun.init(this.wasmRunParams, this.wasmViews);

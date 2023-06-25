@@ -25,31 +25,53 @@ class AuxWorker {
   private params: AuxWorkerParams;
   private wasmRun: WasmRun;
 
+  private wasmRaycasterPtr: number;
+  private player: Player;
+  private viewport: Viewport;
+
+  private zBuffer: Float32Array;
+
   async init(params: AuxWorkerParams): Promise<void> {
     const { workerIndex, wasmRunParams } = params;
     console.log(`Aux worker ${workerIndex} initializing...`);
     this.params = params;
+
     this.wasmRun = new WasmRun();
     const wasmViews = buildWasmMemViews(
       wasmRunParams.wasmMem,
       wasmRunParams.wasmMemRegionsOffsets,
       wasmRunParams.wasmMemRegionsSizes);
     await this.wasmRun.init(wasmRunParams, wasmViews);
+
+    // const { engine: wasmEngine } = this.wasmRun.WasmModules;
+    // this.wasmRaycasterPtr = wasmEngine.getRaycasterPtr();
+    //
+    // this.player = getWasmPlayer();
+    // this.viewport = getWasmViewport();
+    // this.initWasmZBufferView();
+
+    // console.log(this.zBuffer[27]);
+
+    // // viewport.StartX = 12;
+    // // viewport.StartY = 11;
+
+    // console.log('worker viewport.startX', this.viewport.StartX);
+    // console.log('worker viewport.startY', this.viewport.StartY);
+    // console.log('worker player.posX', this.player.PosX);
+    // console.log('worker player.posY', this.player.PosY);
+  }
+
+  private initWasmZBufferView() {
+    const { engine: wasmEngine } = this.wasmRun.WasmModules;
+    this.zBuffer = new Float32Array(
+      this.wasmRun.WasmMem.buffer,
+      wasmEngine.getRaycasterZBufferPtr(this.wasmRaycasterPtr),
+      this.viewport.Width);
   }
 
   async run() {
     const { syncArray, workerIndex } = this.params;
     console.log(`Aux worker ${workerIndex} running`);
-
-    // const viewport = getWasmViewport();
-    // // viewport.StartX = 12;
-    // // viewport.StartY = 11;
-    // console.log('worker viewport.startX', viewport.StartX);
-    // console.log('worker viewport.startY', viewport.StartY);
-
-    const player = getWasmPlayer();
-    // console.log(player.PosX);
-    // console.log(player.PosY);
 
     try {
       while (true) {

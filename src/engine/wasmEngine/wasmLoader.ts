@@ -55,7 +55,7 @@ type WasmImports = {
   logi: (v: number) => void;
   logf: (v: number) => void;
 
-  rayCasterPtr: number;
+  raycasterPtr: number;
 };
 
 type WasmModules = {

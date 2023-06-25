@@ -24,7 +24,7 @@ import {
   sleepArrayPtr,
   inputKeysPtr,
   hrTimerPtr,
-  rayCasterPtr,
+  raycasterPtr,
 } from './importVars';
 import { BitImage } from './bitImage';
 import { initImages } from './initImages';
@@ -43,9 +43,9 @@ import { Player, newPlayer,
   getPlayerPlaneXOffset, getPlayerPlaneYOffset,
   getPlayerPitchOffset, getPlayerPosZOffset,
 } from './raycaster/player';
-import { RayCaster, newRayCaster,
-  getRayCasterBorderColorOffset,
-  getRayCasterZBufferPtr,
+import { Raycaster, newRaycaster,
+  getRaycasterBorderColorOffset,
+  getRaycasterZBufferPtr,
 } from './raycaster/raycaster';
 
 
@@ -73,39 +73,38 @@ const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
 let images = changetype<SArray<BitImage>>(NULL_PTR);
-let rayCaster = changetype<RayCaster>(NULL_PTR);
+let raycaster = changetype<Raycaster>(NULL_PTR);
+// let viewport = changetype<Viewport>(NULL_PTR);
+// let player = changetype<Player>(NULL_PTR);
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
 
-    rayCaster = newRayCaster();
-    const viewport = newViewport();
-    const player = newPlayer();
-    rayCaster.init(viewport, player);
+    raycaster = newRaycaster();
 
-    // logi(align<u64>());
-    // logi(hrTimerPtr);
-    // const t0 = <u64>process.hrtime();
-    // draw.clearBg(0, frameHeight, 0xff_00_00_00);
-    // const t1 = <u64>process.hrtime();
-    // store<u64>(hrTimerPtr, t1 - t0);
+    const viewport = newViewport();
+    raycaster.Viewport = viewport;
+
+    const player = newPlayer();
+    raycaster.Player = player;
+
   } else {
-    rayCaster = changetype<RayCaster>(rayCasterPtr);
+    raycaster = changetype<Raycaster>(raycasterPtr);
   }
 
   images = initImages();
 }
 
 function init(): void {
+  logi(-1);
   if (workerIdx == MAIN_THREAD_IDX) {
     initSharedHeap();
+    initMemManager();
+    initData();
+  } else {
+    initMemManager();
+    initData();
   }
-
-  // logi(workerIdx as i32);
-
-  initMemManager();
-
-  initData();
 
   // logi(memory.size());
 
@@ -118,16 +117,20 @@ function init(): void {
   // test();
 }
 
-function getRayCasterPtr(): PTR_T {
-  return changetype<PTR_T>(rayCaster);
+function postInitRaycaster(): void {
+  raycaster.postInit();
 }
 
-function getViewPortPtr(): PTR_T {
-  return rayCaster.ViewportPtr;
+function getRaycasterPtr(): PTR_T {
+  return changetype<PTR_T>(raycaster);
+}
+
+function getViewportPtr(): PTR_T {
+  return raycaster.ViewportPtr;
 }
 
 function getPlayerPtr(): PTR_T {
-  return rayCaster.PlayerPtr;
+  return raycaster.PlayerPtr;
 }
 
 function allocMap(width: usize, height: usize): PTR_T {
@@ -178,6 +181,13 @@ function render(): void {
   // }
 
   // logi(load<u8>(inputKeysPtr));
+
+  // logi(align<u64>());
+  // logi(hrTimerPtr);
+  // const t0 = <u64>process.hrtime();
+  // draw.clearBg(0, frameHeight, 0xff_00_00_00);
+  // const t1 = <u64>process.hrtime();
+  // store<u64>(hrTimerPtr, t1 - t0);
 }
 
 function run(): void {
@@ -296,11 +306,12 @@ export {
   run,
   allocMap, // TODO:
 
-  getRayCasterPtr,
-  getRayCasterBorderColorOffset,
-  getRayCasterZBufferPtr,
+  getRaycasterPtr,
+  getRaycasterBorderColorOffset,
+  getRaycasterZBufferPtr,
+  postInitRaycaster,
 
-  getViewPortPtr,
+  getViewportPtr,
   getViewportStartXOffset,
   getViewportStartYOffset,
   getViewportWidthOffset,

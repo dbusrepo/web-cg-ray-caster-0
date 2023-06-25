@@ -10,7 +10,7 @@ import { StatsNameEnum } from '../ui/stats/stats';
 import type { InputEvent } from './events';
 import { AppCommandEnum } from '../app/appTypes';
 import * as utils from '../engine/utils';
-import { RayCaster, RayCasterParams } from '../engine/raycaster/raycaster';
+import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -30,19 +30,20 @@ class AppWorker {
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
 
   private params: AppWorkerParams;
-  private rayCaster: RayCaster;
+
+  private raycaster: Raycaster;
 
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
-    await this.initRayCaster();
+    await this.initRaycaster();
   }
   
-  private async initRayCaster() {
-    this.rayCaster = new RayCaster();
-    const rayCasterParams: RayCasterParams = {
+  private async initRaycaster() {
+    this.raycaster = new Raycaster();
+    const raycasterParams: RaycasterParams = {
       engineCanvas: this.params.engineCanvas,
     };
-    await this.rayCaster.init(rayCasterParams);
+    await this.raycaster.init(raycasterParams);
   }
 
   public run(): void {
@@ -144,7 +145,7 @@ class AppWorker {
         // TODO: see multiplier in update_period def
         // update state with UPDATE_PERIOD_MS
         // updateState(STEP, t / MULTIPLIER);
-        this.rayCaster.update(AppWorker.UPDATE_PERIOD_MS / 2); // TODO:
+        this.raycaster.update(AppWorker.UPDATE_PERIOD_MS / 2); // TODO:
         updTimeAcc -= AppWorker.UPDATE_PERIOD_MS;
         updateCnt++;
       }
@@ -159,7 +160,7 @@ class AppWorker {
       renderTimeAcc += avgTimeLastFrame;
       if (renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
-        this.rayCaster.render();
+        this.raycaster.render();
         saveFrameTime();
       }
     };
@@ -211,11 +212,11 @@ class AppWorker {
   }
 
   public onKeyDown(inputEvent: InputEvent) {
-    this.rayCaster.onKeyDown(inputEvent);
+    this.raycaster.onKeyDown(inputEvent);
   }
 
   public onKeyUp(inputEvent: InputEvent) {
-    this.rayCaster.onKeyUp(inputEvent);
+    this.raycaster.onKeyUp(inputEvent);
   }
 }
 
