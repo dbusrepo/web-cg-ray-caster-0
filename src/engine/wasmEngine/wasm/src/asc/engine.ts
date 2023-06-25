@@ -96,7 +96,6 @@ function initData(): void {
 }
 
 function init(): void {
-  logi(-1);
   if (workerIdx == MAIN_THREAD_IDX) {
     initSharedHeap();
     initMemManager();

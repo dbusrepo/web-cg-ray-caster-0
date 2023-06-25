@@ -43,22 +43,17 @@ class AuxWorker {
       wasmRunParams.wasmMemRegionsSizes);
     await this.wasmRun.init(wasmRunParams, wasmViews);
 
-    // const { engine: wasmEngine } = this.wasmRun.WasmModules;
-    // this.wasmRaycasterPtr = wasmEngine.getRaycasterPtr();
-    //
-    // this.player = getWasmPlayer();
-    // this.viewport = getWasmViewport();
-    // this.initWasmZBufferView();
-
-    // console.log(this.zBuffer[27]);
-
-    // // viewport.StartX = 12;
-    // // viewport.StartY = 11;
-
+    const { engine: wasmEngine } = this.wasmRun.WasmModules;
+    this.wasmRaycasterPtr = wasmEngine.getRaycasterPtr();
+    
+    this.player = getWasmPlayer();
+    this.viewport = getWasmViewport();
     // console.log('worker viewport.startX', this.viewport.StartX);
     // console.log('worker viewport.startY', this.viewport.StartY);
     // console.log('worker player.posX', this.player.PosX);
     // console.log('worker player.posY', this.player.PosY);
+
+    this.initWasmZBufferView();
   }
 
   private initWasmZBufferView() {

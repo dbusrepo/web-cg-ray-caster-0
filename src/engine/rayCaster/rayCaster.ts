@@ -100,6 +100,10 @@ class Raycaster {
     this.player.Pitch = 0;
     this.player.PosZ = 0.0;
 
+    // console.log('main worker viewport.startX', this.viewport.StartX);
+    // console.log('main worker viewport.startY', this.viewport.StartY);
+    // console.log('main worker player.posX', this.player.PosX);
+    // console.log('main worker player.posY', this.player.PosY);
 
     this.renderBorders();
 
@@ -108,23 +112,16 @@ class Raycaster {
 
     this.backgroundColor = makeColor(0x000000ff);
 
-    // this.postInitRaycaster(); // TODO:
-
-    // this.renderBackground();
-    // this.rotate(Math.PI / 4);
+    this.postInitRaycaster();
 
     this.initMap();
 
     await this.runAuxWorkers();
     // console.log('raycaster starting...');
 
-    // console.log('main worker viewport.startX', this.viewport.StartX);
-    // console.log('main worker viewport.startY', this.viewport.StartY);
-    // console.log('main worker player.posX', this.player.PosX);
-    // console.log('main worker player.posY', this.player.PosY);
-
-    // console.log(JSON.stringify(this.map.data));
-    this.castScene(); // TODO:
+    // this.renderBackground();
+    // this.rotate(Math.PI / 4);
+    // this.castScene(); // TODO:
   }
 
   private postInitRaycaster() {
@@ -342,15 +339,13 @@ Date.now() - initStart
     mapBuf[3] = 3;
     mapBuf[mapWidth*2 + 2] = 3;
     // console.log(JSON.stringify(mapBuf));
-    console.log('addr range map:');
-    console.log(mapPtr, mapPtr + mapWidth * mapHeight);
   }
 
   public render() {
     this.syncWorkers();
     try {
       // this.wasmEngine.render();
-      // this.castScene();
+      this.castScene();
     }
     catch (e) {
       console.error(e);
@@ -493,9 +488,6 @@ Date.now() - initStart
       }
 
       this.zBuffer[x] = perpWallDist;
-      if (x === 27) {
-        console.log(this.zBuffer[x]);
-      }
 
       const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
