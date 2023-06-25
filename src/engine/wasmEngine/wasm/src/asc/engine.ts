@@ -45,7 +45,9 @@ import { Player, newPlayer,
 } from './raycaster/player';
 import { RayCaster, newRayCaster,
   getRayCasterBorderColorOffset,
+  getRayCasterZBufferPtr,
 } from './raycaster/raycaster';
+
 
 // TODO:
 // import { initRayCaster } from './raycaster/raycaster';
@@ -65,29 +67,21 @@ import { RayCaster, newRayCaster,
 
 // import { test } from './test/test';
 
+const MAIN_THREAD_IDX = mainWorkerIdx;
+
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
-const MAIN_THREAD_IDX = mainWorkerIdx;
-
-// images view array
 let images = changetype<SArray<BitImage>>(NULL_PTR);
-
 let rayCaster = changetype<RayCaster>(NULL_PTR);
-
-// @ts-ignore: decorator
-// @inline function align<T>(): SIZE_T {
-//   return alignof<T>();
-// }
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
-    // viewport = heapAlloc(getTypeSize<Viewport>());
+
     rayCaster = newRayCaster();
     const viewport = newViewport();
     const player = newPlayer();
-    rayCaster.Viewport = viewport;
-    rayCaster.Player = player;
+    rayCaster.init(viewport, player);
 
     // logi(align<u64>());
     // logi(hrTimerPtr);
@@ -304,6 +298,7 @@ export {
 
   getRayCasterPtr,
   getRayCasterBorderColorOffset,
+  getRayCasterZBufferPtr,
 
   getViewPortPtr,
   getViewportStartXOffset,

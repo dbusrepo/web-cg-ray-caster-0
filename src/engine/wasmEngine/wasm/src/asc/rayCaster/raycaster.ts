@@ -4,11 +4,20 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
+import { SArray, newSArray } from '../sarray';
 
 @final @unmanaged class RayCaster {
   public borderColor: u32;
   public viewport: Viewport;
   public player: Player;
+  public zBuffer: SArray<f32>;
+
+  init(viewport: Viewport, player: Player): void {
+    this.viewport = viewport;
+    this.player = player;
+    this.zBuffer = newSArray<f32>(viewport.Width);
+    this.borderColor = 0x000000;
+  }
 
   // constructor() {
   //   this.viewport = newViewport();
@@ -58,8 +67,14 @@ function getRayCasterBorderColorOffset(basePtr: PTR_T): SIZE_T {
   return basePtr + offsetof<RayCaster>("borderColor");
 }
 
-export { 
+function getRayCasterZBufferPtr(basePtr: PTR_T): SIZE_T {
+  const rayCaster = changetype<RayCaster>(basePtr);
+  return rayCaster.zBuffer.DataPtr;
+}
+
+export {
   RayCaster,
   newRayCaster,
   getRayCasterBorderColorOffset,
+  getRayCasterZBufferPtr,
 };

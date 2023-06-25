@@ -4,10 +4,38 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
 @final @unmanaged class Viewport {
-  startX: u16;
-  startY: u16;
-  width: u16;
-  height: u16;
+  private startX: u16;
+  private startY: u16;
+  private width: u16;
+  private height: u16;
+
+  get StartX(): u16 {
+    return this.startX;
+  }
+  
+  set StartX(startX: u16) {
+    this.startX = startX;
+  }
+
+  get StartY(): u16 {
+    return this.startY;
+  }
+
+  set StartY(startY: u16) {
+    this.startY = startY;
+  }
+
+  get Width(): u16 {
+    return this.width;
+  }
+
+  set Width(width: u16) {
+    this.width = width;
+  }
+
+  get Height(): u16 {
+    return this.height;
+  }
 }
 
 let viewportAlloc = changetype<ObjectAllocator<Viewport>>(NULL_PTR);

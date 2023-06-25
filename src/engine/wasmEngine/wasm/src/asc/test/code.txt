@@ -50,6 +50,11 @@ if (workerIdx == 0) {
   store<u32>(imagesIndexOffset, 23);
 }
 
+// @ts-ignore: decorator
+// @inline function align<T>(): SIZE_T {
+//   return alignof<T>();
+// }
+
 logi(alignof<usize>());
 logi(sizeof<usize>());
 

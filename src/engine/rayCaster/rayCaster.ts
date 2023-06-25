@@ -74,6 +74,11 @@ class RayCaster {
     await this.initAssetManager();
     await this.initWasmEngine();
 
+    const frameBuf8 = this.wasmViews.rgbaSurface0;
+    this.frameBuf32 = new Uint32Array(frameBuf8.buffer,
+      0, frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT);
+    this.frameStride = this.imageData.width;
+
     this.initTextures();
 
     this.wasmRayCasterPtr = this.wasmModules.engine.getRayCasterPtr();
@@ -102,22 +107,10 @@ class RayCaster {
     // TODO: init workers after wasm engine is ready, use assert
     await this.runAuxWorkers();
 
-    const frameBuf8 = this.wasmViews.rgbaSurface0;
-    this.frameBuf32 = new Uint32Array(frameBuf8.buffer,
-      0, frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT);
-    this.frameStride = this.imageData.width;
-
-    // const VIEWPORT_BORDER = 0;
-    // this.viewport = {
-    //   startX: VIEWPORT_BORDER,
-    //   startY: VIEWPORT_BORDER,
-    //   width: this.params.engineCanvas.width - VIEWPORT_BORDER * 2,
-    //   height: this.params.engineCanvas.height - VIEWPORT_BORDER * 2,
-    //   borderColor: 0xff444444, // TODO:
-    // };
-
     // // ray caster init stuff
     this.initMap();
+
+    this.backgroundColor = makeColor(0x000000ff);
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height;
@@ -134,7 +127,6 @@ class RayCaster {
 
     this.renderBorders();
 
-    this.backgroundColor = makeColor(0x000000ff);
     // this.renderBackground();
 
     // this.rotate(Math.PI / 4);
