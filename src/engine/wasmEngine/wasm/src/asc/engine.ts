@@ -11,7 +11,7 @@ import * as utils from './utils';
 import * as draw from './draw';
 import {
   bgColor,
-  heapPtr,
+  sharedHeapPtr,
   numWorkers,
   mainWorkerIdx,
   workerIdx,
@@ -149,7 +149,7 @@ function render(): void {
 
   // const t0 = <u64>process.hrtime();
   // if (workerIdx == MAIN_THREAD_IDX) {
-    draw.clearBg(s, e, 0xff_00_00_00); // ABGR
+  draw.clearBg(s, e, 0xff_ff_00_00); // ABGR
   // }
 
   // const t1 = <u64>process.hrtime();

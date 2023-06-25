@@ -28,7 +28,7 @@ type WasmImports = {
   sleepArrayPtr: number;
   workersHeapPtr: number;
   workerHeapSize: number;
-  heapPtr: number;
+  sharedHeapPtr: number;
   workerIdx: number;
   mainWorkerIdx: number;
   numWorkers: number;

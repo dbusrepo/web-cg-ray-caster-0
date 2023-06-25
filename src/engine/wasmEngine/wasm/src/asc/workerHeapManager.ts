@@ -1,6 +1,6 @@
 import { myAssert } from './myAssert';
 import { heapAlloc, heapFree } from './heapAlloc';
-import { logi, workerIdx, workersHeapPtr, workerHeapSize } from './importVars';
+import { logi, workerIdx, workersHeapPtr, workerHeapSize, sharedHeapPtr } from './importVars';
 import { MEM_BLOCK_USAGE_BIT_MASK, SIZE_T, MAX_ALLOC_SIZE, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, } from './memUtils';
 // import { memCountersPtr } from './importVars';
 
@@ -12,6 +12,8 @@ import { MEM_BLOCK_USAGE_BIT_MASK, SIZE_T, MAX_ALLOC_SIZE, PTR_T, NULL_PTR, getT
 
 const WORKER_HEAP_BASE: PTR_T = workersHeapPtr + workerIdx * workerHeapSize;
 const WORKER_HEAP_LIMIT: PTR_T = WORKER_HEAP_BASE + workerHeapSize;
+
+myAssert(WORKER_HEAP_LIMIT <= sharedHeapPtr);
 
 let freeBlockPtr: PTR_T;
 let whmInitialized = false;

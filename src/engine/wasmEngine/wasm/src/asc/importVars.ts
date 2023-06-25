@@ -7,7 +7,7 @@ export declare const workerIdx: usize;
 export declare const workersHeapPtr: usize;
 export declare const workerHeapSize: usize;
 
-export declare const heapPtr: usize;
+export declare const sharedHeapPtr: usize;
 
 export declare const rgbaSurface0ptr: usize;
 export declare const rgbaSurface0width: u32;

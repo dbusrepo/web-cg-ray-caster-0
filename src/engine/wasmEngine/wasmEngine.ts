@@ -17,7 +17,7 @@ import type { WasmViews } from './wasmViews';
 import { buildWasmMemViews } from './wasmViews';
 import { FONT_Y_SIZE, fontChars } from '../../../assets/fonts/font';
 import { stringsArrayData } from '../../../assets/build/strings';
-import { AuxWasmWorkerDesc, AuxWasmWorkerCommandEnum } from './auxWasmWorker';
+import { AuxAppWorkerDesc } from '../../app/auxAppWorker';
 import { mainConfig } from '../../config/mainConfig';
 import {
   // BPP_PAL,
@@ -31,7 +31,7 @@ type WasmEngineParams = {
   imageHeight: number;
   assetManager: AssetManager;
   inputManager: InputManager;
-  numAuxWasmWorkers: number;
+  numWorkers: number;
 };
 
 class WasmEngine {
@@ -44,7 +44,6 @@ class WasmEngine {
   private wasmRunParams: WasmRunParams;
   private wasmRun: WasmRun;
   private wasmModules: WasmModules;
-  private auxWasmWorkers: AuxWasmWorkerDesc[];
 
   public async init(params: WasmEngineParams) {
     this.params = params;
@@ -72,7 +71,6 @@ class WasmEngine {
     this.initMemViews();
     this.initWasmAssets();
     await this.initWasmRun();
-    await this.runAuxWasmWorkers();
   }
 
   private allocWasmMem(): void {
@@ -98,7 +96,7 @@ class WasmEngine {
   private initWasmMemParams(): void {
 
     const { imageWidth, imageHeight } = this.params;
-    const numTotalWorkers = 1 + this.params.numAuxWasmWorkers;
+    const numTotalWorkers = 1 + this.params.numWorkers;
 
     // set wasm mem regions sizes
     this.wasmMemParams = {
@@ -200,102 +198,30 @@ class WasmEngine {
     Atomics.store(this.wasmViews.syncArr, 0, 0);
   }
 
-  private async runAuxWasmWorkers() {
-    console.log(`num aux wasm workers: ${this.params.numAuxWasmWorkers}`);
-    this.auxWasmWorkers = [];
-    if (this.params.numAuxWasmWorkers > 0) {
-      await this.initAuxWasmWorkers();
-      for (let i = 0; i < this.auxWasmWorkers.length; ++i) {
-        const { index: workerIdx } = this.auxWasmWorkers[i];
-        Atomics.store(this.wasmViews.sleepArr, workerIdx, 0);
-        Atomics.store(this.wasmViews.syncArr, workerIdx, 0);
-      }
-      this.auxWasmWorkers.forEach(({ worker }) => {
-        worker.postMessage({
-          command: AuxWasmWorkerCommandEnum.RUN,
-        });
-      });
-    }
-  }
+  // public render() {
+  //   this.syncWorkers();
+  //   try {
+  //     this.wasmModules.engine.render();
+  //   } catch (ex) {
+  //     console.error(ex);
+  //     throw ex;
+  //   }
+  //   this.waitWorkers();
+  //   // const views = this.wasmRun.WasmViews;
+  //   // console.log(views.hrTimer[0]);
+  // }
 
-  private async initAuxWasmWorkers() {
-    assert(this.params.numAuxWasmWorkers > 0);
-    const initStart = Date.now();
-    try {
-      let nextWorkerIdx = 1; // start from 1, main worker idx is 0
-      const genWorkerIdx = () => {
-        return nextWorkerIdx++;
-      };
-      let remWorkers = this.params.numAuxWasmWorkers;
-      await new Promise<void>((resolve, reject) => {
-        for (let i = 0; i < this.params.numAuxWasmWorkers; ++i) {
-          const workerIndex = genWorkerIdx();
-          const wasmWorker: AuxWasmWorkerDesc = {
-            index: workerIndex,
-            worker: new Worker(
-              new URL('./auxWasmWorker.ts', import.meta.url),
-              {
-                name: `aux-wasm-worker-${workerIndex}`,
-                type: 'module',
-              },
-            )
-          };
-          this.auxWasmWorkers.push(wasmWorker);
-          const workerParams: WasmRunParams = {
-            ...this.wasmRunParams,
-            workerIdx: workerIndex,
-          };
-          wasmWorker.worker.postMessage({
-            command: AuxWasmWorkerCommandEnum.INIT,
-            params: workerParams,
-          });
-          wasmWorker.worker.onmessage = ({ data }) => {
-            --remWorkers;
-            console.log(
-              `Aux wasm worker id=${workerIndex} init, left count=${remWorkers}, time=${
-Date.now() - initStart
-}ms with data = ${JSON.stringify(data)}`,
-            );
-            if (remWorkers === 0) {
-              console.log(`Aux wasm workers init done. After ${Date.now() - initStart}ms`);
-              resolve();
-            }
-          };
-          wasmWorker.worker.onerror = (error) => {
-            console.log(`Aux wasm worker id=${workerIndex} error: ${error.message}\n`);
-            reject(error);
-          };
-        }
-      });
-    } catch (error) {
-      console.error(`Error during aux wasm workers init: ${JSON.stringify(error)}`);
-    }
-  }
-
-  public render() {
-    this.syncWorkers();
-    try {
-      this.wasmModules.engine.render();
-    } catch (ex) {
-      console.error(ex);
-      throw ex;
-    }
-    this.waitWorkers();
-    // const views = this.wasmRun.WasmViews;
-    // console.log(views.hrTimer[0]);
-  }
-
-  private syncWorkers() {
-    for (let i = 0; i < this.auxWasmWorkers.length; ++i) {
-      const { index: workerIdx } = this.auxWasmWorkers[i];
+  public syncWorkers(auxWorkers: AuxAppWorkerDesc[]) {
+    for (let i = 0; i < auxWorkers.length; ++i) {
+      const { index: workerIdx } = auxWorkers[i];
       Atomics.store(this.wasmViews.syncArr, workerIdx, 1);
       Atomics.notify(this.wasmViews.syncArr, workerIdx);
     }
   }
 
-  private waitWorkers() {
-    for (let i = 0; i < this.auxWasmWorkers.length; ++i) {
-      const { index: workerIdx } = this.auxWasmWorkers[i];
+  public waitWorkers(auxWorkers: AuxAppWorkerDesc[]) {
+    for (let i = 0; i < auxWorkers.length; ++i) {
+      const { index: workerIdx } = auxWorkers[i];
       Atomics.wait(this.wasmViews.syncArr, workerIdx, 1);
     }
   }

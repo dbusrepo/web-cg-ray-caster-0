@@ -191,14 +191,14 @@ class Raycaster {
       imageHeight: this.imageData.height,
       assetManager: this.assetManager,
       inputManager: this.inputManager,
-      numAuxWasmWorkers: mainConfig.numAuxWasmWorkers,
+      numWorkers: mainConfig.numAuxWorkers,
     };
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmRun = this.wasmEngine.WasmRun;
   }
 
   private async runAuxWorkers() {
-    const numWorkers = mainConfig.numAuxAppWorkers;
+    const numWorkers = mainConfig.numAuxWorkers;
     console.log(`num aux workers: ${numWorkers}`);
     const numTotalWorkers = numWorkers + 1;
     this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
