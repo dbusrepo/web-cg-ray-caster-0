@@ -64,7 +64,7 @@
     "react/destructuring-assignment": "off",
     "react/sort-comp": "off",
     "semi": [2, "always"],
-    "max-len": ["warn", { "code": 80 }],
+    "max-len": ["warn", { "code": 80, "ignoreComments": true }],
     "no-console": "off",
     "no-return-assign": "off",
     "no-unused-expressions": "off",

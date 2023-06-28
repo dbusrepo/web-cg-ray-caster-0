@@ -3,13 +3,16 @@
 // https://survivejs.com/webpack/building/source-maps/
 // const HtmlWebpackPlugin = require('html-webpack-plugin');
 // const path = require('path');
+import * as os from 'os'
 import path from 'path';
 import * as webpack from 'webpack'; // TODO
 import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import { ProvidePlugin } from 'webpack';
-// const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+import Dotenv from 'dotenv-webpack';
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const CircularDependencyPlugin = require('circular-dependency-plugin')
+const ESLintPlugin = require('eslint-webpack-plugin')
 // import MiniCssExtractPlugin from "mini-css-extract-plugin";
 // import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 // import TerserPlugin from "terser-webpack-plugin";
@@ -29,11 +32,14 @@ let numCyclesDetected = 0;
 const config: webpack.Configuration = {
   entry: './src/main.ts',
   mode: 'development',
+  target: 'web',
+
   // devtool: 'eval',
   // devtool: 'source-map',
   // devtool: 'inline-source-map',
-  devtool: 'eval-source-map',
   // devtool: 'hidden-source-map',
+  devtool: 'eval-source-map',
+
   devServer: {
     static: {
       directory: path.join(__dirname, 'dist'),
@@ -52,17 +58,27 @@ const config: webpack.Configuration = {
     compress: true,
     port: 9091,
     hot: true,
+    watchFiles: ['src/**/*', 'dist/**/*'],
   },
   // cache: false,
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
+    filename: '[name].[contenthash].js',
+    // filename: 'bundle.js',
     clean: true,
     // filename: (pathData) => `${pathData.chunk!.name}.${process.env.npm_package_version}.js`,
   },
   resolve: {
     // Add `.ts` and `.tsx` as a resolvable extension.
-    extensions: ['.ts', '.tsx', '.js'],
+    extensions: [
+        '.js',
+        '.jsx',
+        '.ts',
+        '.tsx',
+        '.css',
+        '.json',
+        // '.mjs',
+    ],
     alias: {
       images: path.resolve(__dirname, 'src/asset/images/'),
       react: 'preact/compat',
@@ -84,7 +100,15 @@ const config: webpack.Configuration = {
       {
         test: /\.tsx?$/,
         exclude: /node_modules/,
-        loader: 'ts-loader',
+        use: [
+          {
+            loader: "ts-loader",
+            // https://stackoverflow.com/questions/73499449/webpack-dev-server-not-reloading
+            options: {
+              transpileOnly: true,
+            },
+          },
+        ],
       },
       {
         test: /\.?js$/,
@@ -143,7 +167,7 @@ const config: webpack.Configuration = {
     ],
   },
   plugins: [
-    // new ForkTsCheckerWebpackPlugin(),
+    new Dotenv(),
     new HtmlWebpackPlugin({
       template: './src/index.html',
     }),
@@ -158,6 +182,22 @@ const config: webpack.Configuration = {
     new webpack.NormalModuleReplacementPlugin(/node:/, (resource) => {
       resource.request = resource.request.replace(/^node:/, "");
     }),
+    // https://github.com/TypeStrong/ts-loader#transpileonly
+    new ForkTsCheckerWebpackPlugin({
+      async: false,
+      typescript: {
+        diagnosticOptions: {
+          semantic: true,
+          syntactic: true,
+        },
+        build: true,
+        mode: 'write-references',
+      },
+    }),
+    // https://stackoverflow.com/questions/64461635/adding-eslint-webpack-plugin-into-project-to-provide-typescript-linting
+    // new ESLintPlugin({
+    //   extensions: ['ts']
+    // }),
     // new CircularDependencyPlugin({
     //   failOnError: false,
     //   allowAsyncCycles: false,
@@ -188,17 +228,24 @@ const config: webpack.Configuration = {
     // })
   ],
   optimization: {
+      moduleIds: 'deterministic',
+      runtimeChunk: 'single',
       minimize: isProduction ? true : false,
       // minimizer: [
       //     new TerserPlugin({ test: /\.js(\?.*)?$/i }),
       //     new CssMinimizerPlugin({})
       // ]
+      splitChunks: {
+        // include all types of chunks
+        chunks: 'all',
+      },
   },
   watchOptions: {
     // for some systems, watching many files can result in a lot of CPU or memory usage
     // https://webpack.js.org/configuration/watch/#watchoptionsignored
     // don't use this pattern, if you have a monorepo with linked packages
-    ignored: /node_modules/,
+    // https://github.com/TypeStrong/ts-loader#usage-with-webpack-watch
+    ignored: ['**/node_modules', '**/*.js', '**/*.d.ts'],
   },
 };
 

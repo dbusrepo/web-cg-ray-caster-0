@@ -327,3 +327,5 @@ node ./genDepList.mjs $< > $@
 
 circular dependency webpack:
 https://stackoverflow.com/questions/73157442/webpack-warning-using-webworker-circular-dependency-between-chunks-with-runtime
+
+https://stackoverflow.com/questions/73499449/webpack-dev-server-not-reloading

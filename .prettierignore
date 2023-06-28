@@ -1,4 +1,4 @@
 node_modules
 dist
-src/engine/wasmEngine/wasm
+wasm
 misc
