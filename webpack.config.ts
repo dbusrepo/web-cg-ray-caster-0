@@ -164,6 +164,10 @@ const config: webpack.Configuration = {
       //   exclude: /node_modules/,
       //   loader: 'file-loader',
       // },
+      {
+        test: /.txt$/i,
+        type: 'asset/source',
+      },
     ],
   },
   plugins: [

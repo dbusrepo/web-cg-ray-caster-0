@@ -6,4 +6,9 @@ type InputEvent = {
   panelId: PanelId;
 }
 
-export type { InputEvent };
+type CanvasDisplayResizeEvent = {
+  width: number;
+  height: number;
+};
+
+export type { InputEvent, CanvasDisplayResizeEvent };

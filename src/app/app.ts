@@ -26,6 +26,7 @@ class App {
     this.initPanels();
     this.initKeyListeners();
     await this.initAppWorker();
+    this.initObservers();
     this.enginePanel.showInit();
   }
 
@@ -59,7 +60,6 @@ class App {
   }
 
   private buildAppWorkerParams() {
-
     const params: AppWorkerParams = {
       engineCanvas: this.enginePanel.Canvas.transferControlToOffscreen(),
     };
@@ -70,13 +70,56 @@ class App {
     };
   }
 
+  private onResize(entry: ResizeObserverEntry): [number, number] {
+    let width;
+    let height;
+    let dpr = window.devicePixelRatio;
+    let dprSupport = false;
+    if (entry.devicePixelContentBoxSize) {
+      // NOTE: Only this path gives the correct answer
+      // The other paths are an imperfect fallback
+      // for browsers that don't provide anyway to do this
+      width = entry.devicePixelContentBoxSize[0].inlineSize;
+      height = entry.devicePixelContentBoxSize[0].blockSize;
+      dpr = 1; // it's already in width and height
+      dprSupport = true;
+    } else if (entry.contentBoxSize?.[0]) {
+      width = entry.contentBoxSize[0].inlineSize;
+      height = entry.contentBoxSize[0].blockSize;
+    } else {
+      // legacy
+      width = entry.contentRect.width;
+      height = entry.contentRect.height;
+    }
+    const displayWidth = Math.round(width * dpr);
+    const displayHeight = Math.round(height * dpr);
+    return [displayWidth, displayHeight];
+  }
+
+  private initObservers() {
+    const onResize = (entries: ResizeObserverEntry[]) => {
+      for (const entry of entries) {
+        if (entry.target === this.enginePanel.Canvas) {
+          const [width, height] = this.onResize(entry);
+          this.appWorker.postMessage({
+            command: AppWorkerCommandEnum.RESIZE_CANVAS_DISPLAY_SIZE,
+            params: {
+              width,
+              height,
+            }
+          });
+        }
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(onResize);
+    resizeObserver.observe(this.enginePanel.Canvas, {box: 'content-box'});
+  }
+
   async initAppWorker() {
     this.appWorker = new Worker(new URL('./appWorker.ts', import.meta.url));
-
     const initPromise = this.initAppWorkerMsgHandlers();
-
     this.sendInitMsgToAppWorker();
-
     await initPromise;
   }
 
@@ -181,8 +224,8 @@ class App {
     // parentNode.style.zIndex = '1'; // TODO:
     const panelConfig: EnginePanelConfig = {
       ...enginePanelConfig,
-      // startViewMode: StartViewMode.FULL_WIN,
-      startViewMode: StartViewMode.WIN,
+      startViewMode: StartViewMode.FULL_WIN,
+      // startViewMode: StartViewMode.WIN,
       title: 'Engine view',
       id: PanelIdEnum.ENGINE,
       focusOnStart: true,

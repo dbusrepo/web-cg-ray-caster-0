@@ -16,12 +16,13 @@ body {
   /* justify-content: center; /1* center horizontally *1/ */
   /* or this: */
   /* align-items: center; /1* center vertically *1/ */
+  /* background-color: #ccc; */
   display: flex;
   flex-direction: column;
-  /* background-color: #ccc; */
-  margin: 0;
   width: 100%;
   height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* grey colors: #cccccc #8C92AC */

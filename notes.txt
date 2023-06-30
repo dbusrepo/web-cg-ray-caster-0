@@ -1,3 +1,11 @@
+If you want a fullscreen canvas this is the eaiest way
+<style>
+body { margin: 0; }
+canvas { width: 100vw; height: 100vh; display: block; }
+</style>
+
+https://webgl2fundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+
 https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API
 
 to add an image:
@@ -6,7 +14,6 @@ add a line to images.res: key=imagefile
 under src/assets there is a makefile that builds the ts file with compiled infos
 about the images and generates also a ts files with export declaration for asc
 under src/engine/wasmEngine/wasm/src/asc/
-
 
 see asconfig.json:
 
