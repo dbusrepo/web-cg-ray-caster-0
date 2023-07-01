@@ -31,10 +31,13 @@ class AppWorker {
   private static readonly UPDATE_TIME_MAX = AppWorker.UPDATE_PERIOD_MS * 8;
 
   private static readonly STATS_LEN = 10; // fps, rps, ups
-  private static readonly FRAME_TIMES_LEN = 20; // used for ufps
+  private static readonly FRAME_TIMES_LEN = 10; // used for ufps
   private static readonly TIMES_SINCE_LAST_FRAME_LEN = 10; // update, render
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
+
+  private ctx2d: OffscreenCanvasRenderingContext2D;
+  private imageData: ImageData;
 
   private params: AppWorkerParams;
 
@@ -61,7 +64,7 @@ class AppWorker {
     let elapsedTimeMs: number;
     let renderThen: number;
     let timeSinceLastFrame: number;
-    let avgTimeLastFrame: number;
+    let avgTimeSinceLastFrame: number;
     let frameStartTime: number;
 
     let timeLastFrameCnt: number;
@@ -115,12 +118,10 @@ class AppWorker {
       lastFrameStartTime = frameStartTime;
       timeSinceLastFrame = Math.min(timeSinceLastFrame, AppWorker.UPDATE_TIME_MAX);
       timeSinceLastFrame = Math.max(timeSinceLastFrame, 0);
-      timeSinceLastFrameArr[timeLastFrameCnt++ % timeSinceLastFrameArr.length] =
-        timeSinceLastFrame;
-      avgTimeLastFrame= utils.arrAvg(
-        timeSinceLastFrameArr,
-        timeLastFrameCnt,
-      );
+      timeSinceLastFrameArr[timeLastFrameCnt++ % timeSinceLastFrameArr.length] = timeSinceLastFrame;
+      // avgTimeSinceLastFrame = timeSinceLastFrame;
+      // console.log(`avgTimeSinceLastFrame = ${avgTimeSinceLastFrame}`);
+      avgTimeSinceLastFrame = utils.arrAvg(timeSinceLastFrameArr, timeLastFrameCnt,);
     }
 
     const next = () => {
@@ -137,7 +138,7 @@ class AppWorker {
 
     const update = () => {
       // if (is_paused) return; // TODO
-      updTimeAcc += avgTimeLastFrame;
+      updTimeAcc += avgTimeSinceLastFrame;
       // handle timer anomalies
       // spiral of death protection
       if (updTimeAcc > AppWorker.UPDATE_TIME_MAX) {
@@ -158,18 +159,19 @@ class AppWorker {
       }
     };
 
-    const saveFrameTime = () => {
-      const frameTime = performance.now() - frameStartTime;
-      frameTimeArr[renderCnt++ % frameTimeArr.length] = frameTime;
-    };  
-
     const render = () => {
-      renderTimeAcc += avgTimeLastFrame;
+      renderTimeAcc += avgTimeSinceLastFrame;
       if (renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
         this.raycaster.render();
         saveFrameTime();
+        renderCnt++;
       }
+    };
+
+    const saveFrameTime = () => {
+      const frameTime = performance.now() - frameStartTime;
+      frameTimeArr[renderCnt % frameTimeArr.length] = frameTime;
     };
 
     const stats = () => {
@@ -195,6 +197,7 @@ class AppWorker {
         const avgUps = utils.arrAvg(upsArr, statsCnt);
         const avgFrameTime = utils.arrAvg(frameTimeArr, renderCnt);
         const avgUfps = MILLI_IN_SEC / avgFrameTime;
+        // console.log(`avgUfps = ${avgUfps}, avgFrameTime = ${avgFrameTime}`);
         const stats: StatsValues = {
           [StatsNameEnum.FPS]: avgFps,
           [StatsNameEnum.RPS]: avgRps,

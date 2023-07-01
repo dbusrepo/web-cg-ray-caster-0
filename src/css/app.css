@@ -33,6 +33,8 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #8c92ac !important;
+  /* background-color: #808080 !important; */
+  /* background-color: #909195 !important; */
   /* background: linear-gradient(#8C92AC, #8C92AC); */
   /* background: rgb(208,214,233); */
   /* background: radial-gradient(circle, rgba(208,214,233,1) 0%, rgba(105,111,140,1) 100%); */

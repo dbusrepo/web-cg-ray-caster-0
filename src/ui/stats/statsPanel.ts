@@ -2,10 +2,9 @@ import assert from 'assert';
 
 const PR = Math.round(window.devicePixelRatio || 1); // #pixels per col
 
-// const CSS_WIDTH = 80 * 5;
-// const CSS_HEIGHT = 48 * 5;
-const CSS_WIDTH = 80 * 1.1;
-const CSS_HEIGHT = 48 * 1.1;
+const CSS_SIZE_FACTOR = 1.5;
+const CSS_WIDTH = 80 * CSS_SIZE_FACTOR ;
+const CSS_HEIGHT = 48 * CSS_SIZE_FACTOR;
 
 const WIDTH = 80 * PR;
 const HEIGHT = 48 * PR;
