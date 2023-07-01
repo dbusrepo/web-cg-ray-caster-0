@@ -1,6 +1,6 @@
 import assert from 'assert';
 // import * as utils from './../utils';
-import { randColor, sleep } from '../utils';
+// import { randColor, sleep } from '../utils';
 import type { WasmMemParams, WasmMemRegionsData } from './wasmMemUtils';
 import type { WasmModules } from './wasmLoader';
 import * as WasmUtils from './wasmMemUtils';

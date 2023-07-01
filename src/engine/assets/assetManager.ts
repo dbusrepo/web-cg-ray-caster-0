@@ -1,5 +1,6 @@
 // import assert from 'assert';
 import * as loadUtils from './loadUtils';
+// import map0 from '../../../assets/maps/map0.txt'
 import {
   // images as sourceImages,
   getImagesPaths,
