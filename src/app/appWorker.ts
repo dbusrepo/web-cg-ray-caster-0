@@ -124,16 +124,12 @@ class AppWorker {
       avgTimeSinceLastFrame = utils.arrAvg(timeSinceLastFrameArr, timeLastFrameCnt,);
     }
 
-    const next = () => {
-      requestAnimationFrame(frame);
-    }
-
     const frame = () => {
+      requestAnimationFrame(frame);
       begin();
       update();
       render();
       stats();
-      next();
     };
 
     const update = () => {
