@@ -81,7 +81,7 @@ class Raycaster {
     this.wasmRaycasterPtr = wasmEngine.getRaycasterPtr();
 
     this.viewport = getWasmViewport();
-    const VIEWPORT_BORDER = 10;
+    const VIEWPORT_BORDER = 0;
     this.viewport.StartX = VIEWPORT_BORDER;
     this.viewport.StartY = VIEWPORT_BORDER;
     this.viewport.Width = this.params.engineCanvas.width - VIEWPORT_BORDER * 2;
@@ -91,7 +91,7 @@ class Raycaster {
     this.BorderColor = makeColor(0xffff00ff);
 
     this.player = getWasmPlayer();
-    this.player.PosX = 1.0;
+    this.player.PosX = 1.5;
     this.player.PosY = 1.5;
     this.player.DirX = 1;
     this.player.DirY = 0;
@@ -344,7 +344,7 @@ Date.now() - initStart
   public render() {
     this.syncWorkers();
     try {
-      // this.wasmEngine.render();
+      // this.wasmEngine.WasmRun.WasmModules.engine.render();
       this.castScene();
     }
     catch (e) {
@@ -547,7 +547,8 @@ Date.now() - initStart
 
   update(time: number) {
     const { inputKeys } = this.wasmEngine.WasmViews;
-    const moveSpeed = time * 0.005;
+    const moveSpeed = time * 0.009;
+    const rotSpeed = time * 0.006;
 
     if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
       this.moveForward(moveSpeed, 1);
@@ -556,10 +557,10 @@ Date.now() - initStart
       this.moveForward(moveSpeed, -1);
     }
     if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
-      this.rotate(-moveSpeed);
+      this.rotate(-rotSpeed);
     }
     if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
-      this.rotate(moveSpeed);
+      this.rotate(rotSpeed);
     }
   }
 

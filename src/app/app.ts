@@ -189,7 +189,7 @@ class App {
     const fpsPanel = new StatsPanel({ title: StatsNameEnum.FPS, fg: '#0ff', bg: '#022', graphHeight: 200 });
     const rpsPanel = new StatsPanel({ title: StatsNameEnum.RPS, fg: '#f80', bg: '#022', graphHeight: 200 });
     const upsPanel = new StatsPanel({ title: StatsNameEnum.UPS, fg: '#0f0', bg: '#020', graphHeight: 200 });
-    const ufpsPanel = new StatsPanel({ title: StatsNameEnum.UFPS, fg: '#f50', bg: '#110', graphHeight: 1000 });
+    const ufpsPanel = new StatsPanel({ title: StatsNameEnum.UFPS, fg: '#f50', bg: '#110', graphHeight: 200 });
     // const unlockedFpsPanel = new StatsPanel(StatsNames.FPSU, '#f50', '#110');
     // const wasmHeapMem = new StatsPanel(StatsNames.WASM_HEAP, '#0b0', '#030');
     // this.mem_panel = new StatsPanel('MEM', '#ff0', '#330');
