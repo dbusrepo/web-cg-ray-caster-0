@@ -31,7 +31,8 @@ type RaycasterParams = {
 type Map = {
   width: number;
   height: number;
-  data: Uint8Array;
+  xGrid: Uint8Array; // x walls (vertical)
+  yGrid: Uint8Array; // y walls (horizontal)
 };
 
 class Raycaster {
@@ -91,8 +92,8 @@ class Raycaster {
     this.BorderColor = makeColor(0xffff00ff);
 
     this.player = getWasmPlayer();
-    this.player.PosX = 1.5;
-    this.player.PosY = 1.5;
+    this.player.PosX = 0.5;
+    this.player.PosY = 0.5;
     this.player.DirX = 1;
     this.player.DirY = 0;
     this.player.PlaneX = 0;
@@ -309,36 +310,43 @@ Date.now() - initStart
   private initMap() {
     const mapWidth = 16;
     const mapHeight = 16;
-    const mapPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth, mapHeight);
+    const xGridPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth + 1, mapHeight);
+    const yGridPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth + 1, mapHeight + 1);
     this.map = {
       width: mapWidth,
       height: mapHeight,
-      data: new Uint8Array(
+      xGrid: new Uint8Array(
         this.wasmRun.WasmMem.buffer,
-        mapPtr,
-        mapWidth * mapHeight,
-      )
+        xGridPtr,
+        (mapWidth + 1) * mapHeight,
+      ),
+      yGrid: new Uint8Array(
+        this.wasmRun.WasmMem.buffer,
+        yGridPtr,
+        (mapWidth + 1) * (mapHeight + 1),
+      ),
     };
-    const mapBuf = this.map.data;
+
+    const xGrid = this.map.xGrid;
+    const yGrid = this.map.yGrid;
+
     for (let i = 0; i < mapHeight; i++) {
-      mapBuf[i * mapWidth] = 1;
-      mapBuf[i * mapWidth + mapWidth - 1] = 1;
-      if (i === 0 || i === mapHeight - 1) {
-        const rowOffset = i * mapWidth;
-        for (let j = 0; j < mapWidth; j++) {
-          mapBuf[rowOffset + j] = 1;
-        }
-      }
-      // let mapStr = '';
-      // for (let j = 0; j < width; j++) {
-      //   mapStr += this.map[i * width + j] + ' ';
-      // }
-      // console.log(mapStr);
+      xGrid[i * (mapWidth + 1)] = 1;
+      xGrid[i * (mapWidth + 1) + mapWidth] = 1;
     } 
-    mapBuf[2] = 2;
-    mapBuf[3] = 3;
-    mapBuf[mapWidth*2 + 2] = 3;
-    // console.log(JSON.stringify(mapBuf));
+
+    // ignore last col mapWidth, it's there to have the same width as xGrid
+    for (let i = 0; i < mapWidth; i++) {
+      yGrid[i] = 1;
+      yGrid[mapHeight * (mapWidth + 1) + i] = 1;
+    }
+
+    xGrid[4] = 1;
+    xGrid[4 + (mapWidth + 1) * 2] = 2;
+    yGrid[4 + (mapWidth + 1) * 1] = 3;
+
+    // console.log(xGrid);
+    // console.log(yGrid);
   }
 
   public render() {
@@ -393,8 +401,7 @@ Date.now() - initStart
 
     const { StartX: startX, StartY: startY, Width: width, Height: height } = this.viewport;
     const { PosX: pX, PosY: pY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
-
-    const { map } = this;
+    const { xGrid, yGrid } = this.map;
 
     // TODO:
     // const mid = (startY + height / 2) | 0;
@@ -413,7 +420,11 @@ Date.now() - initStart
 
     const scrStartPtr = startY * stride + startX;
 
+    const mapWidth = this.map.width + 1;
+
+    // for (let x = 0; x < width; x++) {
     for (let x = 0; x < width; x++) {
+
       // const cameraX = 2 * x / width - 1;
       const cameraX = 2 * x / (width - 1) - 1; // TODO:
       const rayDirX = dirX + planeX * cameraX;
@@ -421,71 +432,80 @@ Date.now() - initStart
       const deltaDistX = Math.abs(1 / rayDirX);
       const deltaDistY = Math.abs(1 / rayDirY);
 
+      let stepX, stepY;
+      let sideDistX, sideDistY;
+      let incX, incY;
+
       const mapX = pX | 0;
       const mapY = pY | 0;
 
-      let stepX, stepY;
-      let sideDistX, sideDistY;
-
       if (rayDirX < 0) {
         stepX = -1;
+        incX = 0;
         sideDistX = (pX - mapX) * deltaDistX;
       } else {
         stepX = 1;
+        incX = 1;
         sideDistX = (mapX + 1.0 - pX) * deltaDistX;
       }
 
       if (rayDirY < 0) {
-        stepY = -this.map.width;
+        stepY = -mapWidth;
+        incY = 0;
         sideDistY = (pY - mapY) * deltaDistY;
       } else {
-        stepY = this.map.width;
+        stepY = mapWidth;
+        incY = mapWidth;
         sideDistY = (mapY + 1.0 - pY) * deltaDistY;
       }
 
-      // let stepX = -1;
-      // let sideDistX = (pX - mapX) * deltaDistX;
-      // if (rayDirX > 0) {
-      //   stepX = 1;
-      //   sideDistX = -sideDistX + deltaDistX;
-      // }
-      //
-      // let stepY = -width;
-      // let sideDistY = (pY - mapY) * deltaDistY;
-      // if (rayDirY > 0) {
-      //   stepY = width;
-      //   sideDistY = -sideDistY + deltaDistY;
-      // }
-
-
       let hit = false;
       let side;
-      let mapIdx = mapY * this.map.width + mapX;
+      let mapIdx = mapY * mapWidth + mapX;
+      let MAX_STEPS = 100;
+      let perpWallDist = 0.0;
+      let texId = 0;
+      let wallX = 0;
+
+      // console.log('x: ', x);
+      // console.log('mapx mapy: ', mapX, mapY);
+      // console.log('start', mapIdx);
+      // console.log('sideX sideY: ', sideDistX, sideDistY);
+
       do {
+        // TODO: check if mapIdx is out of bounds
         if (sideDistX < sideDistY) {
-          sideDistX += deltaDistX;
-          mapIdx += stepX;
           side = 0;
+          if (xGrid[mapIdx + incX] > 0) {
+            mapIdx += incX;
+            perpWallDist = sideDistX;
+            texId = xGrid[mapIdx] - 1;
+            wallX = pY + perpWallDist * rayDirY;
+            hit = true;
+          } else {
+            sideDistX += deltaDistX;
+            mapIdx += stepX;
+          }
         }
         else {
-          sideDistY += deltaDistY;
-          mapIdx += stepY;
           side = 1;
+          if (yGrid[mapIdx + incY] > 0) {
+            mapIdx += incY;
+            perpWallDist = sideDistY;
+            texId = yGrid[mapIdx] - 1;
+            wallX = pX + perpWallDist * rayDirX;
+            hit = true;
+          } else {
+            sideDistY += deltaDistY;
+            mapIdx += stepY;
+          }
         }
-        // TODO: check if mapIdx is out of bounds
-        hit = map.data[mapIdx] > 0;
-        // if (map[mapIdx] > 0) {
-        //   hit = true;
-        // }
-      } while (!hit);
+      } while (!hit && --MAX_STEPS);
 
-      let perpWallDist: number;
-
-      // calc perp wall dist
-      if (side === 0) {
-        perpWallDist = sideDistX - deltaDistX;
-      } else {
-        perpWallDist = sideDistY - deltaDistY;
+      if (!hit) {
+        console.log('no hit');
+        // break; // TODO:
+        continue;
       }
 
       this.zBuffer[x] = perpWallDist;
@@ -504,15 +524,16 @@ Date.now() - initStart
         wallBottom = height;
       }
 
-      const texId = map.data[mapIdx] - 1;
       assert(texId >= 0 && texId < this.textures.length, `invalid texture id ${texId}`);
       const texture = this.textures[texId];
 
-      const wallX = (side === 0 ? pY + perpWallDist * rayDirY : pX + perpWallDist * rayDirX) % 1;
+      const { Width : texWidth, Height: texHeight } = texture;
 
-      const texWidth = texture.Width
+      // wallX -= Math.floor(wallX); // wallX %= 1;
+      wallX -= wallX | 0;
 
       let texX = (wallX * texWidth) | 0;
+
       if (side === 0 && rayDirX > 0) {
         texX = texWidth - texX - 1;
       }
@@ -520,7 +541,7 @@ Date.now() - initStart
         texX = texWidth - texX - 1;
       }
 
-      const step = 1. * texture.Height / wallSliceHeight;
+      const step = 1. * texHeight / wallSliceHeight;
 
       let texPos = (wallTop - midY + wallSliceHeight / 2) * step;
 

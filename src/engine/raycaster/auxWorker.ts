@@ -68,9 +68,13 @@ class AuxWorker {
     const { syncArray, workerIndex } = this.params;
     console.log(`Aux worker ${workerIndex} running`);
 
+    const { engine: wasmEngine } = this.wasmRun.WasmModules;
+
     try {
       while (true) {
         Atomics.wait(syncArray, workerIndex, 0);
+
+        // wasmEngine.render();
 
         Atomics.store(syncArray, workerIndex, 0);
         Atomics.notify(syncArray, workerIndex);
