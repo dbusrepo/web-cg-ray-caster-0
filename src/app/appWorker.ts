@@ -31,13 +31,10 @@ class AppWorker {
   private static readonly UPDATE_TIME_MAX = AppWorker.UPDATE_PERIOD_MS * 8;
 
   private static readonly STATS_LEN = 10; // fps, rps, ups
-  private static readonly FRAME_TIMES_LEN = 10; // used for ufps
-  private static readonly TIMES_SINCE_LAST_FRAME_LEN = 10; // update, render
+  private static readonly FRAME_TIMES_LEN = 1; // used for ufps
+  private static readonly TIMES_SINCE_LAST_FRAME_LEN = 1; // update, render
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
-
-  private ctx2d: OffscreenCanvasRenderingContext2D;
-  private imageData: ImageData;
 
   private params: AppWorkerParams;
 

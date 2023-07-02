@@ -386,6 +386,7 @@ Date.now() - initStart
   private castScene() {
     // this.engine.WasmModules.engine.render();
 
+    // this.wasmEngine.WasmRun.WasmModules.engine.render();
     this.renderBackground();
 
     const { frameStride: stride, frameBuf32 } = this;
@@ -536,8 +537,8 @@ Date.now() - initStart
 
       // // solid color
       // for (let y = wallTop; y < wallBottom; y++) {
-      //   this.frameBuffer.buf32[scrPtr] = 0xff0000ff;
-      //   scrPtr += frameBufPitch;
+      //   frameBuf32[scrPtr] = 0xff0000ff;
+      //   scrPtr += stride;
       // }
 
       // texture wall
