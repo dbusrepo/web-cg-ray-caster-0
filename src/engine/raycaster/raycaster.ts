@@ -28,13 +28,6 @@ type RaycasterParams = {
   engineCanvas: OffscreenCanvas;
 };
 
-type Map = {
-  width: number;
-  height: number;
-  xGrid: Uint8Array; // x walls (vertical)
-  yGrid: Uint8Array; // y walls (horizontal)
-};
-
 class Raycaster {
   private params: RaycasterParams;
   private assetManager: AssetManager;
@@ -59,13 +52,19 @@ class Raycaster {
 
   private borderColorPtr: number;
 
-  private frameBuf32: Uint32Array;
-  private frameStride: number;
+  private mapWidth: number;
+  private mapHeight: number;
+
+  private xGrid: Uint8Array;
+  private yGrid: Uint8Array;
+
+  private zBuffer: Float32Array;
 
   private wallHeight: number;
-  private zBuffer: Float32Array;
   private backgroundColor: number;
-  private map: Map;
+
+  private frameBuf32: Uint32Array;
+  private frameStride: number;
 
   public async init(params: RaycasterParams) {
     this.params = params;
@@ -106,22 +105,21 @@ class Raycaster {
     // console.log('main worker player.posX', this.player.PosX);
     // console.log('main worker player.posY', this.player.PosY);
 
-    this.renderBorders();
-
-    // this.wallHeight = this.cfg.canvas.height;
-    this.wallHeight = this.viewport.Height;
-
-    this.backgroundColor = makeColor(0x000000ff);
+    this.initMap();
 
     this.postInitRaycaster();
 
-    this.initMap();
+    // this.wallHeight = this.cfg.canvas.height;
+    this.wallHeight = this.viewport.Height; // TODO:
 
     await this.runAuxWorkers();
     // console.log('raycaster starting...');
 
+    this.backgroundColor = makeColor(0x000000ff);
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
+    this.renderBorders();
+
     // this.castScene(); // TODO:
   }
 
@@ -176,6 +174,7 @@ class Raycaster {
     await this.assetManager.init();
   }
 
+  // TODO: remove?
   // private initKeyHandlers() {
   //   this.inputManager.addKeyHandlers(keys.KEY_A, () => {}, () => {});
   //   this.inputManager.addKeyHandlers(keys.KEY_S, () => {}, () => {});
@@ -308,45 +307,47 @@ Date.now() - initStart
   }
 
   private initMap() {
-    const mapWidth = 16;
-    const mapHeight = 16;
-    const xGridPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth + 1, mapHeight);
-    const yGridPtr = this.wasmEngine.WasmRun.WasmModules.engine.allocMap(mapWidth + 1, mapHeight + 1);
-    this.map = {
-      width: mapWidth,
-      height: mapHeight,
-      xGrid: new Uint8Array(
-        this.wasmRun.WasmMem.buffer,
-        xGridPtr,
-        (mapWidth + 1) * mapHeight,
-      ),
-      yGrid: new Uint8Array(
-        this.wasmRun.WasmMem.buffer,
-        yGridPtr,
-        (mapWidth + 1) * (mapHeight + 1),
-      ),
-    };
+    const { engine: wasmEngine } = this.wasmRun.WasmModules;
 
-    const xGrid = this.map.xGrid;
-    const yGrid = this.map.yGrid;
+    const mapWidth = 10;
+    const mapHeight = 10;
+
+    this.mapWidth = mapWidth;
+    this.mapHeight = mapHeight;
+
+    wasmEngine.allocMap(mapWidth, mapHeight);
+
+    const xGridPtr = wasmEngine.getRaycasterXGridPtr();
+    const yGridPtr = wasmEngine.getRaycasterYGridPtr();
+
+    console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
+
+    this.xGrid = new Uint8Array(
+      this.wasmRun.WasmMem.buffer,
+      xGridPtr,
+      (mapWidth + 1) * mapHeight,
+    );
+
+    this.yGrid = new Uint8Array(
+      this.wasmRun.WasmMem.buffer,
+      yGridPtr,
+      (mapWidth + 1) * (mapHeight + 1),
+    );
 
     for (let i = 0; i < mapHeight; i++) {
-      xGrid[i * (mapWidth + 1)] = 1;
-      xGrid[i * (mapWidth + 1) + mapWidth] = 1;
-    } 
+      this.xGrid[i * (mapWidth + 1)] = 1;
+      this.xGrid[i * (mapWidth + 1) + mapWidth] = 1;
+    }
 
     // ignore last col mapWidth, it's there to have the same width as xGrid
     for (let i = 0; i < mapWidth; i++) {
-      yGrid[i] = 1;
-      yGrid[mapHeight * (mapWidth + 1) + i] = 1;
+      this.yGrid[i] = 1;
+      this.yGrid[mapHeight * (mapWidth + 1) + i] = 1;
     }
 
-    xGrid[4] = 1;
-    xGrid[4 + (mapWidth + 1) * 2] = 2;
-    yGrid[4 + (mapWidth + 1) * 1] = 3;
-
-    // console.log(xGrid);
-    // console.log(yGrid);
+    this.xGrid[4] = 1;
+    this.xGrid[4 + (mapWidth + 1) * 2] = 3;
+    this.yGrid[4 + (mapWidth + 1) * 1] = 3;
   }
 
   public render() {
@@ -401,7 +402,7 @@ Date.now() - initStart
 
     const { StartX: startX, StartY: startY, Width: width, Height: height } = this.viewport;
     const { PosX: pX, PosY: pY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
-    const { xGrid, yGrid } = this.map;
+    const { xGrid, yGrid } = this;
 
     // TODO:
     // const mid = (startY + height / 2) | 0;
@@ -420,7 +421,7 @@ Date.now() - initStart
 
     const scrStartPtr = startY * stride + startX;
 
-    const mapWidth = this.map.width + 1;
+    const gridWidth = this.mapWidth + 1;
 
     // for (let x = 0; x < width; x++) {
     for (let x = 0; x < width; x++) {
@@ -450,27 +451,22 @@ Date.now() - initStart
       }
 
       if (rayDirY < 0) {
-        stepY = -mapWidth;
+        stepY = -gridWidth;
         incY = 0;
         sideDistY = (pY - mapY) * deltaDistY;
       } else {
-        stepY = mapWidth;
-        incY = mapWidth;
+        stepY = gridWidth;
+        incY = gridWidth;
         sideDistY = (mapY + 1.0 - pY) * deltaDistY;
       }
 
       let hit = false;
       let side;
-      let mapIdx = mapY * mapWidth + mapX;
+      let mapIdx = mapY * gridWidth + mapX;
       let MAX_STEPS = 100;
       let perpWallDist = 0.0;
       let texId = 0;
       let wallX = 0;
-
-      // console.log('x: ', x);
-      // console.log('mapx mapy: ', mapX, mapY);
-      // console.log('start', mapIdx);
-      // console.log('sideX sideY: ', sideDistX, sideDistY);
 
       do {
         // TODO: check if mapIdx is out of bounds

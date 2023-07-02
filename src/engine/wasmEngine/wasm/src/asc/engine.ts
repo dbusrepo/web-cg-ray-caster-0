@@ -43,11 +43,11 @@ import { Player, newPlayer,
   getPlayerPlaneXOffset, getPlayerPlaneYOffset,
   getPlayerPitchOffset, getPlayerPosZOffset,
 } from './raycaster/player';
+import { Map, newMap } from './raycaster/map';
 import { Raycaster, newRaycaster,
   getRaycasterBorderColorOffset,
   getRaycasterZBufferPtr,
 } from './raycaster/raycaster';
-
 
 // TODO:
 // import { initRayCaster } from './raycaster/raycaster';
@@ -76,6 +76,20 @@ let images = changetype<SArray<BitImage>>(NULL_PTR);
 let raycaster = changetype<Raycaster>(NULL_PTR);
 // let viewport = changetype<Viewport>(NULL_PTR);
 // let player = changetype<Player>(NULL_PTR);
+// let map = changetype<Map>(NULL_PTR);
+
+function getRaycasterXGridPtr(): SIZE_T {
+  return raycaster.Map.xGridPtr.DataPtr;
+}
+
+function getRaycasterYGridPtr(): SIZE_T {
+  return raycaster.Map.yGridPtr.DataPtr;
+}
+
+function allocMap(mapWidth: i32, mapHeight: i32): void {
+  const map = newMap(mapWidth, mapHeight);
+  raycaster.Map = map;
+}
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
@@ -130,13 +144,6 @@ function getViewportPtr(): PTR_T {
 
 function getPlayerPtr(): PTR_T {
   return raycaster.PlayerPtr;
-}
-
-function allocMap(width: usize, height: usize): PTR_T {
-  const size = width * height;
-  const ptr = heapAlloc(size);
-  memory.fill(ptr, 0, size);
-  return ptr;
 }
 
 function render(): void {
@@ -305,11 +312,14 @@ export {
   init,
   render,
   run,
-  allocMap, // TODO:
+
+  allocMap,
 
   getRaycasterPtr,
   getRaycasterBorderColorOffset,
   getRaycasterZBufferPtr,
+  getRaycasterXGridPtr,
+  getRaycasterYGridPtr,
   postInitRaycaster,
 
   getViewportPtr,
