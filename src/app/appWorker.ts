@@ -30,9 +30,9 @@ class AppWorker {
 
   private static readonly UPDATE_TIME_MAX = AppWorker.UPDATE_PERIOD_MS * 8;
 
-  private static readonly STATS_LEN = 10; // fps, rps, ups
-  private static readonly FRAME_TIMES_LEN = 1; // used for ufps
-  private static readonly TIMES_SINCE_LAST_FRAME_LEN = 1; // update, render
+  private static readonly STATS_ARR_LEN = 10; // fps, rps, ups
+  private static readonly FRAME_TIMES_ARR_LEN = 1; // used for ufps
+  private static readonly TIMES_SINCE_LAST_FRAME_ARR_LEN = 1; // update, render
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
 
@@ -85,19 +85,19 @@ class AppWorker {
 
     const mainLoopInit = () => {
       lastFrameStartTime = lastStatsTime = renderThen = performance.now();
-      frameTimeArr = new Float64Array(AppWorker.FRAME_TIMES_LEN);
+      frameTimeArr = new Float64Array(AppWorker.FRAME_TIMES_ARR_LEN);
       updTimeAcc = 0;
       renderTimeAcc = 0;
       elapsedTimeMs = 0;
       timeSinceLastFrameArr = new Float64Array(
-        AppWorker.TIMES_SINCE_LAST_FRAME_LEN,
+        AppWorker.TIMES_SINCE_LAST_FRAME_ARR_LEN,
       );
       frameCnt = 0;
       timeLastFrameCnt = 0;
       statsTimeAcc = 0;
-      fpsArr = new Float32Array(AppWorker.STATS_LEN);
-      rpsArr = new Float32Array(AppWorker.STATS_LEN);
-      upsArr = new Float32Array(AppWorker.STATS_LEN);
+      fpsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
+      rpsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
+      upsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
       statsCnt = 0;
       resync = false;
       updateCnt = 0;
