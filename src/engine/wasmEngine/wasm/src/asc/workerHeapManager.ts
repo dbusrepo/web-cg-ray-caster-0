@@ -76,7 +76,7 @@ function searchFreeList(reqSize: SIZE_T): PTR_T {
   let found = false;
   let ptr = freeBlockPtr;
   do {
-    if (getBlockSize(ptr) - HF_SIZE >= reqSize) {
+    if (getBlockSize(ptr) >= reqSize + HF_SIZE) {
       found = true;
     } else {
       ptr = changetype<HeaderBlock>(ptr).next;
@@ -155,8 +155,9 @@ function alloc(reqSize: SIZE_T): PTR_T {
     const usedSize = reqSize + HF_SIZE;
     setBlockSize(usedHeaderPtr, usedSize);
     setBlockSize(usedFooterPtr, usedSize);
-    setBlockSize(freeHeaderPtr, blockSize - usedSize);
-    setBlockSize(freeFooterPtr, blockSize - usedSize);
+    const freeSize = blockSize - usedSize;
+    setBlockSize(freeHeaderPtr, freeSize);
+    setBlockSize(freeFooterPtr, freeSize);
     // const freeFooter = changetype<HeaderBlock>(freeFooterPtr);
     removeOrReplaceFromFreeList(headerPtr, freeHeaderPtr);
   }
