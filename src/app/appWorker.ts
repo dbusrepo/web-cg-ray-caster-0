@@ -32,7 +32,7 @@ class AppWorker {
 
   private static readonly STATS_ARR_LEN = 10; // fps, rps, ups
   private static readonly FRAME_TIMES_ARR_LEN = 1; // used for ufps
-  private static readonly TIMES_SINCE_LAST_FRAME_ARR_LEN = 1; // update, render
+  private static readonly TIMES_SINCE_LAST_FRAME_ARR_LEN = 5; // update, render
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
 
