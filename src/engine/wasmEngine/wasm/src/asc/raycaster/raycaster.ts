@@ -15,6 +15,10 @@ import { Map, newMap } from './map';
   private map: Map;
 
   postInit(): void {
+    this.allocZBuffer();
+  }
+
+  allocZBuffer(): void {
     this.zBuffer = newSArray<f32>(this.Viewport.Width);
   }
 
@@ -53,6 +57,14 @@ import { Map, newMap } from './map';
   get PlayerPtr(): PTR_T {
     return changetype<PTR_T>(this.player);
   }
+
+  get BorderColor(): u32 {
+    return this.borderColor;
+  }
+
+  set BorderColor(borderColor: u32) {
+    this.borderColor = borderColor;
+  }
 }
 
 let raycasterAlloc = changetype<ObjectAllocator<Raycaster>>(NULL_PTR);
@@ -69,12 +81,12 @@ function newRaycaster(): Raycaster {
   return raycaster;
 }
 
-function getRaycasterBorderColorOffset(basePtr: PTR_T): SIZE_T {
-  return basePtr + offsetof<Raycaster>("borderColor");
+function getRaycasterBorderColorOffset(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("borderColor");
 }
 
-function getRaycasterZBufferPtr(basePtr: PTR_T): SIZE_T {
-  const raycaster = changetype<Raycaster>(basePtr);
+function getRaycasterZBufferPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.ZBuffer.DataPtr;
 }
 

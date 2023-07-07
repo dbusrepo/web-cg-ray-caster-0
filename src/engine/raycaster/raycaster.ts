@@ -1,8 +1,6 @@
 import assert from 'assert';
 import { mainConfig } from '../../config/mainConfig';
 import type { InputEvent } from '../../app/events';
-import type { AuxWorkerParams } from './auxWorker';
-import { AuxWorkerCommandEnum, AuxWorkerDesc } from './auxWorker';
 import { AssetManager } from '../assets/assetManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
@@ -11,46 +9,34 @@ import { randColor, makeColor, sleep } from '../utils';
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
 import type { WasmViews } from '../wasmEngine/wasmViews';
-import type { WasmModules } from '../wasmEngine/wasmLoader';
+import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { WasmRun } from '../wasmEngine/wasmRun';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
+import { Viewport, getWasmViewportView } from './viewport';
+import { Player, getWasmPlayerView } from './player';
 
 import { images } from '../../../assets/build/images';
 import { loadImage } from './imageUtils'; // TODO: rename
 
-import type { Viewport } from './viewport';
-import { getWasmViewport } from './viewport';
-
-import type { Player } from './player';
-import { getWasmPlayer } from './player';
-
 type RaycasterParams = {
-  engineCanvas: OffscreenCanvas;
+  wasmRun: WasmRun;
+  frameStride: number;
 };
 
 class Raycaster {
   private params: RaycasterParams;
-  private assetManager: AssetManager;
-  private inputManager: InputManager;
 
-  private auxWorkers: AuxWorkerDesc[];
-  private syncArray: Int32Array;
-  private sleepArray: Int32Array;
+  private viewport: Viewport;
+  private player: Player;
 
-  private ctx2d: OffscreenCanvasRenderingContext2D;
-  private imageData: ImageData;
-
-  private wasmEngine: WasmEngine;
-  private wasmRun: WasmRun;
-
-  private textures: BitImageRGBA[];
+  private wasmEngineModule: WasmEngineModule;
 
   private wasmRaycasterPtr: number;
 
-  private player: Player;
-  private viewport: Viewport;
+  private textures: BitImageRGBA[];
 
-  private borderColorPtr: number;
+  private frameBuf32: Uint32Array;
+  private frameStride: number;
 
   private mapWidth: number;
   private mapHeight: number;
@@ -61,329 +47,63 @@ class Raycaster {
   private zBuffer: Float32Array;
 
   private wallHeight: number;
-  private backgroundColor: number;
 
-  private frameBuf32: Uint32Array;
-  private frameStride: number;
+  private backgroundColor: number;
 
   public async init(params: RaycasterParams) {
     this.params = params;
-    this.initGfx();
-    this.initInputManager();
-    await this.initAssetManager();
-    await this.initWasmEngine();
+    const { wasmRun } = params;
 
-    this.initFrameBuf32();
-    this.initTextures();
+    this.wasmEngineModule = wasmRun.WasmModules.engine;
+    this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
 
-    const { engine: wasmEngine } = this.wasmRun.WasmModules;
+    this.player = getWasmPlayerView(this.wasmEngineModule, this.wasmRaycasterPtr);
+    this.viewport = getWasmViewportView(this.wasmEngineModule, this.wasmRaycasterPtr);
 
-    this.wasmRaycasterPtr = wasmEngine.getRaycasterPtr();
+    this.initFrameBuf();
 
-    this.viewport = getWasmViewport();
-    const VIEWPORT_BORDER = 0;
-    this.viewport.StartX = VIEWPORT_BORDER;
-    this.viewport.StartY = VIEWPORT_BORDER;
-    this.viewport.Width = this.params.engineCanvas.width - VIEWPORT_BORDER * 2;
-    this.viewport.Height = this.params.engineCanvas.height - VIEWPORT_BORDER * 2;
-
-    this.borderColorPtr = wasmEngine.getRaycasterBorderColorOffset(this.wasmRaycasterPtr);
-    this.BorderColor = makeColor(0xffff00ff);
-
-    this.player = getWasmPlayer();
-    this.player.PosX = 0.5;
-    this.player.PosY = 0.5;
-    this.player.DirX = 1;
-    this.player.DirY = 0;
-    this.player.PlaneX = 0;
-    this.player.PlaneY = 0.66;
-    this.player.Pitch = 0;
-    this.player.PosZ = 0.0;
-
-    // console.log('main worker viewport.startX', this.viewport.StartX);
-    // console.log('main worker viewport.startY', this.viewport.StartY);
-    // console.log('main worker player.posX', this.player.PosX);
-    // console.log('main worker player.posY', this.player.PosY);
-
-    this.initMap();
-
-    this.postInitRaycaster();
+    this.initZBufferView();
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
 
-    await this.runAuxWorkers();
     // console.log('raycaster starting...');
+
+    this.initTextures();
 
     this.backgroundColor = makeColor(0x000000ff);
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
-    this.renderBorders();
+
+    // this.renderBorders(); // TODO:
+
 
     // this.castScene(); // TODO:
   }
 
-  private postInitRaycaster() {
-    const { engine: wasmEngine } = this.wasmRun.WasmModules;
-    wasmEngine.postInitRaycaster();
-    this.initWasmZBufferView();
-  }
-
-  private initFrameBuf32() {
-    const frameBuf8 = this.wasmRun.WasmViews.rgbaSurface0;
+  private initFrameBuf() {
+    const { wasmRun } = this.params;
+    const frameBuf8 = wasmRun.WasmViews.rgbaSurface0;
     this.frameBuf32 = new Uint32Array(frameBuf8.buffer,
       0, frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT);
-    this.frameStride = this.imageData.width;
+    this.frameStride = this.params.frameStride;
   }
 
-  private initWasmZBufferView() {
-    const { engine: wasmEngine } = this.wasmRun.WasmModules;
-    const zBufferPtr = wasmEngine.getRaycasterZBufferPtr(this.wasmRaycasterPtr);
+  private initZBufferView() {
+    const zBufferPtr = this.wasmEngineModule.getRaycasterZBufferPtr(this.wasmRaycasterPtr);
     this.zBuffer = new Float32Array(
-      this.wasmRun.WasmMem.buffer,
+      this.params.wasmRun.WasmMem.buffer,
       zBufferPtr,
       this.viewport.Width);
   }
 
-  private initGfx() {
-    this.ctx2d = this.get2dCtxFromCanvas(this.params.engineCanvas);
-    const { width, height } = this.params.engineCanvas;
-    this.imageData = this.ctx2d.createImageData(width, height);
-  }
-
-  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
-    const ctx = <OffscreenCanvasRenderingContext2D>(
-      canvas.getContext('2d', {
-        alpha: false,
-        desynchronized: true, // TODO:
-      })
-    );
-    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
-    return ctx;
-  }
-
-  private initInputManager() {
-    this.inputManager = new InputManager();
-    // no key handlers added here, we use the wasm engine key handlers
-    // and we check for key status with wasm view
-    // this.initKeyHandlers();
-  }
-
-  private async initAssetManager() {
-    this.assetManager = new AssetManager();
-    await this.assetManager.init();
-  }
-
-  // TODO: remove?
-  // private initKeyHandlers() {
-  //   this.inputManager.addKeyHandlers(keys.KEY_A, () => {}, () => {});
-  //   this.inputManager.addKeyHandlers(keys.KEY_S, () => {}, () => {});
-  //   this.inputManager.addKeyHandlers(keys.KEY_D, () => {}, () => {});
-  // }
-
-  private async initWasmEngine() {
-    this.wasmEngine = new WasmEngine();
-    const wasmEngineParams: WasmEngineParams = {
-      imageWidth: this.imageData.width,
-      imageHeight: this.imageData.height,
-      assetManager: this.assetManager,
-      inputManager: this.inputManager,
-      numWorkers: mainConfig.numAuxWorkers,
-    };
-    await this.wasmEngine.init(wasmEngineParams);
-    this.wasmRun = this.wasmEngine.WasmRun;
-  }
-
-  private async runAuxWorkers() {
-    const numWorkers = mainConfig.numAuxWorkers;
-    console.log(`num aux workers: ${numWorkers}`);
-    const numTotalWorkers = numWorkers + 1;
-    this.sleepArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
-    Atomics.store(this.sleepArray, 0, 0); // main worker idx 0
-    this.auxWorkers = [];
-    if (numWorkers) {
-      this.syncArray = new Int32Array(new SharedArrayBuffer(numTotalWorkers * Int32Array.BYTES_PER_ELEMENT));
-      Atomics.store(this.syncArray, 0, 0);
-      await this.initAuxWorkers(numWorkers);
-      for (let i = 0; i < this.auxWorkers.length; ++i) {
-        const { index: workerIdx } = this.auxWorkers[i];
-        Atomics.store(this.sleepArray, workerIdx, 0);
-        Atomics.store(this.syncArray, workerIdx, 0);
-      }
-      this.auxWorkers.forEach(({ worker }) => {
-        worker.postMessage({
-          command: AuxWorkerCommandEnum.RUN,
-        });
-      });
-    }
-  }
-
-  private async initAuxWorkers(numAuxWorkers: number) {
-    assert(numAuxWorkers > 0);
-    assert(this.wasmEngine);
-    assert(this.wasmRaycasterPtr);
-    const initStart = Date.now();
-    try {
-      let nextWorkerIdx = 1; // start from 1, 0 is for the main worker
-      const genWorkerIdx = () => {
-        return nextWorkerIdx++;
-      };
-      let remWorkers = numAuxWorkers;
-      await new Promise<void>((resolve, reject) => {
-        for (let i = 0; i < numAuxWorkers; ++i) {
-          const workerIndex = genWorkerIdx();
-          const engineWorker = {
-            index: workerIndex,
-            worker: new Worker(
-              // new URL('../../app/appWorker.ts', import.meta.url),
-              new URL('./auxWorker.ts', import.meta.url),
-              {
-                name: `aux-app-worker-${workerIndex}`,
-                type: 'module',
-              },
-            )
-          };
-          this.auxWorkers.push(engineWorker);
-          const workerParams: AuxWorkerParams = {
-            workerIndex,
-            numWorkers: numAuxWorkers,
-            syncArray: this.syncArray,
-            sleepArray: this.sleepArray,
-            wasmRunParams: {
-              ...this.wasmEngine.WasmRunParams,
-              workerIdx: workerIndex,
-              raycasterPtr: this.wasmRaycasterPtr,
-            },
-          };
-          engineWorker.worker.postMessage({
-            command: AuxWorkerCommandEnum.INIT,
-            params: workerParams,
-          });
-          engineWorker.worker.onmessage = ({ data }) => {
-            --remWorkers;
-            console.log(
-              `Aux app worker id=${workerIndex} init, left count=${remWorkers}, time=${
-Date.now() - initStart
-}ms with data = ${JSON.stringify(data)}`,
-            );
-            if (remWorkers === 0) {
-              console.log(
-                `Aux app workers init done. After ${Date.now() - initStart}ms`,
-              );
-              resolve();
-            }
-          };
-          engineWorker.worker.onerror = (error) => {
-            console.log(`Aux app worker id=${workerIndex} error: ${error.message}\n`);
-            reject(error);
-          };
-        }
-      });
-    } catch (error) {
-      console.error(`Error during aux app workers init: ${JSON.stringify(error)}`);
-    }
-  }
-
-  private syncWorkers() {
-    for (let i = 0; i < this.auxWorkers.length; ++i) {
-      const { index: workerIdx } = this.auxWorkers[i];
-      Atomics.store(this.syncArray, workerIdx, 1);
-      Atomics.notify(this.syncArray, workerIdx);
-    }
-  }
-
-  private waitWorkers() {
-    for (let i = 0; i < this.auxWorkers.length; ++i) {
-      const { index: workerIdx } = this.auxWorkers[i];
-      Atomics.wait(this.syncArray, workerIdx, 1);
-    }
-  }
-
   private initTextures() {
     this.textures = [];
-    this.textures[0] = loadImage(images.GREYSTONE);
+    this.textures[0] = loadImage(images.GREYSTONE); // TODO: rename
     this.textures[1] = loadImage(images.BLUESTONE);
     this.textures[2] = loadImage(images.REDBRICK);
   }
 
-  private initMap() {
-    const { engine: wasmEngine } = this.wasmRun.WasmModules;
-
-    const mapWidth = 10;
-    const mapHeight = 10;
-
-    this.mapWidth = mapWidth;
-    this.mapHeight = mapHeight;
-
-    wasmEngine.allocMap(mapWidth, mapHeight);
-
-    const xGridPtr = wasmEngine.getRaycasterXGridPtr();
-    const yGridPtr = wasmEngine.getRaycasterYGridPtr();
-
-    console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
-
-    this.xGrid = new Uint8Array(
-      this.wasmRun.WasmMem.buffer,
-      xGridPtr,
-      (mapWidth + 1) * mapHeight,
-    );
-
-    this.yGrid = new Uint8Array(
-      this.wasmRun.WasmMem.buffer,
-      yGridPtr,
-      (mapWidth + 1) * (mapHeight + 1),
-    );
-
-    for (let i = 0; i < mapHeight; i++) {
-      this.xGrid[i * (mapWidth + 1)] = 1;
-      this.xGrid[i * (mapWidth + 1) + mapWidth] = 1;
-    }
-
-    // ignore last col mapWidth, it's there to have the same width as xGrid
-    for (let i = 0; i < mapWidth; i++) {
-      this.yGrid[i] = 1;
-      this.yGrid[mapHeight * (mapWidth + 1) + i] = 1;
-    }
-
-    this.xGrid[4] = 1;
-    this.xGrid[4 + (mapWidth + 1) * 2] = 3;
-    this.yGrid[4 + (mapWidth + 1) * 1] = 3;
-  }
-
-  public render() {
-    this.syncWorkers();
-    try {
-      // this.wasmEngine.WasmRun.WasmModules.engine.render();
-      this.castScene();
-    }
-    catch (e) {
-      console.error(e);
-    }
-    this.waitWorkers();
-    this.drawWasmFrame();
-  }
-
-  private drawWasmFrame() {
-    this.imageData.data.set(this.wasmEngine.WasmRun.WasmViews.rgbaSurface0);
-    this.ctx2d.putImageData(this.imageData, 0, 0);
-  }
-
-  private renderBorders() {
-    const { frameStride: stride, frameBuf32 } = this;
-    const { StartX, StartY, Width, Height } = this.viewport;
-    const upperLimit = StartY * stride;
-    const lowerLimit = (StartY + Height) * stride;
-
-    frameBuf32.fill(this.BorderColor, 0, upperLimit);
-    frameBuf32.fill(this.BorderColor, lowerLimit, frameBuf32.length);
-
-    for (let i = StartY, offset = StartY * stride; i < StartY + Height; i++, offset += stride) {
-      frameBuf32.fill(this.BorderColor, offset, offset + StartX);
-      frameBuf32.fill(this.BorderColor, offset + StartX + Width, offset + stride);
-    }
-  }
-
-  // TODO:
   private renderBackground() {
     const { frameStride: stride, frameBuf32 } = this;
     const { StartX, StartY, Width, Height } = this.viewport;
@@ -392,17 +112,18 @@ Date.now() - initStart
     }
   }
 
-  private castScene() {
-    // this.engine.WasmModules.engine.render();
+  castScene() {
 
     // this.wasmEngine.WasmRun.WasmModules.engine.render();
+    // this.wasmEngineModule.render();
+
     this.renderBackground();
 
     const { frameStride: stride, frameBuf32 } = this;
 
     const { StartX: startX, StartY: startY, Width: width, Height: height } = this.viewport;
-    const { PosX: pX, PosY: pY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
     const { xGrid, yGrid } = this;
+    const { PosX: posX, PosY: posY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
 
     // TODO:
     // const mid = (startY + height / 2) | 0;
@@ -437,27 +158,27 @@ Date.now() - initStart
       let sideDistX, sideDistY;
       let incX, incY;
 
-      const mapX = pX | 0;
-      const mapY = pY | 0;
+      const mapX = posX | 0;
+      const mapY = posY | 0;
 
       if (rayDirX < 0) {
         stepX = -1;
         incX = 0;
-        sideDistX = (pX - mapX) * deltaDistX;
+        sideDistX = (posX - mapX) * deltaDistX;
       } else {
         stepX = 1;
         incX = 1;
-        sideDistX = (mapX + 1.0 - pX) * deltaDistX;
+        sideDistX = (mapX + 1.0 - posX) * deltaDistX;
       }
 
       if (rayDirY < 0) {
         stepY = -gridWidth;
         incY = 0;
-        sideDistY = (pY - mapY) * deltaDistY;
+        sideDistY = (posY - mapY) * deltaDistY;
       } else {
         stepY = gridWidth;
         incY = gridWidth;
-        sideDistY = (mapY + 1.0 - pY) * deltaDistY;
+        sideDistY = (mapY + 1.0 - posY) * deltaDistY;
       }
 
       let hit = false;
@@ -476,7 +197,7 @@ Date.now() - initStart
             mapIdx += incX;
             perpWallDist = sideDistX;
             texId = xGrid[mapIdx] - 1;
-            wallX = pY + perpWallDist * rayDirY;
+            wallX = posY + perpWallDist * rayDirY;
             hit = true;
           } else {
             sideDistX += deltaDistX;
@@ -489,7 +210,7 @@ Date.now() - initStart
             mapIdx += incY;
             perpWallDist = sideDistY;
             texId = yGrid[mapIdx] - 1;
-            wallX = pX + perpWallDist * rayDirX;
+            wallX = posX + perpWallDist * rayDirX;
             hit = true;
           } else {
             sideDistY += deltaDistY;
@@ -563,60 +284,66 @@ Date.now() - initStart
     }
   }
 
-  update(time: number) {
-    const { inputKeys } = this.wasmEngine.WasmViews;
-    const moveSpeed = time * 0.009;
-    const rotSpeed = time * 0.006;
+  public initMap() {
+    const { wasmRun } = this.params;
 
-    if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
-      this.moveForward(moveSpeed, 1);
+    // TODO:
+    const mapWidth = 10;
+    const mapHeight = 10;
+
+    this.mapWidth = mapWidth;
+    this.mapHeight = mapHeight;
+
+    this.wasmEngineModule.allocMap(mapWidth, mapHeight);
+
+    const xGridPtr = this.wasmEngineModule.getRaycasterXGridPtr();
+    const yGridPtr = this.wasmEngineModule.getRaycasterYGridPtr();
+
+    // console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
+
+    this.xGrid = new Uint8Array(
+      wasmRun.WasmMem.buffer,
+      xGridPtr,
+      (mapWidth + 1) * mapHeight,
+    );
+
+    this.yGrid = new Uint8Array(
+      wasmRun.WasmMem.buffer,
+      yGridPtr,
+      (mapWidth + 1) * (mapHeight + 1),
+    );
+
+    for (let i = 0; i < mapHeight; i++) {
+      this.xGrid[i * (mapWidth + 1)] = 1;
+      this.xGrid[i * (mapWidth + 1) + mapWidth] = 1;
     }
-    if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
-      this.moveForward(moveSpeed, -1);
+
+    // ignore last col mapWidth, it's there to have the same width as xGrid
+    for (let i = 0; i < mapWidth; i++) {
+      this.yGrid[i] = 1;
+      this.yGrid[mapHeight * (mapWidth + 1) + i] = 1;
     }
-    if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
-      this.rotate(-rotSpeed);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
-      this.rotate(rotSpeed);
-    }
+
+    this.xGrid[4] = 1;
+    this.xGrid[4 + (mapWidth + 1) * 2] = 3;
+    this.yGrid[4 + (mapWidth + 1) * 1] = 3;
   }
 
-  private rotate(moveSpeed: number) {
-    const { player } = this;
-    const oldDirX = player.DirX;
-    player.DirX = player.DirX * Math.cos(moveSpeed) - player.DirY * Math.sin(moveSpeed);
-    player.DirY = oldDirX * Math.sin(moveSpeed) + player.DirY * Math.cos(moveSpeed);
-    const oldPlaneX = player.PlaneX;
-    player.PlaneX = player.PlaneX * Math.cos(moveSpeed) - player.PlaneY * Math.sin(moveSpeed);
-    player.PlaneY = oldPlaneX * Math.sin(moveSpeed) + player.PlaneY * Math.cos(moveSpeed);
+  get FrameBuf32() {
+    return this.frameBuf32;
   }
 
-  private moveForward(moveSpeed: number, dir: number) {
-    const { player } = this;
-    player.PosX += dir * player.DirX * moveSpeed;
-    player.PosY += dir * player.DirY * moveSpeed;
+  get FrameStride() {
+    return this.frameStride;
   }
 
-  onKeyDown(inputEvent: InputEvent) {
-    this.inputManager.onKeyDown(inputEvent.code);
+  get Viewport() {
+    return this.viewport;
   }
 
-  onKeyUp(inputEvent: InputEvent) {
-    this.inputManager.onKeyUp(inputEvent.code);
+  get Player() {
+    return this.player;
   }
-
-  // onMouseMove(inputEvent: InputEvent) {
-  // }
-
-  private get BorderColor(): number {
-    return this.wasmRun.WasmViews.view.getUint32(this.borderColorPtr, true);
-  }
-
-  private set BorderColor(value: number) {
-    this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
-  }
-
 }
 
 export { Raycaster, RaycasterParams };

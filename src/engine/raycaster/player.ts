@@ -1,3 +1,4 @@
+import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class Player {
@@ -82,17 +83,17 @@ class Player {
   }
 }
 
-function getWasmPlayer(): Player {
-  const wasmEngine = gWasmRun.WasmModules.engine;
-  const playerPtr = wasmEngine.getPlayerPtr();
-  const posXPtr = wasmEngine.getPlayerPosXOffset(playerPtr);
-  const posYPtr = wasmEngine.getPlayerPosYOffset(playerPtr);
-  const posZPtr = wasmEngine.getPlayerPosZOffset(playerPtr);
-  const dirXPtr = wasmEngine.getPlayerDirXOffset(playerPtr);
-  const dirYPtr = wasmEngine.getPlayerDirYOffset(playerPtr);
-  const planeXPtr = wasmEngine.getPlayerPlaneXOffset(playerPtr);
-  const planeYPtr = wasmEngine.getPlayerPlaneYOffset(playerPtr);
-  const pitchOffset = wasmEngine.getPlayerPitchOffset(playerPtr);
+// TODO: use second param
+function getWasmPlayerView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Player {
+  const playerPtr = wasmEngineModule.getPlayerPtr(wasmRaycasterPtr);
+  const posXPtr = wasmEngineModule.getPlayerPosXOffset(playerPtr);
+  const posYPtr = wasmEngineModule.getPlayerPosYOffset(playerPtr);
+  const posZPtr = wasmEngineModule.getPlayerPosZOffset(playerPtr);
+  const dirXPtr = wasmEngineModule.getPlayerDirXOffset(playerPtr);
+  const dirYPtr = wasmEngineModule.getPlayerDirYOffset(playerPtr);
+  const planeXPtr = wasmEngineModule.getPlayerPlaneXOffset(playerPtr);
+  const planeYPtr = wasmEngineModule.getPlayerPlaneYOffset(playerPtr);
+  const pitchOffset = wasmEngineModule.getPlayerPitchOffset(playerPtr);
   const player = new Player(
     playerPtr,
     posXPtr,
@@ -107,6 +108,4 @@ function getWasmPlayer(): Player {
   return player;
 }
 
-
-export type { Player };
-export { getWasmPlayer };
+export { Player, getWasmPlayerView };

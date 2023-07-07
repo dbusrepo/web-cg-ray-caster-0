@@ -44,7 +44,9 @@ import { Player, newPlayer,
   getPlayerPitchOffset, getPlayerPosZOffset,
 } from './raycaster/player';
 import { Map, newMap } from './raycaster/map';
-import { Raycaster, newRaycaster,
+import { 
+  Raycaster,
+  newRaycaster,
   getRaycasterBorderColorOffset,
   getRaycasterZBufferPtr,
 } from './raycaster/raycaster';
@@ -138,11 +140,13 @@ function getRaycasterPtr(): PTR_T {
   return changetype<PTR_T>(raycaster);
 }
 
-function getViewportPtr(): PTR_T {
+function getViewportPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.ViewportPtr;
 }
 
-function getPlayerPtr(): PTR_T {
+function getPlayerPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.PlayerPtr;
 }
 

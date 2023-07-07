@@ -62,6 +62,8 @@ type WasmModules = {
   engine: typeof engineExport;
 };
 
+type WasmEngineModule = WasmModules['engine'];
+
 async function loadWasm<T>(
   wasm: wasmBuilderFunc<T>,
   wasmInput: WasmImports,
@@ -106,5 +108,5 @@ async function loadWasmModules(imports: WasmImports): Promise<WasmModules> {
   };
 }
 
-export type { WasmImports, WasmModules };
+export type { WasmImports, WasmModules, WasmEngineModule };
 export { loadWasmModules };

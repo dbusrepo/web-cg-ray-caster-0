@@ -3,7 +3,6 @@ import type { WasmViews } from '../engine/wasmEngine/wasmViews';
 import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
 import type { WasmRunParams } from '../engine/wasmEngine/wasmRun';
 import { WasmRun, gWasmRun } from '../engine/wasmEngine/wasmRun';
-import { getWasmViewport } from '../engine/raycaster/viewport';
 
 const enum AuxAppWorkerCommandEnum {
   INIT = 'aux_app_worker_init',
@@ -37,7 +36,6 @@ class AuxAppWorker {
   async run() {
     const { syncArray, workerIndex } = this.params;
     console.log(`Aux app worker ${workerIndex} running`);
-
     try {
       while (true) {
         Atomics.wait(syncArray, workerIndex, 0);

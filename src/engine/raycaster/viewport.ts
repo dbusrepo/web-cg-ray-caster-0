@@ -1,3 +1,4 @@
+import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class Viewport {
@@ -45,16 +46,15 @@ class Viewport {
   }
 }
 
-function getWasmViewport(): Viewport {
-  const wasmEngine = gWasmRun.WasmModules.engine;
-  const viewportPtr = wasmEngine.getViewportPtr();
-  const startXPtr = wasmEngine.getViewportStartXOffset(viewportPtr);
-  const startYPtr = wasmEngine.getViewportStartYOffset(viewportPtr);
-  const widthPtr = wasmEngine.getViewportWidthOffset(viewportPtr);
-  const heightPtr = wasmEngine.getViewportHeightOffset(viewportPtr);
+// TODO: use second param
+function getWasmViewportView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Viewport {
+  const viewportPtr = wasmEngineModule.getViewportPtr(wasmRaycasterPtr);
+  const startXPtr = wasmEngineModule.getViewportStartXOffset(viewportPtr);
+  const startYPtr = wasmEngineModule.getViewportStartYOffset(viewportPtr);
+  const widthPtr = wasmEngineModule.getViewportWidthOffset(viewportPtr);
+  const heightPtr = wasmEngineModule.getViewportHeightOffset(viewportPtr);
   const viewport = new Viewport(viewportPtr, startXPtr, startYPtr, widthPtr, heightPtr);
   return viewport;
 }
 
-export type { Viewport };
-export { getWasmViewport };
+export { Viewport, getWasmViewportView };
