@@ -37,7 +37,6 @@ type WasmEngineParams = {
 class WasmEngine {
   private params: WasmEngineParams;
   private wasmMem: WebAssembly.Memory;
-  private wasmMemParams: WasmMemParams;
   private wasmRegionsSizes: WasmMemRegionsData;
   private wasmRegionsOffsets: WasmMemRegionsData;
   private wasmViews: WasmViews;
@@ -65,7 +64,6 @@ class WasmEngine {
   }
 
   private async initWasm(): Promise<void> {
-    this.initWasmMemParams();
     this.initWasmMemRegions();
     this.allocWasmMem();
     this.initMemViews();
@@ -93,13 +91,17 @@ class WasmEngine {
     console.log(`wasm mem config start pages: ${initial}`);
   }
 
-  private initWasmMemParams(): void {
+  private get NumTotalWorkers() {
+    return 1 + this.params.numWorkers;
+  }
+
+  private initWasmMemRegions(): void {
 
     const { imageWidth, imageHeight } = this.params;
-    const numTotalWorkers = 1 + this.params.numWorkers;
+    const numTotalWorkers = this.NumTotalWorkers;
 
     // set wasm mem regions sizes
-    this.wasmMemParams = {
+    const wasmMemParams: WasmMemParams = {
       // frameBufferPalSize: 0, // this._cfg.usePalette ? numPixels : 0,
       // paletteSize: 0, // this._cfg.usePalette ? PALETTE_SIZE * PAL_ENTRY_SIZE : 0,
       startOffset: mainConfig.wasmMemStartOffset,
@@ -120,10 +122,7 @@ class WasmEngine {
       hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
     };
 
-  }
-
-  private initWasmMemRegions(): void {
-    const [sizes, offsets] = WasmUtils.getMemRegionsSizesAndOffsets(this.wasmMemParams);
+    const [sizes, offsets] = WasmUtils.getMemRegionsSizesAndOffsets(wasmMemParams);
     this.wasmRegionsSizes = sizes;
     this.wasmRegionsOffsets = offsets;
 
@@ -184,7 +183,7 @@ class WasmEngine {
       wasmWorkerHeapSize: mainConfig.wasmWorkerHeapPages * PAGE_SIZE_BYTES,
       mainWorkerIdx: 0, // main worker idx 0
       workerIdx: 0,
-      numWorkers: this.wasmMemParams.numWorkers,
+      numWorkers: this.NumTotalWorkers,
       numImages: this.params.assetManager.Images.length,
       surface0sizes: [imageWidth, imageHeight],
       surface1sizes: [0, 0], // not used
@@ -232,10 +231,6 @@ class WasmEngine {
 
   public get WasmMem(): WebAssembly.Memory {
     return this.wasmMem;
-  }
-
-  public get WasmMemParams(): WasmMemParams {
-    return this.wasmMemParams;
   }
 
   public get WasmRunParams(): WasmRunParams {
