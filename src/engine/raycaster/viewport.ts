@@ -49,10 +49,10 @@ class Viewport {
 // TODO: use second param
 function getWasmViewportView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Viewport {
   const viewportPtr = wasmEngineModule.getViewportPtr(wasmRaycasterPtr);
-  const startXPtr = wasmEngineModule.getViewportStartXOffset(viewportPtr);
-  const startYPtr = wasmEngineModule.getViewportStartYOffset(viewportPtr);
-  const widthPtr = wasmEngineModule.getViewportWidthOffset(viewportPtr);
-  const heightPtr = wasmEngineModule.getViewportHeightOffset(viewportPtr);
+  const startXPtr = wasmEngineModule.getViewportStartXPtr(viewportPtr);
+  const startYPtr = wasmEngineModule.getViewportStartYPtr(viewportPtr);
+  const widthPtr = wasmEngineModule.getViewportWidthPtr(viewportPtr);
+  const heightPtr = wasmEngineModule.getViewportHeightPtr(viewportPtr);
   const viewport = new Viewport(viewportPtr, startXPtr, startYPtr, widthPtr, heightPtr);
   return viewport;
 }

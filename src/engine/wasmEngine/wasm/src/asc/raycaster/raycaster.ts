@@ -81,11 +81,11 @@ function newRaycaster(): Raycaster {
   return raycaster;
 }
 
-function getRaycasterBorderColorOffset(raycasterPtr: PTR_T): PTR_T {
+function getBorderColorPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("borderColor");
 }
 
-function getRaycasterZBufferPtr(raycasterPtr: PTR_T): PTR_T {
+function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.ZBuffer.DataPtr;
 }
@@ -93,6 +93,6 @@ function getRaycasterZBufferPtr(raycasterPtr: PTR_T): PTR_T {
 export {
   Raycaster,
   newRaycaster,
-  getRaycasterBorderColorOffset,
-  getRaycasterZBufferPtr,
+  getBorderColorPtr,
+  getZBufferPtr,
 };

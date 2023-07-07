@@ -34,21 +34,21 @@ import { SArray, newSArray } from './sarray';
 import { test } from './test/test';
 import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
 import { Viewport, newViewport,
-  getViewportStartXOffset, getViewportStartYOffset, 
-  getViewportWidthOffset, getViewportHeightOffset,
+  getViewportStartXPtr, getViewportStartYPtr, 
+  getViewportWidthPtr, getViewportHeightPtr,
 } from './raycaster/viewport';
 import { Player, newPlayer,
-  getPlayerPosXOffset, getPlayerPosYOffset,
-  getPlayerDirXOffset, getPlayerDirYOffset,
-  getPlayerPlaneXOffset, getPlayerPlaneYOffset,
-  getPlayerPitchOffset, getPlayerPosZOffset,
+  getPlayerPosXPtr, getPlayerPosYPtr,
+  getPlayerDirXPtr, getPlayerDirYPtr,
+  getPlayerPlaneXPtr, getPlayerPlaneYPtr,
+  getPlayerPitchPtr, getPlayerPosZPtr,
 } from './raycaster/player';
 import { Map, newMap } from './raycaster/map';
 import { 
   Raycaster,
   newRaycaster,
-  getRaycasterBorderColorOffset,
-  getRaycasterZBufferPtr,
+  getBorderColorPtr,
+  getZBufferPtr,
 } from './raycaster/raycaster';
 
 // TODO:
@@ -320,25 +320,25 @@ export {
   allocMap,
 
   getRaycasterPtr,
-  getRaycasterBorderColorOffset,
-  getRaycasterZBufferPtr,
+  getBorderColorPtr,
+  getZBufferPtr,
   getRaycasterXGridPtr,
   getRaycasterYGridPtr,
   postInitRaycaster,
 
   getViewportPtr,
-  getViewportStartXOffset,
-  getViewportStartYOffset,
-  getViewportWidthOffset,
-  getViewportHeightOffset,
+  getViewportStartXPtr,
+  getViewportStartYPtr,
+  getViewportWidthPtr,
+  getViewportHeightPtr,
 
   getPlayerPtr,
-  getPlayerPosXOffset,
-  getPlayerPosYOffset,
-  getPlayerPosZOffset,
-  getPlayerDirXOffset,
-  getPlayerDirYOffset,
-  getPlayerPlaneXOffset,
-  getPlayerPlaneYOffset,
-  getPlayerPitchOffset,
+  getPlayerPosXPtr,
+  getPlayerPosYPtr,
+  getPlayerPosZPtr,
+  getPlayerDirXPtr,
+  getPlayerDirYPtr,
+  getPlayerPlaneXPtr,
+  getPlayerPlaneYPtr,
+  getPlayerPitchPtr,
 };

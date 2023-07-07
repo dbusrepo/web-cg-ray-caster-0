@@ -90,7 +90,7 @@ class Raycaster {
   }
 
   private initZBufferView() {
-    const zBufferPtr = this.wasmEngineModule.getRaycasterZBufferPtr(this.wasmRaycasterPtr);
+    const zBufferPtr = this.wasmEngineModule.getZBufferPtr(this.wasmRaycasterPtr);
     this.zBuffer = new Float32Array(
       this.params.wasmRun.WasmMem.buffer,
       zBufferPtr,
@@ -220,7 +220,7 @@ class Raycaster {
       } while (!hit && --MAX_STEPS);
 
       if (!hit) {
-        console.log('no hit');
+        // console.log('no hit');
         // break; // TODO:
         continue;
       }

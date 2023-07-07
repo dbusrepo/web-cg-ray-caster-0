@@ -131,7 +131,7 @@ class AppWorker {
   }
 
   private initBorder() {
-    this.wasmBorderColorPtr = this.wasmEngineModule.getRaycasterBorderColorOffset(this.wasmRaycasterPtr);
+    this.wasmBorderColorPtr = this.wasmEngineModule.getBorderColorPtr(this.wasmRaycasterPtr);
     this.BorderColor = makeColor(0xffff00ff);
   }
 

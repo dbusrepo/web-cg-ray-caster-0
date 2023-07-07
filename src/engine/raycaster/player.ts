@@ -86,14 +86,14 @@ class Player {
 // TODO: use second param
 function getWasmPlayerView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Player {
   const playerPtr = wasmEngineModule.getPlayerPtr(wasmRaycasterPtr);
-  const posXPtr = wasmEngineModule.getPlayerPosXOffset(playerPtr);
-  const posYPtr = wasmEngineModule.getPlayerPosYOffset(playerPtr);
-  const posZPtr = wasmEngineModule.getPlayerPosZOffset(playerPtr);
-  const dirXPtr = wasmEngineModule.getPlayerDirXOffset(playerPtr);
-  const dirYPtr = wasmEngineModule.getPlayerDirYOffset(playerPtr);
-  const planeXPtr = wasmEngineModule.getPlayerPlaneXOffset(playerPtr);
-  const planeYPtr = wasmEngineModule.getPlayerPlaneYOffset(playerPtr);
-  const pitchOffset = wasmEngineModule.getPlayerPitchOffset(playerPtr);
+  const posXPtr = wasmEngineModule.getPlayerPosXPtr(playerPtr);
+  const posYPtr = wasmEngineModule.getPlayerPosYPtr(playerPtr);
+  const posZPtr = wasmEngineModule.getPlayerPosZPtr(playerPtr);
+  const dirXPtr = wasmEngineModule.getPlayerDirXPtr(playerPtr);
+  const dirYPtr = wasmEngineModule.getPlayerDirYPtr(playerPtr);
+  const planeXPtr = wasmEngineModule.getPlayerPlaneXPtr(playerPtr);
+  const planeYPtr = wasmEngineModule.getPlayerPlaneYPtr(playerPtr);
+  const pitchPtr = wasmEngineModule.getPlayerPitchPtr(playerPtr);
   const player = new Player(
     playerPtr,
     posXPtr,
@@ -103,7 +103,7 @@ function getWasmPlayerView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr:
     dirYPtr,
     planeXPtr,
     planeYPtr,
-    pitchOffset,
+    pitchPtr,
   );
   return player;
 }
