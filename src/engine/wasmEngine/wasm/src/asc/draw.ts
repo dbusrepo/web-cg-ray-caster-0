@@ -37,6 +37,8 @@ function clearBg(
     // ptr1 += PIX_OFFS;
   }
 
+  // memory.fill(startOff, 0x00, endOff - startOff);
+
   // test first and last pixel
   // store<u32>(rgbaSurface0ptr, 0xFF_00_00_FF);
   // store<u32>(rgbaSurface0ptr + (pixelCount-1)*4, 0xFF_00_00_FF);

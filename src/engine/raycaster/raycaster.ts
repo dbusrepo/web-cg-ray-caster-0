@@ -131,14 +131,6 @@ class Raycaster {
     // this.frameBuffer.buf32.fill(0xff00ffff, startY * this.frameBuffer.pitch + startX, startY * this.frameBuffer.pitch + startX + width);
     // this.frameBuffer.buf32.fill(0xff00ffff, (startY + height - 1) * this.frameBuffer.pitch + startX, (startY + height - 1) * this.frameBuffer.pitch + startX + width);
 
-    // console.log(`px ${pX.toFixed(2)} py ${pY.toFixed(2)}`); // dirX ${dirX} dirY ${dirY}`);// planeX ${planeX} planeY ${planeY} pitch ${pitch} posZ ${posZ}`)
-
-    // const cameraX = 2 * (width - 1) / width - 1;
-    // (2 * width - 2) / width - 1;
-    // 2 - 2 / width - 1 = 1 - 2 / width
-    // 2 * x / (width - 1) - 1, 
-    // => x = width - 1, 2 * (width - 1) / (width - 1) - 1 = 1, x = 0, 2 * 0 / (width - 1) - 1 = -1
-    // console.log(cameraX);
 
     const scrStartPtr = startY * stride + startX;
 

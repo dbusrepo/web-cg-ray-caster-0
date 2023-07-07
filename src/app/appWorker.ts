@@ -359,7 +359,7 @@ Date.now() - initStart
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
         this.wasmEngine.syncWorkers(this.auxWorkers);
         try {
-          this.wasmEngineModule.render();
+          // this.wasmEngineModule.render();
           this.raycaster.castScene();
         }
         catch (e) {

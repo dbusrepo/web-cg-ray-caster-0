@@ -336,3 +336,12 @@ circular dependency webpack:
 https://stackoverflow.com/questions/73157442/webpack-warning-using-webworker-circular-dependency-between-chunks-with-runtime
 
 https://stackoverflow.com/questions/73499449/webpack-dev-server-not-reloading
+
+// console.log(`px ${pX.toFixed(2)} py ${pY.toFixed(2)}`); // dirX ${dirX} dirY ${dirY}`);// planeX ${planeX} planeY ${planeY} pitch ${pitch} posZ ${posZ}`)
+
+// const cameraX = 2 * (width - 1) / width - 1;
+// (2 * width - 2) / width - 1;
+// 2 - 2 / width - 1 = 1 - 2 / width
+// 2 * x / (width - 1) - 1, 
+// => x = width - 1, 2 * (width - 1) / (width - 1) - 1 = 1, x = 0, 2 * 0 / (width - 1) - 1 = -1
+// console.log(cameraX);
