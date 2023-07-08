@@ -92,36 +92,36 @@ function newPlayer(): Player {
   return player;
 }
 
-function getPlayerPosXPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("posX");
+function getPlayerPosXPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("posX");
 }
 
-function getPlayerPosYPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("posY");
+function getPlayerPosYPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("posY");
 }
 
-function getPlayerPosZPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("posZ");
+function getPlayerPosZPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("posZ");
 }
 
-function getPlayerDirXPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("dirX");
+function getPlayerDirXPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("dirX");
 }
 
-function getPlayerDirYPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("dirY");
+function getPlayerDirYPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("dirY");
 }
 
-function getPlayerPlaneXPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("planeX");
+function getPlayerPlaneXPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("planeX");
 }
 
-function getPlayerPlaneYPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("planeY");
+function getPlayerPlaneYPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("planeY");
 }
 
-function getPlayerPitchPtr(basePtr: PTR_T): PTR_T {
-  return basePtr + offsetof<Player>("pitch");
+function getPlayerPitchPtr(playerPtr: PTR_T): PTR_T {
+  return playerPtr + offsetof<Player>("pitch");
 }
 
 export { 

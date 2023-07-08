@@ -14,6 +14,8 @@ import { WasmRun } from '../wasmEngine/wasmRun';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
+import { WallSlice, getWasmWallSlicesView } from './wallslice';
+import { initDrawParams, drawBackground, drawSceneV } from './draw';
 
 import { images } from '../../../assets/build/images';
 import { loadImage } from './imageUtils'; // TODO: rename
@@ -33,10 +35,7 @@ class Raycaster {
 
   private wasmRaycasterPtr: number;
 
-  private textures: BitImageRGBA[];
-
-  private frameBuf32: Uint32Array;
-  private frameStride: number;
+  private wallTextures: BitImageRGBA[];
 
   private mapWidth: number;
   private mapHeight: number;
@@ -45,6 +44,7 @@ class Raycaster {
   private yGrid: Uint8Array;
 
   private zBuffer: Float32Array;
+  private wallSlices: WallSlice[];
 
   private wallHeight: number;
 
@@ -53,6 +53,8 @@ class Raycaster {
   public async init(params: RaycasterParams) {
     this.params = params;
     const { wasmRun } = params;
+
+    this.initTexturesView();
 
     this.wasmEngineModule = wasmRun.WasmModules.engine;
     this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
@@ -63,30 +65,36 @@ class Raycaster {
     this.initFrameBuf();
 
     this.initZBufferView();
+    this.initWallSlices();
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
 
     // console.log('raycaster starting...');
 
-    this.initTextures();
-
     this.backgroundColor = makeColor(0x000000ff);
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
 
     // this.renderBorders(); // TODO:
-
-
-    // this.castScene(); // TODO:
   }
 
   private initFrameBuf() {
     const { wasmRun } = this.params;
-    const frameBuf8 = wasmRun.WasmViews.rgbaSurface0;
-    this.frameBuf32 = new Uint32Array(frameBuf8.buffer,
+    const { rgbaSurface0: frameBuf8 } = wasmRun.WasmViews;
+
+    const frameBuf32 = new Uint32Array(frameBuf8.buffer,
       0, frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT);
-    this.frameStride = this.params.frameStride;
+
+    const frameStride = this.params.frameStride;
+
+    assert(this.wallTextures, 'textures not initialized');
+
+    initDrawParams(frameBuf32, frameStride, 
+      this.viewport.StartX, this.viewport.StartY,
+      this.viewport.Width, this.viewport.Height,
+      this.wallTextures,
+    );
   }
 
   private initZBufferView() {
@@ -97,50 +105,35 @@ class Raycaster {
       this.viewport.Width);
   }
 
-  private initTextures() {
-    this.textures = [];
-    this.textures[0] = loadImage(images.GREYSTONE); // TODO: rename
-    this.textures[1] = loadImage(images.BLUESTONE);
-    this.textures[2] = loadImage(images.REDBRICK);
+  private initWallSlices() {
+    const numWallSlices = this.viewport.Width;
+    this.wallSlices = getWasmWallSlicesView(this.wasmEngineModule, this.wasmRaycasterPtr, numWallSlices);
   }
 
-  private renderBackground() {
-    const { frameStride: stride, frameBuf32 } = this;
-    const { StartX, StartY, Width, Height } = this.viewport;
-    for (let i = StartY, offset = StartY * stride; i < StartY + Height; i++, offset += stride) {
-      frameBuf32.fill(this.backgroundColor, offset + StartX, offset + StartX + Width);
-    }
+  private initTexturesView() {
+    this.wallTextures = [];
+    this.wallTextures[0] = loadImage(images.GREYSTONE); // TODO: rename
+    this.wallTextures[1] = loadImage(images.BLUESTONE);
+    this.wallTextures[2] = loadImage(images.REDBRICK);
   }
 
   castScene() {
-
     // this.wasmEngine.WasmRun.WasmModules.engine.render();
     // this.wasmEngineModule.render();
 
-    this.renderBackground();
+    // drawBackground(this.backgroundColor);
 
-    const { frameStride: stride, frameBuf32 } = this;
-
-    const { StartX: startX, StartY: startY, Width: width, Height: height } = this.viewport;
     const { xGrid, yGrid } = this;
+    const { Width: vpWidth, Height: vpHeight } = this.viewport;
     const { PosX: posX, PosY: posY, DirX: dirX, DirY: dirY, PlaneX: planeX, PlaneY: planeY } = this.player;
-
-    // TODO:
-    // const mid = (startY + height / 2) | 0;
-    // this.frameBuffer.buf32.fill(0xff00ffff, mid * this.frameBuffer.pitch + startX, mid * this.frameBuffer.pitch + startX + width);
-    // this.frameBuffer.buf32.fill(0xff00ffff, startY * this.frameBuffer.pitch + startX, startY * this.frameBuffer.pitch + startX + width);
-    // this.frameBuffer.buf32.fill(0xff00ffff, (startY + height - 1) * this.frameBuffer.pitch + startX, (startY + height - 1) * this.frameBuffer.pitch + startX + width);
-
-
-    const scrStartPtr = startY * stride + startX;
 
     const gridWidth = this.mapWidth + 1;
 
     // for (let x = 0; x < width; x++) {
-    for (let x = 0; x < width; x++) {
+    for (let x = 0; x < vpWidth; x++) {
 
       // const cameraX = 2 * x / width - 1;
-      const cameraX = 2 * x / (width - 1) - 1; // TODO:
+      const cameraX = 2 * x / (vpWidth - 1) - 1; // TODO:
       const rayDirX = dirX + planeX * cameraX;
       const rayDirY = dirY + planeY * cameraX;
       const deltaDistX = Math.abs(1 / rayDirX);
@@ -221,21 +214,25 @@ class Raycaster {
 
       const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
-      const midY = (height / 2) | 0;
+      const midY = vpHeight >> 1;
 
-      let wallTop = ((-wallSliceHeight / 2) | 0) + midY;
+      let wallTop = midY - (wallSliceHeight >> 1);
       if (wallTop < 0) {
         wallTop = 0;
       }
 
       let wallBottom = wallTop + wallSliceHeight;
-      if (wallBottom > height) {
-        wallBottom = height;
+      if (wallBottom > vpHeight) {
+        wallBottom = vpHeight;
       }
 
-      assert(texId >= 0 && texId < this.textures.length, `invalid texture id ${texId}`);
-      const texture = this.textures[texId];
+      assert(wallTop >= 0 && wallTop < vpHeight, `invalid top ${wallTop}`);
+      assert(wallBottom >= 0 && wallBottom <= vpHeight, `invalid bottom ${wallBottom}`);
+      assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
+      assert(texId >= 0 && texId < this.wallTextures.length, `invalid texture id ${texId}`);
+
+      const texture = this.wallTextures[texId];
       const { Width : texWidth, Height: texHeight } = texture;
 
       // wallX -= Math.floor(wallX); // wallX %= 1;
@@ -250,30 +247,24 @@ class Raycaster {
         texX = texWidth - texX - 1;
       }
 
-      const step = 1. * texHeight / wallSliceHeight;
+      const texStepY = 1. * texHeight / wallSliceHeight;
 
-      let texPos = (wallTop - midY + wallSliceHeight / 2) * step;
+      let texPosY = (wallTop - midY + wallSliceHeight / 2) * texStepY;
 
-      const colPtr = scrStartPtr + x;
-      let scrPtr = colPtr + wallTop * stride; 
-
-      for (let y = wallTop; y < wallBottom; y++) {
-        const texY = texPos | 0;
-        texPos += step;
-        const color = texture.Buf32[texY * texWidth + texX];
-        frameBuf32[scrPtr] = color;
-        scrPtr += stride;
-      }
-
-      // // solid color
-      // for (let y = wallTop; y < wallBottom; y++) {
-      //   frameBuf32[scrPtr] = 0xff0000ff;
-      //   scrPtr += stride;
-      // }
-
-      // texture wall
-      // const step = texHeight / lineHeight;
+      const wallSlice = this.wallSlices[x];
+      wallSlice.ColIdx = x;
+      wallSlice.Top = wallTop;
+      wallSlice.Bottom = wallBottom;
+      wallSlice.TexX = texX;
+      wallSlice.TexStepY = texStepY;
+      wallSlice.TexPosY = texPosY;
+      wallSlice.TexId = texId;
+      wallSlice.MipLvl = 0;
     }
+
+    // console.log(`render time: ${Date.now() - t0} ms`);
+    //
+    drawSceneV(this.wallSlices);
   }
 
   public initMap() {
@@ -288,8 +279,8 @@ class Raycaster {
 
     this.wasmEngineModule.allocMap(mapWidth, mapHeight);
 
-    const xGridPtr = this.wasmEngineModule.getRaycasterXGridPtr();
-    const yGridPtr = this.wasmEngineModule.getRaycasterYGridPtr();
+    const xGridPtr = this.wasmEngineModule.getXGridPtr(this.wasmRaycasterPtr);
+    const yGridPtr = this.wasmEngineModule.getYGridPtr(this.wasmRaycasterPtr);
 
     // console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
 
@@ -319,14 +310,6 @@ class Raycaster {
     this.xGrid[4] = 1;
     this.xGrid[4 + (mapWidth + 1) * 2] = 3;
     this.yGrid[4 + (mapWidth + 1) * 1] = 3;
-  }
-
-  get FrameBuf32() {
-    return this.frameBuf32;
-  }
-
-  get FrameStride() {
-    return this.frameStride;
   }
 
   get Viewport() {

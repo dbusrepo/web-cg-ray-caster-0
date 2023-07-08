@@ -46,7 +46,6 @@ class Viewport {
   }
 }
 
-// TODO: use second param
 function getWasmViewportView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Viewport {
   const viewportPtr = wasmEngineModule.getViewportPtr(wasmRaycasterPtr);
   const startXPtr = wasmEngineModule.getViewportStartXPtr(viewportPtr);

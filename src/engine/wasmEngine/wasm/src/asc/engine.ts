@@ -49,7 +49,24 @@ import {
   newRaycaster,
   getBorderColorPtr,
   getZBufferPtr,
+  getXGridPtr,
+  getYGridPtr,
+  getWallSlicesPtr,
+  allocBuffers,
+  getWallSliceObjSizeLg2,
 } from './raycaster/raycaster';
+import { 
+  WallSlice,
+  newWallSlice,
+  getWallSliceColIdxPtr,
+  getWallSliceTopPtr,
+  getWallSliceBottomPtr,
+  getWallSliceTexXPtr,
+  getWallSliceTexStepYPtr,
+  getWallSliceTexPosYPtr,
+  getWallSliceTexIdPtr,
+  getWallSliceMipLvlPtr,
+} from './raycaster/wallslice';
 
 // TODO:
 // import { initRayCaster } from './raycaster/raycaster';
@@ -79,14 +96,6 @@ let raycaster = changetype<Raycaster>(NULL_PTR);
 // let viewport = changetype<Viewport>(NULL_PTR);
 // let player = changetype<Player>(NULL_PTR);
 // let map = changetype<Map>(NULL_PTR);
-
-function getRaycasterXGridPtr(): PTR_T {
-  return raycaster.Map.xGridPtr.DataPtr;
-}
-
-function getRaycasterYGridPtr(): PTR_T {
-  return raycaster.Map.yGridPtr.DataPtr;
-}
 
 function allocMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
@@ -132,9 +141,6 @@ function init(): void {
   // test();
 }
 
-function postInitRaycaster(): void {
-  raycaster.postInit();
-}
 
 function getRaycasterPtr(): PTR_T {
   return changetype<PTR_T>(raycaster);
@@ -322,9 +328,11 @@ export {
   getRaycasterPtr,
   getBorderColorPtr,
   getZBufferPtr,
-  getRaycasterXGridPtr,
-  getRaycasterYGridPtr,
-  postInitRaycaster,
+  getWallSlicesPtr,
+  getXGridPtr,
+  getYGridPtr,
+  allocBuffers,
+  getWallSliceObjSizeLg2,
 
   getViewportPtr,
   getViewportStartXPtr,
@@ -341,4 +349,13 @@ export {
   getPlayerPlaneXPtr,
   getPlayerPlaneYPtr,
   getPlayerPitchPtr,
+
+  getWallSliceColIdxPtr,
+  getWallSliceTopPtr,
+  getWallSliceBottomPtr,
+  getWallSliceTexXPtr,
+  getWallSliceTexStepYPtr,
+  getWallSliceTexPosYPtr,
+  getWallSliceTexIdPtr,
+  getWallSliceMipLvlPtr,
 };

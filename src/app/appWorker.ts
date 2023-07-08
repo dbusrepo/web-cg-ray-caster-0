@@ -24,6 +24,7 @@ import type { AuxWorkerParams } from '../engine/auxWorker';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 import { Viewport, getWasmViewportView } from '../engine/raycaster/viewport';
 import { Player, getWasmPlayerView } from '../engine/raycaster/player';
+import { drawBorders } from '../engine/raycaster/draw';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -70,6 +71,8 @@ class AppWorker {
     await this.initWasmEngine();
     await this.initRaycaster();
     this.initMap();
+    // this.raycaster.castScene();
+    drawBorders(this.BorderColor);
     await this.runAuxWorkers();
   }
   
@@ -77,7 +80,7 @@ class AppWorker {
     this.initViewport();
     this.initPlayer();
     this.initBorder();
-    this.wasmEngineModule.postInitRaycaster();
+    this.wasmEngineModule.allocBuffers(this.wasmRaycasterPtr);
   }
 
   private initInputManager() {
@@ -429,33 +432,15 @@ Date.now() - initStart
     this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
-  private renderBorders() {
-    const frameBuf32 = this.raycaster.FrameBuf32;
-    const stride = this.raycaster.FrameStride;
-    const { StartX, StartY, Width, Height } = this.raycaster.Viewport;
-    const upperLimit = StartY * stride;
-    const lowerLimit = (StartY + Height) * stride;
-
-    frameBuf32.fill(this.BorderColor, 0, upperLimit);
-    frameBuf32.fill(this.BorderColor, lowerLimit, frameBuf32.length);
-
-    for (let i = StartY, offset = StartY * stride; i < StartY + Height; i++, offset += stride) {
-      frameBuf32.fill(this.BorderColor, offset, offset + StartX);
-      frameBuf32.fill(this.BorderColor, offset + StartX + Width, offset + stride);
-    }
-  }
-
   private get BorderColor(): number {
-    return this.wasmRun.WasmViews.view.getUint32(this.wasmBorderColorPtr);
+    return this.wasmRun.WasmViews.view.getUint32(this.wasmBorderColorPtr, true);
   }
 
   private set BorderColor(value: number) {
     this.wasmRun.WasmViews.view.setUint32(this.wasmBorderColorPtr, value, true);
   }
 
-  updateState(step: number, time: number) {
-
-  }
+  updateState(step: number, time: number) {}
 
   updatePlayer(time: number) {
     const { inputKeys } = this.wasmEngine.WasmViews;

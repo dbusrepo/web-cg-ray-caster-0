@@ -83,7 +83,6 @@ class Player {
   }
 }
 
-// TODO: use second param
 function getWasmPlayerView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Player {
   const playerPtr = wasmEngineModule.getPlayerPtr(wasmRaycasterPtr);
   const posXPtr = wasmEngineModule.getPlayerPosXPtr(playerPtr);

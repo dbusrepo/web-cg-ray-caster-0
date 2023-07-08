@@ -6,20 +6,31 @@ import { SArray, newSArray } from '../sarray';
 import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
 import { Map, newMap } from './map';
+import { WallSlice, newWallSlice } from './wallslice';
 
 @final @unmanaged class Raycaster {
   private borderColor: u32;
   private viewport: Viewport;
   private player: Player;
-  private zBuffer: SArray<f32>;
   private map: Map;
+  private zBuffer: SArray<f32>;
+  private wallSlices: SArray<WallSlice>;
 
-  postInit(): void {
+  allocBuffers(): void {
     this.allocZBuffer();
+    this.allocWallSlices();
   }
 
   allocZBuffer(): void {
     this.zBuffer = newSArray<f32>(this.Viewport.Width);
+  }
+
+  allocWallSlices(): void {
+    this.wallSlices = newSArray<WallSlice>(this.Viewport.Width);
+  }
+
+  get WallSliceObjSizeLg2(): SIZE_T {
+    return this.wallSlices.ObjSizeLg2;
   }
 
   get Viewport(): Viewport {
@@ -48,6 +59,10 @@ import { Map, newMap } from './map';
 
   get ZBuffer(): SArray<f32> {
     return this.zBuffer;
+  }
+
+  get WallSlices(): SArray<WallSlice> {
+    return this.wallSlices;
   }
 
   get ViewportPtr(): PTR_T {
@@ -90,9 +105,39 @@ function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.ZBuffer.DataPtr;
 }
 
+function getWallSlicesPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.WallSlices.DataPtr;
+}
+
+function getXGridPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.Map.xGridPtr.DataPtr;
+}
+
+function getYGridPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.Map.yGridPtr.DataPtr;
+}
+
+function allocBuffers(raycasterPtr: PTR_T): void {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  raycaster.allocBuffers();
+}
+
+function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.WallSliceObjSizeLg2;
+}
+
 export {
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
   getZBufferPtr,
+  getXGridPtr,
+  getYGridPtr,
+  getWallSlicesPtr,
+  allocBuffers,
+  getWallSliceObjSizeLg2,
 };
