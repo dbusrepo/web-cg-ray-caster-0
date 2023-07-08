@@ -80,11 +80,11 @@ let raycaster = changetype<Raycaster>(NULL_PTR);
 // let player = changetype<Player>(NULL_PTR);
 // let map = changetype<Map>(NULL_PTR);
 
-function getRaycasterXGridPtr(): SIZE_T {
+function getRaycasterXGridPtr(): PTR_T {
   return raycaster.Map.xGridPtr.DataPtr;
 }
 
-function getRaycasterYGridPtr(): SIZE_T {
+function getRaycasterYGridPtr(): PTR_T {
   return raycaster.Map.yGridPtr.DataPtr;
 }
 

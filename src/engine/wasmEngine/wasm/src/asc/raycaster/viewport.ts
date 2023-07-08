@@ -52,19 +52,19 @@ function newViewport(): Viewport {
   return viewport;
 }
 
-function getViewportStartXPtr(basePtr: PTR_T): SIZE_T {
+function getViewportStartXPtr(basePtr: PTR_T): PTR_T {
   return basePtr + offsetof<Viewport>("startX");
 }
 
-function getViewportStartYPtr(basePtr: PTR_T): SIZE_T {
+function getViewportStartYPtr(basePtr: PTR_T): PTR_T {
   return basePtr + offsetof<Viewport>("startY");
 }
 
-function getViewportWidthPtr(basePtr: PTR_T): SIZE_T {
+function getViewportWidthPtr(basePtr: PTR_T): PTR_T {
   return basePtr + offsetof<Viewport>("width");
 }
 
-function getViewportHeightPtr(basePtr: PTR_T): SIZE_T {
+function getViewportHeightPtr(basePtr: PTR_T): PTR_T {
   return basePtr + offsetof<Viewport>("height");
 }
 
