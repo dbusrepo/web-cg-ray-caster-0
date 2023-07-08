@@ -61,8 +61,8 @@ const HEADER_SIZE = getTypeSize<Header>() + HEADER_ALIGN_MASK;
     return getHeader(this).dataPtr;
   }
 
-  @inline get ObjSize(): SIZE_T {
-    return <SIZE_T>(1) << getHeader(this).objSizelg2;
+  @inline get ObjSizeLg2(): SIZE_T {
+    return getHeader(this).objSizelg2;
   }
 
   // TODO:
