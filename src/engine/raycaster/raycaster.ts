@@ -88,7 +88,7 @@ class Raycaster {
 
     const frameStride = this.params.frameStride;
 
-    assert(this.wallTextures, 'textures not initialized');
+    assert(this.wallTextures, 'wall textures not initialized');
 
     initDrawParams(frameBuf32, frameStride, 
       this.viewport.StartX, this.viewport.StartY,
