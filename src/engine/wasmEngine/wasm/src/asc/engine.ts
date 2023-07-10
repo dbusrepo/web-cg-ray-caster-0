@@ -10,7 +10,6 @@ import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
 import * as draw from './draw';
 import {
-  bgColor,
   sharedHeapPtr,
   numWorkers,
   mainWorkerIdx,

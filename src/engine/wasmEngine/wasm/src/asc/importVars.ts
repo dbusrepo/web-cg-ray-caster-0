@@ -16,8 +16,6 @@ export declare const rgbaSurface0height: u32;
 export declare const syncArrayPtr: usize;
 export declare const sleepArrayPtr: usize;
 
-export declare const bgColor: u32;
-
 // export declare const usePalette: i32;
 
 export declare const numTextures: u32;

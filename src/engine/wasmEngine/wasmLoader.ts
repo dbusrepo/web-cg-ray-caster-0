@@ -32,7 +32,6 @@ type WasmImports = {
   workerIdx: number;
   mainWorkerIdx: number;
   numWorkers: number;
-  bgColor: number;
   // usePalette: number;
   numTextures: number;
   texturesIndexPtr: number;
