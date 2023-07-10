@@ -37,29 +37,33 @@ checkArgs();
 // $ node genImagesList.mjs images.res imagesList.ts <ascfile>.ts
 // if from another dir use the rel path for the script and the other args
 const IN_FILE = srcFile; // path.join(__dirname, srcFile);
-const OUT_FILE = outFileTs; // path.join(__dirname, outFile);
+const OUT_FILE_TS = outFileTs; // path.join(__dirname, outFile);
 const OUT_FILE_ASC = outFileTsAsc;
 
 const writeOpts = {
   encoding: 'utf8',
 };
 
-const warnMsg = '// Do not modify. This file is auto generated from images.res with make';
-const getImagesUrlsPrefix = `const getImagesPaths = async () => {
+const getImagesUrlsFunName = 'getImagesUrls';
+const getImagesUrlsPrefix = `const ${getImagesUrlsFunName} = async () => {
   const paths: Promise<typeof import("*.png")>[] = [`;
 const getImagesUrlsSuffix = `  ];
   return (await Promise.all(paths)).map((imp) => imp.default);
 };\n`;
 
-const imagesObjPrefix = `const images = {`;
+const imagesArrayName = 'images';
+const imagesObjPrefix = `const ${imagesArrayName} = {`;
 const imagesObjSuffix = `};\n`;
 
-const ascImagesIndexesObjPrefix = `const ascImportImages = {`;
+const ascImportImages = 'ascImportImages';
+const ascImagesIndexesObjPrefix = `const ${ascImportImages} = {`;
 const ascImagesIndexesObjSuffix = `};\n`;
 
-const numImages = `const numImages = Object.keys(images).length;\n`;
+// const numImages = `const numImages = Object.keys(images).length;\n`;
 
-const suffix = 'export { numImages, images, getImagesPaths, ascImportImages };';
+const exportStmt = `export { ${getImagesUrlsFunName}, ${imagesArrayName}, ${ascImportImages} };`;
+
+const warnMsg = '// Do not modify. This file is auto generated from images.res with make';
 
 try {
   console.log(IN_FILE);
@@ -102,11 +106,10 @@ ${imagesObjSuffix}
 ${ascImagesIndexesObjPrefix}
 ${ascIndicesObjBodyStr}
 ${ascImagesIndexesObjSuffix}
-${numImages}
-${suffix}
+${exportStmt}
 `;
 
-  fs.writeFileSync(OUT_FILE, fileStr, writeOpts);
+  fs.writeFileSync(OUT_FILE_TS, fileStr, writeOpts);
   fs.writeFileSync(OUT_FILE_ASC, ascImportBodyStr, writeOpts);
 } catch (err) {
   console.error(err);

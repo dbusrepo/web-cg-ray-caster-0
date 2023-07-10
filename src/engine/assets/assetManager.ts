@@ -3,7 +3,7 @@ import * as loadUtils from './loadUtils';
 // import map0 from '../../../assets/maps/map0.txt'
 import {
   // images as sourceImages,
-  getImagesPaths,
+  getImagesUrls,
 } from '../../../assets/build/images';
 import { decodePNGs } from './images/utils';
 import { BitImageRGBA, BPP_RGBA } from './images/bitImageRGBA';
@@ -22,24 +22,24 @@ class AssetManager {
     await this.loadTextures();
   }
 
+  private static bitImageRGBA2TextureAssetRGBA(image: BitImageRGBA) {
+    return new AssetTextureRGBA(image, true);
+  }
+
   private async loadTextures() {
     const imageBuffers = await this.loadImagesBuffers();
     const bitImagesRGBA = await decodePNGs(imageBuffers);
-    this.textures = bitImagesRGBA.map((bitImage) => {
-      return new AssetTextureRGBA(bitImage, this.params.generateMipmaps);
-    });
+    this.textures = bitImagesRGBA.map(AssetManager.bitImageRGBA2TextureAssetRGBA);
+  }
+
+  private static loadUrlAsArrayBuffer(url: string): Promise<ArrayBuffer> {
+    return loadUtils.loadResAsArrayBuffer(url);
   }
 
   private async loadImagesBuffers(): Promise<ArrayBuffer[]> {
-    const imagesPaths = await getImagesPaths();
-    // assert(imagesPaths.length === Object.keys(sourceImages).length);
-    const imageBuffers = await Promise.all(
-      imagesPaths.map(async (url: string) => loadUtils.loadResAsArrayBuffer(url)),
-    );
+    const imagesUrls = await getImagesUrls();
+    const imageBuffers = await Promise.all(imagesUrls.map(AssetManager.loadUrlAsArrayBuffer));
     return imageBuffers;
-    // test load res file as text
-    // const resFile = (await import('../assets/images/images.res')).default;
-    // console.log('RES HERE: ', await loadUtils.loadResAsText(resFile));
   }
 
   public get Textures(): AssetTextureRGBA[] {

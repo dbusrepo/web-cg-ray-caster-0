@@ -17,14 +17,11 @@ BUILD_DIR := ./build
 IMAGES_OUT_TS := $(BUILD_DIR)/images.ts
 STRINGS_OUT_TS := $(BUILD_DIR)/strings.ts
 
-# prefix for generated asc files
-ASC_GEN_PREFIX := gen_
-
-IMAGES_OUT_ASC := $(ASC_DIR)/${ASC_GEN_PREFIX}importImages.ts
-STRINGS_OUT_ASC := $(ASC_DIR)/${ASC_GEN_PREFIX}importStrings.ts
+IMAGES_OUT_ASC := $(ASC_DIR)/gen_importImages.ts
+STRINGS_OUT_ASC := $(ASC_DIR)/gen_importStrings.ts
 # these two are define for clean only
-IMAGES_OUT_ASC_DEP := $(ASC_DIR)/${ASC_GEN_PREFIX}importImages.d
-STRINGS_OUT_ASC_DEP := $(ASC_DIR)/${ASC_GEN_PREFIX}importStrings.d
+IMAGES_OUT_ASC_DEP := $(ASC_DIR)/gen_importImages.d
+STRINGS_OUT_ASC_DEP := $(ASC_DIR)/gen_importStrings.d
 
 .PHONY: clean clean-images clean-strings
 
