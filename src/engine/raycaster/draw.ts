@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { WallSlice } from './wallslice';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import { Texture } from './texture';
 
 class DrawParams {
   public screenPtr: number;
@@ -12,7 +13,7 @@ class DrawParams {
     public viewStartY: number,
     public viewWidth: number,
     public viewHeight: number,
-    public wallTextures: BitImageRGBA[],
+    public wallTextures: Texture[],
   ) {
     this.screenPtr = viewStartY * frameStride + viewStartX;
   }
@@ -21,10 +22,14 @@ class DrawParams {
 let drawParams: DrawParams;
 
 function initDrawParams(
-  frameBuf32: Uint32Array, frameStride: number,
-  viewStartX: number, viewStartY: number,
-  viewWidth: number, viewHeight: number,
-  wallTextures: BitImageRGBA[]) {
+  frameBuf32: Uint32Array,
+  frameStride: number,
+  viewStartX: number,
+  viewStartY: number,
+  viewWidth: number,
+  viewHeight: number,
+  wallTextures: Texture[],
+) {
   drawParams = new DrawParams(
     frameBuf32, frameStride,
     viewStartX, viewStartY,
@@ -90,15 +95,15 @@ function drawSceneV(wallSlices: WallSlice[]) {
       ColIdx: colIdx,
       Top: top,
       Bottom: bottom,
+      TexId: texId,
+      MipLvl: mipLvl,
       TexX: texX,
       TexStepY: texStepY,
       TexPosY: texPosY,
-      TexId: texId,
-      MipLvl: mipLvl,
     } = wallSlice;
 
-    const texture = wallTextures[texId];
-    const { Width : texWidth, Height: texHeight } = texture;
+    const image = wallTextures[texId].getMipMap(mipLvl);
+    const { Width : texWidth, Height: texHeight } = image;
 
     const colPtr = screenPtr + colIdx;
     let dstPtr = colPtr; 
@@ -115,7 +120,7 @@ function drawSceneV(wallSlices: WallSlice[]) {
     for (let y = top; y < bottom; y++) {
       const texY = texPosY | 0;
       texPosY += texStepY;
-      const color = texture.Buf32[texY * texWidth + texX];
+      const color = image.Buf32[texY * texWidth + texX];
       frameBuf32[dstPtr] = color;
       dstPtr += stride;
     }

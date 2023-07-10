@@ -17,8 +17,8 @@ import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import { initDrawParams, drawBackground, drawSceneV } from './draw';
 
-import { images } from '../../../assets/build/images';
-import { loadImage } from './imageUtils'; // TODO: rename
+import { ascImportImages } from '../../../assets/build/images';
+import { Texture, initTexture } from './texture';
 
 type RaycasterParams = {
   wasmRun: WasmRun;
@@ -35,7 +35,7 @@ class Raycaster {
 
   private wasmRaycasterPtr: number;
 
-  private wallTextures: BitImageRGBA[];
+  private wallTextures: Texture[];
 
   private mapWidth: number;
   private mapHeight: number;
@@ -54,7 +54,7 @@ class Raycaster {
     this.params = params;
     const { wasmRun } = params;
 
-    this.initTexturesView();
+    this.initTextures();
 
     this.wasmEngineModule = wasmRun.WasmModules.engine;
     this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
@@ -90,7 +90,7 @@ class Raycaster {
 
     assert(this.wallTextures, 'wall textures not initialized');
 
-    initDrawParams(frameBuf32, frameStride, 
+    initDrawParams(frameBuf32, frameStride,
       this.viewport.StartX, this.viewport.StartY,
       this.viewport.Width, this.viewport.Height,
       this.wallTextures,
@@ -110,11 +110,14 @@ class Raycaster {
     this.wallSlices = getWasmWallSlicesView(this.wasmEngineModule, this.wasmRaycasterPtr, numWallSlices);
   }
 
-  private initTexturesView() {
+  private initTextures() {
     this.wallTextures = [];
-    this.wallTextures[0] = loadImage(images.GREYSTONE);
-    this.wallTextures[1] = loadImage(images.BLUESTONE);
-    this.wallTextures[2] = loadImage(images.REDBRICK);
+    const { WasmViews: wasmViews } = this.params.wasmRun;
+    // this.wallTextures[0] = initTexture(wasmViews, ascImportImages.BLUESTONE);
+    this.wallTextures[0] = initTexture(wasmViews, ascImportImages.GREYSTONE);
+    this.wallTextures[1] = initTexture(wasmViews, ascImportImages.BLUESTONE);
+    this.wallTextures[2] = initTexture(wasmViews, ascImportImages.REDBRICK);
+    console.log(this.wallTextures);
   }
 
   castScene() {
@@ -232,10 +235,12 @@ class Raycaster {
 
       assert(texId >= 0 && texId < this.wallTextures.length, `invalid texture id ${texId}`);
 
-      const texture = this.wallTextures[texId];
-      const { Width : texWidth, Height: texHeight } = texture;
+      const mipLevel = 0;
+      const image = this.wallTextures[texId].getMipMap(mipLevel);
+      const { Width : texWidth, Height: texHeight } = image;
 
-      // wallX -= Math.floor(wallX); // wallX %= 1;
+      // wallX -= Math.floor(wallX);
+      // wallX %= 1;
       wallX -= wallX | 0;
 
       let texX = (wallX * texWidth) | 0;
@@ -308,8 +313,8 @@ class Raycaster {
     }
 
     this.xGrid[4] = 1;
-    this.xGrid[4 + (mapWidth + 1) * 2] = 3;
-    this.yGrid[4 + (mapWidth + 1) * 1] = 3;
+    // this.xGrid[4 + (mapWidth + 1) * 2] = 3;
+    // this.yGrid[4 + (mapWidth + 1) * 1] = 3;
   }
 
   get Viewport() {

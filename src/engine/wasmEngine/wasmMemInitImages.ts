@@ -72,4 +72,12 @@ function copyTextures2WasmMem(
   }
 }
 
-export { copyTextures2WasmMem, calcWasmTexturesIndexSize };
+export {
+  copyTextures2WasmMem,
+  calcWasmTexturesIndexSize,
+  TEX_DESC_SIZE,
+  MIP_DESC_SIZE,
+  NUM_MIPS_FIELD_SIZE,
+  WIDTH_FIELD_SIZE, 
+  HEIGHT_FIELD_SIZE,
+};
