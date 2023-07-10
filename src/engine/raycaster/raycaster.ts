@@ -112,7 +112,7 @@ class Raycaster {
 
   private initTexturesView() {
     this.wallTextures = [];
-    this.wallTextures[0] = loadImage(images.GREYSTONE); // TODO: rename
+    this.wallTextures[0] = loadImage(images.GREYSTONE);
     this.wallTextures[1] = loadImage(images.BLUESTONE);
     this.wallTextures[2] = loadImage(images.REDBRICK);
   }

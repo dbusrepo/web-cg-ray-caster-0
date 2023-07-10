@@ -2,7 +2,7 @@ import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { gWasmRun } from '../wasmEngine/wasmRun';
 import { images } from '../../../assets/build/images';
 
-const loadImage = (image: string): BitImageRGBA => {
+const loadImage = (image: string): BitImageRGBA => {'raycaster.t
   const imagesList = Object.values(images);
 
   const imageIdx = imagesList.findIndex((value) => value === image);

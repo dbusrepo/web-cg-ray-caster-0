@@ -5,25 +5,32 @@ import {
   // images as sourceImages,
   getImagesPaths,
 } from '../../../assets/build/images';
-import { loadImages } from './images/utils';
-import { BitImage } from './images/bitImage';
+import { decodePNGs } from './images/utils';
+import { BitImageRGBA, BPP_RGBA } from './images/bitImageRGBA';
+import { AssetTextureRGBA } from './assetTextureRGBA';
+
+type AssetManagerParams = {
+  generateMipmaps: boolean;
+}
 
 class AssetManager {
-  private images: BitImage[]; // RGBA, PAL_IDX ?
-  private imagesTotalSize: number;
+  private params: AssetManagerParams;
+  private textures: AssetTextureRGBA[];
 
-  public async init() {
-    await this.loadImages();
+  public async init(params: AssetManagerParams) {
+    this.params = params;
+    await this.loadTextures();
   }
 
-  private async loadImages() {
-    const imageBuffers = await this.loadImageBuffers();
-    const { imagesTotalSize, images } = await loadImages(imageBuffers);
-    this.images = images;
-    this.imagesTotalSize = imagesTotalSize;
+  private async loadTextures() {
+    const imageBuffers = await this.loadImagesBuffers();
+    const bitImagesRGBA = await decodePNGs(imageBuffers);
+    this.textures = bitImagesRGBA.map((bitImage) => {
+      return new AssetTextureRGBA(bitImage, this.params.generateMipmaps);
+    });
   }
 
-  private async loadImageBuffers(): Promise<ArrayBuffer[]> {
+  private async loadImagesBuffers(): Promise<ArrayBuffer[]> {
     const imagesPaths = await getImagesPaths();
     // assert(imagesPaths.length === Object.keys(sourceImages).length);
     const imageBuffers = await Promise.all(
@@ -35,14 +42,21 @@ class AssetManager {
     // console.log('RES HERE: ', await loadUtils.loadResAsText(resFile));
   }
 
-  public get Images(): BitImage[] {
-    return this.images;
+  public get Textures(): AssetTextureRGBA[] {
+    return this.textures;
   }
 
-  public get ImagesTotalSize(): number {
-    return this.imagesTotalSize;
+  public get NumTextures(): number {
+    return this.textures.length;
   }
 
+  public get PixelsDataSize(): number {
+    return this.textures.reduce((acc, texture) => acc + texture.PixelsDataSize, 0);
+  }
+
+  public get GenerateMipmaps(): boolean {
+    return this.params.generateMipmaps;
+  }
 }
 
 export { AssetManager };

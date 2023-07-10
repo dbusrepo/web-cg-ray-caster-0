@@ -10,8 +10,8 @@ type WasmMemParams = {
   syncArraySize: number;
   sleepArraySize: number;
   workerHeapSize: number;
-  imagesIndexSize: number;
-  imagesSize: number;
+  texturesIndexSize: number;
+  texturesPixelsSize: number;
   sharedHeapSize: number;
   fontCharsSize: number;
   stringsSize: number;
@@ -31,8 +31,8 @@ const enum MemRegionsEnum {
   SLEEP_ARRAY = 'SLEEP_ARRAY',
   FONT_CHARS = 'FONT_CHARS',
   STRINGS = 'STRINGS',
-  IMAGES_INDEX = 'IMAGES_INDEX',
-  IMAGES = 'IMAGES',
+  TEXTURES_INDEX = 'TEXTURES_INDEX',
+  TEXTURES = 'TEXTURES',
   WORKERS_HEAPS = 'WORKERS_HEAPS',
   HEAP = 'HEAP',
   INPUT_KEYS = 'INPUT_KEYS',
@@ -54,8 +54,8 @@ function getMemRegionsSizes(params: WasmMemParams): WasmMemRegionsData {
     rgbaSurface0size,
     rgbaSurface1size,
     numWorkers,
-    imagesIndexSize,
-    imagesSize,
+    texturesIndexSize,
+    texturesPixelsSize,
     workerHeapSize,
     syncArraySize,
     sleepArraySize,
@@ -76,8 +76,8 @@ function getMemRegionsSizes(params: WasmMemParams): WasmMemRegionsData {
     [MemRegionsEnum.SLEEP_ARRAY]: sleepArraySize,
     [MemRegionsEnum.FONT_CHARS]: fontCharsSize,
     [MemRegionsEnum.STRINGS]: stringsSize,
-    [MemRegionsEnum.IMAGES_INDEX]: imagesIndexSize,
-    [MemRegionsEnum.IMAGES]: imagesSize,
+    [MemRegionsEnum.TEXTURES_INDEX]: texturesIndexSize,
+    [MemRegionsEnum.TEXTURES]: texturesPixelsSize,
     [MemRegionsEnum.WORKERS_HEAPS]: numWorkers * workerHeapSize,
     [MemRegionsEnum.HEAP]: sharedHeapSize,
     [MemRegionsEnum.MEM_COUNTERS]: workersMemCountersSize,
@@ -106,8 +106,8 @@ function getMemRegionsOffsets(
     [MemRegionsEnum.SLEEP_ARRAY]: 2,
     [MemRegionsEnum.FONT_CHARS]: 2,
     [MemRegionsEnum.STRINGS]: 2,
-    [MemRegionsEnum.IMAGES_INDEX]: 2,
-    [MemRegionsEnum.IMAGES]: 2,
+    [MemRegionsEnum.TEXTURES_INDEX]: 2,
+    [MemRegionsEnum.TEXTURES]: 2,
     [MemRegionsEnum.WORKERS_HEAPS]: 2,
     [MemRegionsEnum.HEAP]: 6,
     [MemRegionsEnum.MEM_COUNTERS]: 2,
@@ -128,8 +128,8 @@ function getMemRegionsOffsets(
     MemRegionsEnum.MEM_COUNTERS,
     MemRegionsEnum.FONT_CHARS,
     MemRegionsEnum.STRINGS,
-    MemRegionsEnum.IMAGES_INDEX,
-    MemRegionsEnum.IMAGES,
+    MemRegionsEnum.TEXTURES_INDEX,
+    MemRegionsEnum.TEXTURES,
     MemRegionsEnum.INPUT_KEYS,
     MemRegionsEnum.WORKERS_HEAPS,
     MemRegionsEnum.HEAP,

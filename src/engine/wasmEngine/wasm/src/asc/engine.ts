@@ -26,8 +26,8 @@ import {
   hrTimerPtr,
   raycasterPtr,
 } from './importVars';
-import { BitImage } from './bitImage';
-import { initImages } from './initImages';
+import { Texture } from './texture';
+import { initTextures } from './initTextures';
 // import { DArray, newDArray, deleteDArray } from './darray';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
@@ -68,34 +68,13 @@ import {
   getWallSliceMipLvlPtr,
 } from './raycaster/wallslice';
 
-// TODO:
-// import { initRayCaster } from './raycaster/raycaster';
-
-// import { MYIMG, IMG1 } from './gen_importImages';
-// import * as strings from './gen_importStrings';
-
-// import {
-//   imagesIndexPtr,
-//   imagesIndexSize,
-//   imagesDataSize,
-//   imagesDataPtr,
-//   numImages,
-// } from './importVars';
-// import { stringsDataPtr, stringsDataSize } from './importVars';
-// import { FONT_Y_SIZE, fontCharsPtr, fontCharsSize } from './importVars';
-
-// import { test } from './test/test';
-
-const MAIN_THREAD_IDX = mainWorkerIdx;
-
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
-let images = changetype<SArray<BitImage>>(NULL_PTR);
+const MAIN_THREAD_IDX = mainWorkerIdx;
+
 let raycaster = changetype<Raycaster>(NULL_PTR);
-// let viewport = changetype<Viewport>(NULL_PTR);
-// let player = changetype<Player>(NULL_PTR);
-// let map = changetype<Map>(NULL_PTR);
+let textures = changetype<SArray<Texture>>(NULL_PTR);
 
 function allocMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
@@ -117,30 +96,17 @@ function initData(): void {
     raycaster = changetype<Raycaster>(raycasterPtr);
   }
 
-  images = initImages();
+  textures = initTextures();
 }
 
 function init(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     initSharedHeap();
-    initMemManager();
-    initData();
-  } else {
-    initMemManager();
-    initData();
   }
 
-  // logi(memory.size());
-
-  // myAssert(images != null);
-  // const image = images.at(0);
-  // logi(image.Width as i32);
-  // logi(image.Height as i32);
-
-  // const arr = newDArray<u32>(1);
-  // test();
+  initMemManager();
+  initData();
 }
-
 
 function getRaycasterPtr(): PTR_T {
   return changetype<PTR_T>(raycaster);
@@ -252,19 +218,10 @@ function run(): void {
 //   // logi(fontCharsPtr);
 //   // logi(fontCharsSize);
 //
-//   // logi(usePalette);
-//   // logi(imagesIndexPtr);
-//   // logi(imagesIndexSize);
-//   // logi(imagesDataPtr);
-//   // logi(imagesDataSize);
-//   // logi(numImages);
-//
 //   // logi(MYIMG);
-//   // logi(imagesIndexSize);
 //
 //   // test();
 //   // test images loading
-//   // logi(numImages);
 //   // const images = initImages();
 //   // for (let i = 0; i < images.length(); ++i) {
 //   //   const pixels = images.at(i).pixels;

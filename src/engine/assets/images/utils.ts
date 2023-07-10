@@ -1,18 +1,13 @@
+import assert from 'assert';
 import { fileTypeFromBuffer } from 'file-type';
 import { ImageInfo } from './imageDecoder';
 import { PngDecoderRGBA } from './vivaxy-png/PngDecoderRGBA';
-import { BitImageRGBA } from './bitImageRGBA';
+import { BitImageRGBA, BPP_RGBA } from './bitImageRGBA';
 
-type LoadImagesResult = {
-  imagesTotalSize: number;
-  images: BitImageRGBA[];
-};
-
-async function loadImages(
+async function decodePNGs(
   imageBuffers: ArrayBuffer[],
-): Promise<LoadImagesResult> {
+): Promise<BitImageRGBA[]> {
   const pngDecoder = new PngDecoderRGBA();
-  let imagesTotalSize = 0;
   const images = await Promise.all(
     imageBuffers.map(async (imgBuffer) => {
       const fileType = await fileTypeFromBuffer(imgBuffer);
@@ -26,6 +21,7 @@ async function loadImages(
           {
             imgInfo = pngDecoder.readInfo(imgBuffer);
             pngDecoder.read(imgBuffer, image);
+            assert(imgInfo.bpp === BPP_RGBA);
           }
           break;
         default:
@@ -33,11 +29,10 @@ async function loadImages(
             `_loadImage does not support ${fileType.ext} loading`,
           );
       }
-      imagesTotalSize += imgInfo.bpp * imgInfo.width * imgInfo.height;
       return image;
     }),
   );
-  return { imagesTotalSize, images };
+  return images;
 }
 
-export { loadImages };
+export { decodePNGs };

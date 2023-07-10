@@ -19,8 +19,8 @@ type WasmViews = {
   sleepArr: Int32Array;
   fontChars: Uint8Array;
   strings: Uint8Array;
-  imagesIndex: Uint32Array;
-  imagesPixels: Uint8Array;
+  texturesIndex: Uint8Array;
+  texturesPixels: Uint8Array;
   workersMemCounters: Uint32Array;
   inputKeys: Uint8Array;
   hrTimer: BigUint64Array;
@@ -84,16 +84,16 @@ function buildWasmMemViews(
     memSizes[MemRegionsEnum.STRINGS],
   );
 
-  const imagesIndex = new Uint32Array(
+  const texturesIndex = new Uint8Array(
     wasmMem.buffer,
-    memOffsets[MemRegionsEnum.IMAGES_INDEX],
-    memSizes[MemRegionsEnum.IMAGES_INDEX] / Uint32Array.BYTES_PER_ELEMENT,
+    memOffsets[MemRegionsEnum.TEXTURES_INDEX],
+    memSizes[MemRegionsEnum.TEXTURES_INDEX],
   );
 
-  const imagesPixels = new Uint8Array(
+  const texturesPixels = new Uint8Array(
     wasmMem.buffer,
-    memOffsets[MemRegionsEnum.IMAGES],
-    memSizes[MemRegionsEnum.IMAGES],
+    memOffsets[MemRegionsEnum.TEXTURES],
+    memSizes[MemRegionsEnum.TEXTURES],
   );
 
   const workersMemCounters = new Uint32Array(
@@ -131,8 +131,8 @@ function buildWasmMemViews(
       rgbaSurface1,
       syncArr,
       sleepArr,
-      imagesIndex,
-      imagesPixels,
+      texturesIndex,
+      texturesPixels,
       fontChars,
       strings,
       workersMemCounters,

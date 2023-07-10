@@ -98,7 +98,9 @@ class AppWorker {
 
   private async initAssetManager() {
     this.assetManager = new AssetManager();
-    await this.assetManager.init();
+    await this.assetManager.init({
+      generateMipmaps: true,
+    });
   }
 
   private async initWasmEngine() {

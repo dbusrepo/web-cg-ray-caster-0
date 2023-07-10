@@ -3,10 +3,10 @@ import assert from 'assert';
 // import { randColor, sleep } from '../utils';
 import type { WasmMemParams, WasmMemRegionsData } from './wasmMemUtils';
 import type { WasmModules } from './wasmLoader';
-import * as WasmUtils from './wasmMemUtils';
-import * as initImages from './wasmMemInitImages';
-import * as initStrings from './wasmMemInitStrings';
-import * as initFontChars from './wasmMemInitFontChars';
+import * as wasmUtils from './wasmMemUtils';
+import * as wasmImages from './wasmMemInitImages';
+import * as wasmStrings from './wasmMemInitStrings';
+import * as wasmFontChars from './wasmMemInitFontChars';
 import { AssetManager } from '../assets/assetManager';
 import type { Key } from '../../input/inputManager';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
@@ -72,8 +72,8 @@ class WasmEngine {
   }
 
   private allocWasmMem(): void {
-    const startSize = this.wasmRegionsSizes[WasmUtils.MemRegionsEnum.START_MEM];
-    const startOffset = this.wasmRegionsOffsets[WasmUtils.MemRegionsEnum.START_MEM];
+    const startSize = this.wasmRegionsSizes[wasmUtils.MemRegionsEnum.START_MEM];
+    const startOffset = this.wasmRegionsOffsets[wasmUtils.MemRegionsEnum.START_MEM];
     const wasmMemStartTotalSize = startOffset + startSize;
     const { wasmMemStartPages: initial, wasmMemMaxPages: maximum } = mainConfig;
     assert(initial * PAGE_SIZE_BYTES >= wasmMemStartTotalSize);
@@ -114,15 +114,15 @@ class WasmEngine {
       sharedHeapSize: mainConfig.wasmSharedHeapSize,
       fontCharsSize: fontChars.length * FONT_Y_SIZE,
       stringsSize: stringsArrayData.length,
-      imagesIndexSize: initImages.getImagesIndexSize(),
-      imagesSize: this.params.assetManager.ImagesTotalSize,
+      texturesPixelsSize: this.params.assetManager.PixelsDataSize,
+      texturesIndexSize: wasmImages.calcWasmTexturesIndexSize(this.params.assetManager.Textures),
       // TODO use 64bit/8 byte counter for mem counters? see wasm workerHeapManager
       workersMemCountersSize: numTotalWorkers * Uint32Array.BYTES_PER_ELEMENT,
       inputKeysSize: Object.values(keys).length * Uint8Array.BYTES_PER_ELEMENT,
       hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
     };
 
-    const [sizes, offsets] = WasmUtils.getMemRegionsSizesAndOffsets(wasmMemParams);
+    const [sizes, offsets] = wasmUtils.getMemRegionsSizesAndOffsets(wasmMemParams);
     this.wasmRegionsSizes = sizes;
     this.wasmRegionsOffsets = offsets;
 
@@ -130,12 +130,12 @@ class WasmEngine {
     console.log('wasm mem regions offsets: ', JSON.stringify(this.wasmRegionsOffsets));
     console.log(
       `wasm mem start offset: ${
-        this.wasmRegionsOffsets[WasmUtils.MemRegionsEnum.START_MEM]
+        this.wasmRegionsOffsets[wasmUtils.MemRegionsEnum.START_MEM]
       }`,
     );
     console.log(
       `wasm mem start size: ${
-        this.wasmRegionsSizes[WasmUtils.MemRegionsEnum.START_MEM]
+        this.wasmRegionsSizes[wasmUtils.MemRegionsEnum.START_MEM]
       }`,
     );
   }
@@ -151,22 +151,22 @@ class WasmEngine {
   private initWasmAssets(): void {
     this.initWasmFontChars();
     this.initWasmStrings();
-    this.initWasmImages();
+    this.initWasmTextures();
   }
 
   private initWasmFontChars() {
-    initFontChars.copyFontChars2WasmMem(this.wasmViews.fontChars);
+    wasmFontChars.copyFontChars2WasmMem(this.wasmViews.fontChars);
   }
 
   private initWasmStrings() {
-    initStrings.copyStrings2WasmMem(this.wasmViews.strings);
+    wasmStrings.copyStrings2WasmMem(this.wasmViews.strings);
   }
 
-  private initWasmImages(): void {
-    initImages.copyImages2WasmMem(
-      this.params.assetManager.Images,
-      this.wasmViews.imagesIndex,
-      this.wasmViews.imagesPixels,
+  private initWasmTextures(): void {
+    wasmImages.copyTextures2WasmMem(
+      this.params.assetManager.Textures,
+      this.wasmViews.texturesIndex,
+      this.wasmViews.texturesPixels,
     );
   }
 
@@ -184,7 +184,7 @@ class WasmEngine {
       mainWorkerIdx: 0, // main worker idx 0
       workerIdx: 0,
       numWorkers: this.NumTotalWorkers,
-      numImages: this.params.assetManager.Images.length,
+      numTextures: this.params.assetManager.NumTextures, // TODO: rename
       surface0sizes: [imageWidth, imageHeight],
       surface1sizes: [0, 0], // not used
       raycasterPtr: 0, // main thread init this in wasm engine

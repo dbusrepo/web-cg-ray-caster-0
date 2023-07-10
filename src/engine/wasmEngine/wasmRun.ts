@@ -21,7 +21,7 @@ type WasmRunParams = {
   mainWorkerIdx: number;
   workerIdx: number;
   numWorkers: number;
-  numImages: number;
+  numTextures: number;
   surface0sizes: [number, number];
   surface1sizes: [number, number];
   raycasterPtr: number;
@@ -53,7 +53,7 @@ class WasmRun {
       // surface1sizes,
       mainWorkerIdx,
       numWorkers,
-      numImages,
+      numTextures,
       workerIdx,
       raycasterPtr,
     } = this.params;
@@ -65,51 +65,50 @@ class WasmRun {
     };
 
     const wasmImports: WasmImports = {
-        memory,
+      memory,
 
-        rgbaSurface0ptr: memOffsets[WasmUtils.MemRegionsEnum.RGBA_SURFACE_0],
-        rgbaSurface0width: surface0sizes[0],
-        rgbaSurface0height: surface0sizes[1],
+      rgbaSurface0ptr: memOffsets[WasmUtils.MemRegionsEnum.RGBA_SURFACE_0],
+      rgbaSurface0width: surface0sizes[0],
+      rgbaSurface0height: surface0sizes[1],
 
-        // rgbaSurface1ptr: memOffsets[WasmUtils.MemRegionsEnum.RGBA_SURFACE_1],
-        // rgbaSurface1width: surface1sizes[0],
-        // rgbaSurface1height: surface1sizes[1],
-        syncArrayPtr: memOffsets[WasmUtils.MemRegionsEnum.SYNC_ARRAY],
-        sleepArrayPtr: memOffsets[WasmUtils.MemRegionsEnum.SLEEP_ARRAY],
-        mainWorkerIdx,
-        workerIdx,
-        numWorkers,
-        workersHeapPtr: memOffsets[WasmUtils.MemRegionsEnum.WORKERS_HEAPS],
-        workerHeapSize,
-        sharedHeapPtr: memOffsets[WasmUtils.MemRegionsEnum.HEAP],
-        bgColor: 4278190080,
+      // rgbaSurface1ptr: memOffsets[WasmUtils.MemRegionsEnum.RGBA_SURFACE_1],
+      // rgbaSurface1width: surface1sizes[0],
+      // rgbaSurface1height: surface1sizes[1],
+      syncArrayPtr: memOffsets[WasmUtils.MemRegionsEnum.SYNC_ARRAY],
+      sleepArrayPtr: memOffsets[WasmUtils.MemRegionsEnum.SLEEP_ARRAY],
+      mainWorkerIdx,
+      workerIdx,
+      numWorkers,
+      workersHeapPtr: memOffsets[WasmUtils.MemRegionsEnum.WORKERS_HEAPS],
+      workerHeapSize,
+      sharedHeapPtr: memOffsets[WasmUtils.MemRegionsEnum.HEAP],
+      bgColor: 0xff_00_00_00,
 
+      // usePalette: this._config.usePalette ? 1 : 0,
+      // usePalette: 0,
+      fontCharsPtr: memOffsets[WasmUtils.MemRegionsEnum.FONT_CHARS],
+      fontCharsSize: memSizes[WasmUtils.MemRegionsEnum.FONT_CHARS],
+      numTextures,
+      texturesIndexPtr: memOffsets[WasmUtils.MemRegionsEnum.TEXTURES_INDEX],
+      texturesIndexSize: memSizes[WasmUtils.MemRegionsEnum.TEXTURES_INDEX],
+      imagesDataPtr: memOffsets[WasmUtils.MemRegionsEnum.TEXTURES],
+      texturesPixelsSize: memSizes[WasmUtils.MemRegionsEnum.TEXTURES],
+      stringsDataPtr: memOffsets[WasmUtils.MemRegionsEnum.STRINGS],
+      stringsDataSize: memSizes[WasmUtils.MemRegionsEnum.STRINGS],
+      workersMemCountersPtr: memOffsets[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
+      workersMemCountersSize: memSizes[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
+      inputKeysPtr: memOffsets[WasmUtils.MemRegionsEnum.INPUT_KEYS],
+      inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
+      hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
 
-        // usePalette: this._config.usePalette ? 1 : 0,
-        // usePalette: 0,
-        fontCharsPtr: memOffsets[WasmUtils.MemRegionsEnum.FONT_CHARS],
-        fontCharsSize: memSizes[WasmUtils.MemRegionsEnum.FONT_CHARS],
-        numImages,
-        imagesIndexSize: memSizes[WasmUtils.MemRegionsEnum.IMAGES_INDEX],
-        imagesIndexPtr: memOffsets[WasmUtils.MemRegionsEnum.IMAGES_INDEX],
-        imagesDataPtr: memOffsets[WasmUtils.MemRegionsEnum.IMAGES],
-        imagesDataSize: memSizes[WasmUtils.MemRegionsEnum.IMAGES],
-        stringsDataPtr: memOffsets[WasmUtils.MemRegionsEnum.STRINGS],
-        stringsDataSize: memSizes[WasmUtils.MemRegionsEnum.STRINGS],
-        workersMemCountersPtr: memOffsets[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
-        workersMemCountersSize: memSizes[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
-        inputKeysPtr: memOffsets[WasmUtils.MemRegionsEnum.INPUT_KEYS],
-        inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
-        hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
+      FONT_X_SIZE,
+      FONT_Y_SIZE,
+      FONT_SPACING,
 
-        FONT_X_SIZE,
-        FONT_Y_SIZE,
-        FONT_SPACING,
+      logi,
+      logf,
 
-        logi,
-        logf,
-
-        raycasterPtr,
+      raycasterPtr,
     };
 
     return wasmImports;

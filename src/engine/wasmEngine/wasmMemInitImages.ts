@@ -1,41 +1,75 @@
-import { images as sourceImgs } from '../../../assets/build/images';
-import { BitImage } from '../assets/images/bitImage';
+import assert from 'assert';
+import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
+import { AssetTextureRGBA } from '../assets/assetTextureRGBA';
 
-// IMAGES REGION LAYOUT:
+// TEXTURES INDEX LAYOUT:
 
-// INDEX with images ptrs and sizes, IMAGES data (pixels)
-// INDEX LAYOUT: offsets to images start, widths, heights (32bit each)
-// offsets to images wrt to image data start
+// FIRST INDEX:
+// for each image:
+//  num mipmaps (32bit)
+//  ptr to first mipmap descriptor
 
-// field sizes
-const OFFS_IMG_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const WIDTH_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const HEIGHT_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+// SECOND INDEX: (for each mipmap)
+// width (32bit)
+// height (32bit)
+// ptr to mipmap image data (32bit)
 
-function getImagesIndexSize() {
-  const numImages = Object.keys(sourceImgs).length;
-  return (OFFS_IMG_SIZE + WIDTH_SIZE + HEIGHT_SIZE) * numImages;
+// INDEX FIELDS SIZES
+const NUM_MIPS_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const PTR_TO_FIRST_MIP_DESC_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const TEX_DESC_SIZE = NUM_MIPS_FIELD_SIZE + PTR_TO_FIRST_MIP_DESC_FIELD_SIZE;
+
+const WIDTH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const HEIGHT_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const MIP_DESC_SIZE = WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + OFFSET_TO_MIP_DATA_FIELD_SIZE;
+
+let texDescIndexSize: number; // first index level size
+
+function calcWasmTexturesIndexSize(assetTextures: AssetTextureRGBA[]) {
+  texDescIndexSize = assetTextures.length * TEX_DESC_SIZE;
+  let size = texDescIndexSize;
+  for (let i = 0; i < assetTextures.length; ++i) {
+    const { Levels: levels } = assetTextures[i];
+    size += levels.length * MIP_DESC_SIZE;
+  }
+  return size;
 }
 
-function copyImages2WasmMem(
-  images: BitImage[],
-  imagesIndex: Uint32Array,
-  imagesPixels: Uint8Array,
+function copyTextures2WasmMem(
+  textures: AssetTextureRGBA[],
+  texturesIndex: Uint8Array,
+  texturesPixels: Uint8Array,
 ) {
-  const { length: numImages } = images;
-  const address_index = 0;
-  const width_index = address_index + numImages;
-  const height_index = width_index + numImages;
-  let imageAddress = 0;
-  for (let i = 0, { length } = images; i < length; ++i) {
-    // Atomics.store(imageIndex, i, imagesOffsets[i]);
-    const image = images[i];
-    imagesIndex[width_index + i] = image.Width;
-    imagesIndex[height_index + i] = image.Height;
-    imagesIndex[address_index + i] = imageAddress;
-    imagesPixels.set(image.Buf8, imageAddress);
-    imageAddress += image.Buf8.length;
+  assert(texDescIndexSize !== undefined);
+  const { length: numTextures } = textures;
+  const texsIndexView = new DataView(texturesIndex.buffer, texturesIndex.byteOffset);
+  let nextTexDescOffs = 0;
+  let nextFirstMipDescOffs = texDescIndexSize;
+  let nextMipPixelsOffs = 0;
+  for (let i = 0; i < numTextures; ++i) {
+    const texture = textures[i];
+    const { Levels: levels } = texture;
+    const numMips = levels.length;
+    texsIndexView.setUint32(nextTexDescOffs, numMips, true);
+    texsIndexView.setUint32(nextTexDescOffs + NUM_MIPS_FIELD_SIZE, nextFirstMipDescOffs, true);
+    const mipDescView = new DataView(texturesIndex.buffer, texturesIndex.byteOffset + nextFirstMipDescOffs);
+    let nextMipDescFieldOffset = 0;
+    for (let j = 0; j < numMips; ++j) {
+      const level = levels[j];
+      const { Width: width, Height: height, Buf8: buf8 } = level;
+      mipDescView.setUint32(nextMipDescFieldOffset, width, true);
+      nextMipDescFieldOffset += WIDTH_FIELD_SIZE;
+      mipDescView.setUint32(nextMipDescFieldOffset, height, true);
+      nextMipDescFieldOffset += HEIGHT_FIELD_SIZE;
+      mipDescView.setUint32(nextMipDescFieldOffset, nextMipPixelsOffs, true);
+      nextMipDescFieldOffset += OFFSET_TO_MIP_DATA_FIELD_SIZE;
+      texturesPixels.set(buf8, nextMipPixelsOffs);
+      nextMipPixelsOffs += buf8.length;
+    }
+    nextTexDescOffs += TEX_DESC_SIZE;
+    nextFirstMipDescOffs += numMips * MIP_DESC_SIZE;
   }
 }
 
-export { getImagesIndexSize, copyImages2WasmMem };
+export { copyTextures2WasmMem, calcWasmTexturesIndexSize };

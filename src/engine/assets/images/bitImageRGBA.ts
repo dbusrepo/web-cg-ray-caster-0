@@ -6,6 +6,12 @@ class BitImageRGBA extends BitImage {
 
   private buf32: Uint32Array;
 
+  init(width: number, height: number, buf8: Uint8Array) {
+    this.width = width;
+    this.height = height;
+    this.Buf8 = buf8;
+  }
+
   get Buf8() {
     return this.buf8;
   }

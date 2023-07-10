@@ -34,11 +34,11 @@ type WasmImports = {
   numWorkers: number;
   bgColor: number;
   // usePalette: number;
-  numImages: number;
-  imagesIndexPtr: number;
-  imagesIndexSize: number;
+  numTextures: number;
+  texturesIndexPtr: number;
+  texturesIndexSize: number;
   imagesDataPtr: number;
-  imagesDataSize: number;
+  texturesPixelsSize: number;
   fontCharsPtr: number;
   fontCharsSize: number;
   stringsDataPtr: number;
