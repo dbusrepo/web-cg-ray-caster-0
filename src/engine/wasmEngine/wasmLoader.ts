@@ -36,7 +36,7 @@ type WasmImports = {
   numTextures: number;
   texturesIndexPtr: number;
   texturesIndexSize: number;
-  imagesDataPtr: number;
+  texturesPixelsPtr: number;
   texturesPixelsSize: number;
   fontCharsPtr: number;
   fontCharsSize: number;

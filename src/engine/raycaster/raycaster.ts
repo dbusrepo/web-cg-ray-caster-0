@@ -117,7 +117,6 @@ class Raycaster {
     this.wallTextures[0] = initTexture(wasmViews, ascImportImages.GREYSTONE);
     this.wallTextures[1] = initTexture(wasmViews, ascImportImages.BLUESTONE);
     this.wallTextures[2] = initTexture(wasmViews, ascImportImages.REDBRICK);
-    console.log(this.wallTextures);
   }
 
   castScene() {
@@ -219,24 +218,19 @@ class Raycaster {
 
       const midY = vpHeight >> 1;
 
-      let wallTop = midY - (wallSliceHeight >> 1);
-      if (wallTop < 0) {
-        wallTop = 0;
-      }
+      const projWallTop = midY - (wallSliceHeight >> 1);
+      const projWallBottom = projWallTop + wallSliceHeight;
 
-      let wallBottom = wallTop + wallSliceHeight;
-      if (wallBottom > vpHeight) {
-        wallBottom = vpHeight;
-      }
+      let wallTop = projWallTop < 0 ? 0 : projWallTop;
+      let wallBottom = projWallBottom >= vpHeight ? vpHeight - 1 : projWallBottom;
 
-      assert(wallTop >= 0 && wallTop < vpHeight, `invalid top ${wallTop}`);
-      assert(wallBottom >= 0 && wallBottom <= vpHeight, `invalid bottom ${wallBottom}`);
       assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
-
+      assert(wallTop >= 0, `invalid top ${wallTop}`);
+      assert(wallBottom < vpHeight, `invalid bottom ${wallBottom}`);
       assert(texId >= 0 && texId < this.wallTextures.length, `invalid texture id ${texId}`);
 
-      const mipLevel = 0;
-      const image = this.wallTextures[texId].getMipMap(mipLevel);
+      const mipLevel = 1;
+      const image = this.wallTextures[texId].getMipmap(mipLevel);
       const { Width : texWidth, Height: texHeight } = image;
 
       // wallX -= Math.floor(wallX);
@@ -253,8 +247,7 @@ class Raycaster {
       }
 
       const texStepY = 1. * texHeight / wallSliceHeight;
-
-      let texPosY = (wallTop - midY + wallSliceHeight / 2) * texStepY;
+      const texPosY = (wallTop - projWallTop) * texStepY;
 
       const wallSlice = this.wallSlices[x];
       wallSlice.ColIdx = x;
@@ -264,7 +257,7 @@ class Raycaster {
       wallSlice.TexStepY = texStepY;
       wallSlice.TexPosY = texPosY;
       wallSlice.TexId = texId;
-      wallSlice.MipLvl = 0;
+      wallSlice.MipLvl = 0; // TODO:
     }
 
     // console.log(`render time: ${Date.now() - t0} ms`);

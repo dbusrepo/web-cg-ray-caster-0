@@ -25,6 +25,7 @@ import {
   hrTimerPtr,
   raycasterPtr,
 } from './importVars';
+import { GREYSTONE } from './gen_importImages';
 import { Texture } from './texture';
 import { initTextures } from './initTextures';
 // import { DArray, newDArray, deleteDArray } from './darray';
@@ -138,18 +139,40 @@ function render(): void {
   // const t1 = <u64>process.hrtime();
   // store<u64>(hrTimerPtr, t1 - t0);
 
-  // render image test
-  // const image = images.at(IMG1);
-  // // const byte = load<u8>(image.Ptr);
-  // // logi(<i32>byte);
-
+  // render mipmaps test
   // if (workerIdx == MAIN_THREAD_IDX) {
-  // const minWidth = <usize>Math.min(image.Width, rgbaSurface0width);
-  // for (let i = s; i != e; ++i) {
-  //   let screenPtr: PTR_T = rgbaSurface0ptr + i * rgbaSurface0width * 4;
-  //   const pixels: PTR_T = image.Ptr + i * image.Width * 4;
-  //   memory.copy(screenPtr, pixels, minWidth * 4);
-  // }
+  //   // const mipmap = textures.at(GREYSTONE).getMipmap(0);
+  //   const numMipmaps = textures.at(GREYSTONE).NumMipmaps;
+  //   // draw all mipmap levels
+  //   const scaleX = 3;
+  //   const scaleY = 3;
+  //   let scrX: SIZE_T = 0;
+  //   for (let i: SIZE_T = 0; i < numMipmaps; ++i) {
+  //     const mipmap = textures.at(GREYSTONE).getMipmap(i);
+  //     let srcPtr: PTR_T = mipmap.Ptr;
+  //     let dstPtr: PTR_T = rgbaSurface0ptr + scrX * 4;
+  //     myAssert(mipmap.Height * scaleY <= rgbaSurface0height);
+  //     myAssert(mipmap.Width * scaleX <= rgbaSurface0width);
+  //     for (let i: SIZE_T = 0; i != mipmap.Height; ++i) {
+  //       for (let sy: SIZE_T = 0; sy != scaleY; ++sy) {
+  //         // memory.copy(dstPtr, srcPtr, mipmap.Width * 4);
+  //         let dstRowPtr = dstPtr;
+  //         let srcRowPtr = srcPtr;
+  //         for (let j: SIZE_T = 0; j != mipmap.Width; ++j) {
+  //           const srcPixel = load<u32>(srcRowPtr);
+  //           for (let sx: SIZE_T = 0; sx != scaleX; ++sx) {
+  //             store<u32>(dstRowPtr, srcPixel);
+  //             dstRowPtr += 4;
+  //           }
+  //           srcRowPtr += 4;
+  //         }
+  //         dstPtr += rgbaSurface0width * 4;
+  //       }
+  //       srcPtr += mipmap.Width * 4;
+  //     }
+  //     // adjust scrX for the next mipmap level
+  //     scrX += mipmap.Width * scaleX;
+  //   }
   // }
 
   // if (workerIdx == MAIN_THREAD_IDX) {

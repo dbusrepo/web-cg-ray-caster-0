@@ -28,8 +28,10 @@
     "clean": "rimraf dist/ && (cd ./assets/ && make clean) && (cd src/engine/wasmEngine/wasm && make clean)",
     "cleandist": "rimraf dist/",
     "ascv": "asc --version",
-    "build": "npm run install-dependencies && npm run build_proj",
-    "start": "npm run install-dependencies && run-p --race launch onchange:wasm onchange:assets"
+    "build": "npm run build_proj",
+    "start": "run-p --race launch onchange:wasm onchange:assets",
+    "build_i": "npm run install-dependencies && npm run build_proj",
+    "start_i": "npm run install-dependencies && run-p --race launch onchange:wasm onchange:assets"
   },
   "keywords": [],
   "author": "",

@@ -102,7 +102,7 @@ function drawSceneV(wallSlices: WallSlice[]) {
       TexPosY: texPosY,
     } = wallSlice;
 
-    const image = wallTextures[texId].getMipMap(mipLvl);
+    const image = wallTextures[texId].getMipmap(mipLvl);
     const { Width : texWidth, Height: texHeight } = image;
 
     const colPtr = screenPtr + colIdx;

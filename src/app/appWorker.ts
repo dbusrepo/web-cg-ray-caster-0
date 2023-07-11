@@ -71,8 +71,8 @@ class AppWorker {
     await this.initWasmEngine();
     await this.initRaycaster();
     this.initMap();
-    // this.raycaster.castScene();
     drawBorders(this.BorderColor);
+    this.raycaster.castScene();
     await this.runAuxWorkers();
   }
   
@@ -365,7 +365,7 @@ Date.now() - initStart
         this.wasmEngine.syncWorkers(this.auxWorkers);
         try {
           // this.wasmEngineModule.render();
-          this.raycaster.castScene();
+          // this.raycaster.castScene();
         }
         catch (e) {
           console.error(e);

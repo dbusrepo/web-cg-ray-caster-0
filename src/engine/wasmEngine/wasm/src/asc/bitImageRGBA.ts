@@ -27,11 +27,11 @@ const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
   }
 
   @inline get Width(): SIZE_T {
-    return load<u32>(this.descPtr);
+    return <SIZE_T>load<u32>(this.descPtr);
   }
 
   @inline get Height(): SIZE_T {
-    return load<u32>(this.descPtr + WIDTH_FIELD_SIZE);
+    return <SIZE_T>load<u32>(this.descPtr + WIDTH_FIELD_SIZE);
   }
 }
 

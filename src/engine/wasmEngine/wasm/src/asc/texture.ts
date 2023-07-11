@@ -46,8 +46,17 @@ const MIP_DESC_SIZE = WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + OFFSET_TO_MIP_DATA_
     }
   }
 
+  getMipmap(i: SIZE_T): BitImageRGBA {
+    myAssert(i >= 0 && i < this.mipmaps.Length);
+    return this.mipmaps.at(i);
+  }
+
   get Mipmaps(): SArray<BitImageRGBA> {
     return this.mipmaps;
+  }
+
+  get NumMipmaps(): SIZE_T {
+    return this.mipmaps.Length;
   }
 }
 
