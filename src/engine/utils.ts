@@ -58,6 +58,18 @@ function sleep(sleepArr: Int32Array, idx: number, timeoutMs: number): void {
   Atomics.wait(sleepArr, idx, 0, Math.max(1, timeoutMs | 0));
 }
 
+function isPowerOf2(value: number): boolean {
+  return value !== 0 && (value & (value - 1)) === 0;
+}
+
+function nextPowerOf2(value: number): number {
+  return Math.pow(2, Math.ceil(Math.log2(value)));
+}
+
+function nextGreaterPowerOf2(value: number): number {
+  return Math.pow(2, Math.ceil(Math.log2(value + 1)));
+}
+
 export {
   arrAvg,
   range,
@@ -66,4 +78,7 @@ export {
   makeColor,
   makeColorRGB,
   sleep,
+  isPowerOf2,
+  nextPowerOf2,
+  nextGreaterPowerOf2,
 };

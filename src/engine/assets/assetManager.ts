@@ -7,10 +7,11 @@ import {
 } from '../../../assets/build/images';
 import { decodePNGs } from './images/utils';
 import { BitImageRGBA, BPP_RGBA } from './images/bitImageRGBA';
-import { AssetTextureRGBA } from './assetTextureRGBA';
+import { AssetTextureRGBA, AssetTextureRGBAParams } from './assetTextureRGBA';
 
 type AssetManagerParams = {
   generateMipmaps: boolean;
+  rotateTextures: boolean;
 }
 
 class AssetManager {
@@ -22,14 +23,15 @@ class AssetManager {
     await this.loadTextures();
   }
 
-  private static bitImageRGBA2TextureAssetRGBA(image: BitImageRGBA) {
-    return new AssetTextureRGBA(image, true);
-  }
-
   private async loadTextures() {
     const imageBuffers = await this.loadImagesBuffers();
     const bitImagesRGBA = await decodePNGs(imageBuffers);
-    this.textures = bitImagesRGBA.map(AssetManager.bitImageRGBA2TextureAssetRGBA);
+    const bitImageRGBA2TextureAssetRGBA = (image: BitImageRGBA) =>
+      new AssetTextureRGBA(image, {
+        generateMipmaps: this.params.generateMipmaps,
+        rotate: this.params.rotateTextures,
+      });
+    this.textures = bitImagesRGBA.map(bitImageRGBA2TextureAssetRGBA);
   }
 
   private static loadUrlAsArrayBuffer(url: string): Promise<ArrayBuffer> {

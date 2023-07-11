@@ -100,6 +100,7 @@ class AppWorker {
     this.assetManager = new AssetManager();
     await this.assetManager.init({
       generateMipmaps: true,
+      rotateTextures: true,
     });
   }
 
