@@ -6,7 +6,7 @@ const BPP_RGBA = 4;
 
 class BitImageRGBA extends BitImage {
 
-  private pitchLg2: number;
+  private pitchLg2: number; // lg2 of pitch pixels u32
   private buf32: Uint32Array;
 
   init(width: number, height: number, buf8: Uint8Array) {
@@ -24,11 +24,13 @@ class BitImageRGBA extends BitImage {
       const dstBuf8 = new Uint8Array(this.height * pitch * BPP_RGBA);
       let srcOffset = 0;
       let dstOffset = 0;
+      const srcPitchBytes = this.width * BPP_RGBA;
+      const dstPitchBytes = pitch * BPP_RGBA;
       for (let y = 0; y < this.height; ++y) {
-        const srcRowY = this.buf8.subarray(srcOffset, srcOffset + this.width * BPP_RGBA);
+        const srcRowY = this.buf8.subarray(srcOffset, srcOffset + srcPitchBytes);
         dstBuf8.set(srcRowY, dstOffset);
-        srcOffset += this.width * BPP_RGBA;
-        dstOffset += pitch * BPP_RGBA;
+        srcOffset += srcPitchBytes;
+        dstOffset += dstPitchBytes;
       }
       this.Buf8 = dstBuf8;
     }

@@ -4,6 +4,16 @@ import { ObjectAllocator, newObjectAllocator } from './objectAllocator';
 import { SArray, newSArray } from './sarray';
 import { BitImageRGBA } from './bitImageRGBA';
 import { texturesIndexPtr, texturesIndexSize, texturesPixelsPtr, texturesPixelsSize, numTextures } from './importVars';
+import {
+  NUM_MIPS_FIELD_SIZE,
+  PTR_TO_FIRST_MIP_DESC_FIELD_SIZE,
+  TEX_DESC_SIZE,
+  WIDTH_FIELD_SIZE,
+  HEIGHT_FIELD_SIZE,
+  PITCH_LG2_FIELD_SIZE,
+  OFFSET_TO_MIP_DATA_FIELD_SIZE,
+  MIP_DESC_SIZE,
+} from './importFieldSizes';
 import { logi } from './importVars';
 
 // TEXTURES INDEX LAYOUT: (see wasmMemInitImages.ts)
@@ -17,16 +27,6 @@ import { logi } from './importVars';
 // width (32bit)
 // height (32bit)
 // ptr to mipmap image data (32bit)
-
-const NUM_MIPS_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const PTR_TO_FIRST_MIP_DESC_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const TEX_DESC_SIZE = NUM_MIPS_FIELD_SIZE + PTR_TO_FIRST_MIP_DESC_FIELD_SIZE;
-
-const WIDTH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const HEIGHT_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const PITCH_LG2_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const MIP_DESC_SIZE = WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + PITCH_LG2_FIELD_SIZE + OFFSET_TO_MIP_DATA_FIELD_SIZE;
 
 // @ts-ignore: decorator
 @final @unmanaged class Texture {

@@ -29,6 +29,7 @@ type WasmRunParams = {
 
 let gWasmRun: WasmRun;
 let gWasmView: DataView;
+let gWasmViews: WasmViews;
 
 class WasmRun {
   protected params: WasmRunParams;
@@ -41,6 +42,7 @@ class WasmRun {
     await this.loadWasmModules();
     gWasmRun = this;
     gWasmView = this.wasmViews.view;
+    gWasmViews = this.wasmViews;
   }
 
   private buildWasmImports(): WasmImports {
@@ -130,4 +132,4 @@ class WasmRun {
 }
 
 export type { WasmRunParams };
-export { WasmRun, gWasmRun, gWasmView };
+export { WasmRun, gWasmRun, gWasmView, gWasmViews };

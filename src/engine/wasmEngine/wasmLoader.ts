@@ -3,6 +3,7 @@ import engineWasm from './wasm/build/asc/engine.wasm';
 import engineExport from './wasm/build/asc/engine';
 import { ascImportImages } from '../../../assets/build/images';
 import { ascImportStrings } from '../../../assets/build/strings';
+import { wasmTexFieldSizes } from './wasmMemInitImages';
 
 // TODO
 type wasmBuilderFunc<T> = (
@@ -81,6 +82,9 @@ async function loadWasm<T>(
     importVars: {
       ...wasmInput,
       ...otherImpObj,
+    },
+    importFieldSizes: {
+      ...wasmTexFieldSizes,
     },
     gen_importImages: {
       ...ascImportImages,
