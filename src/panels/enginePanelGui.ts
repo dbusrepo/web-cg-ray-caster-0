@@ -47,7 +47,7 @@ class EnginePanelGui extends PanelGui {
         // max: 100,
         // max: 1000,
         bufferSize,
-      }
+      },
     );
     this.maxDeque = new MaxDeque(bufferSize);
     // this.fpsMonitor.disabled = true;
@@ -61,7 +61,10 @@ class EnginePanelGui extends PanelGui {
     // // @ts-ignore
     // const max = this.fpsMonitor.controller_.valueController.props_?.get('maxValue');
     // @ts-ignore
-    this.fpsMonitor.controller_.valueController.props_.set('maxValue', this.maxDeque.max * 1.5);
+    this.fpsMonitor.controller_.valueController.props_.set(
+      'maxValue',
+      this.maxDeque.max * 1.5,
+    );
     // console.log(this.fpsMonitor.controller_.valueController);
     this.fpsMonitor.refresh();
   }

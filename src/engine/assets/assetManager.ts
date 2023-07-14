@@ -12,7 +12,7 @@ import { AssetTextureRGBA, AssetTextureRGBAParams } from './assetTextureRGBA';
 type AssetManagerParams = {
   generateMipmaps: boolean;
   rotateTextures: boolean;
-}
+};
 
 class AssetManager {
   private params: AssetManagerParams;
@@ -40,7 +40,9 @@ class AssetManager {
 
   private async loadImagesBuffers(): Promise<ArrayBuffer[]> {
     const imagesUrls = await getImagesUrls();
-    const imageBuffers = await Promise.all(imagesUrls.map(AssetManager.loadUrlAsArrayBuffer));
+    const imageBuffers = await Promise.all(
+      imagesUrls.map(AssetManager.loadUrlAsArrayBuffer),
+    );
     return imageBuffers;
   }
 
@@ -53,7 +55,10 @@ class AssetManager {
   }
 
   public get PixelsDataSize(): number {
-    return this.textures.reduce((acc, texture) => acc + texture.PixelsDataSize, 0);
+    return this.textures.reduce(
+      (acc, texture) => acc + texture.PixelsDataSize,
+      0,
+    );
   }
 
   public get GenerateMipmaps(): boolean {

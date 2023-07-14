@@ -5,7 +5,6 @@ import * as utils from '../../utils';
 const BPP_RGBA = 4;
 
 class BitImageRGBA extends BitImage {
-
   private pitchLg2: number; // lg2 of pitch pixels u32
   private buf32: Uint32Array;
 

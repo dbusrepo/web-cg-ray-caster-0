@@ -1,10 +1,10 @@
 import type { Key } from './keys';
-import { PanelId } from '../app/appTypes';
+import { PanelId } from './appTypes';
 
 type InputEvent = {
   code: Key;
   panelId: PanelId;
-}
+};
 
 type CanvasDisplayResizeEvent = {
   width: number;

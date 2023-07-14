@@ -168,12 +168,6 @@ function getMemRegionsSizesAndOffsets(
   return [regionsSizes, regionsOffsets];
 }
 
-export type {
-  WasmMemParams,
-  WasmMemRegionsData,
-};
+export type { WasmMemParams, WasmMemRegionsData };
 
-export {
-  MemRegionsEnum,
-  getMemRegionsSizesAndOffsets,
-};
+export { MemRegionsEnum, getMemRegionsSizesAndOffsets };

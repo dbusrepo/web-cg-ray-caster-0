@@ -9,13 +9,19 @@ class InputManager {
   private keyDownHandlers: KeyHandlers = {};
   private keyUpHandlers: KeyHandlers = {};
 
-  public addKeyHandlers(key: Key, keyDownHandler: KeyHandler, keyUpHandler: KeyHandler) {
+  public addKeyHandlers(
+    key: Key,
+    keyDownHandler: KeyHandler,
+    keyUpHandler: KeyHandler,
+  ) {
     this.addKeyDownHandler(key, keyDownHandler);
     this.addKeyUpHandler(key, keyUpHandler);
   }
 
   private addKeyDownHandler(key: Key, keyHandler: KeyHandler) {
-    (this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? []).push(keyHandler);
+    (this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? []).push(
+      keyHandler,
+    );
   }
 
   private addKeyUpHandler(key: Key, keyHandler: KeyHandler) {

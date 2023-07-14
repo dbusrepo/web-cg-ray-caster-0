@@ -15,7 +15,9 @@ class MemoryStats {
 
   constructor(stats: Stats) {
     if (!performance.measureUserAgentSpecificMemory) {
-      console.log('performance.measureUserAgentSpecificMemory is not available.');
+      console.log(
+        'performance.measureUserAgentSpecificMemory is not available.',
+      );
       return; // TODO ?
     }
     this.stats = stats;
@@ -49,13 +51,13 @@ class MemoryStats {
     this.panel.update(result.bytes);
     // 3. Schedule the next measurement.
     this.scheduleMeasurement();
-  };
+  }
 
   // Returns a random interval in milliseconds that is
   // sampled with a Poisson process. It ensures that on
   // average there is one measurement every ....
   private measurementInterval(): number {
-    const MEAN_INTERVAL_IN_MS = 1000; //5 * 60 * 1000;
+    const MEAN_INTERVAL_IN_MS = 1000; // 5 * 60 * 1000;
     return -Math.log(Math.random()) * MEAN_INTERVAL_IN_MS;
   }
 }

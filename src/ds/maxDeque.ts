@@ -13,8 +13,8 @@ class MaxDeque {
     assert(this.counters.length === this.values.length);
     assert(this.counters.length <= this.bufferSize);
     for (let i = 0; i < this.counters.length; i++) {
-        assert(this.counters[i] < this.bufferSize);
-        this.counters[i]++;
+      assert(this.counters[i] < this.bufferSize);
+      this.counters[i]++;
     }
     if (this.counters.length && this.counters[0] >= this.bufferSize) {
       this.values.shift();
@@ -31,7 +31,6 @@ class MaxDeque {
   public get max(): number {
     return this.values[0];
   }
-
 }
 
 export default MaxDeque;

@@ -56,11 +56,17 @@ class WasmEngine {
       inputKeys[keyOffset] = state;
     };
 
-    (Object.entries(keyOffsets) as [Key, number][]).forEach(([key, keyOffset]) => {
-      const keyDownHandler = keyHandler(keyOffset, 1);
-      const keyUpHandler = keyHandler(keyOffset, 0);
-      this.params.inputManager.addKeyHandlers(key, keyDownHandler, keyUpHandler);
-    });
+    (Object.entries(keyOffsets) as [Key, number][]).forEach(
+      ([key, keyOffset]) => {
+        const keyDownHandler = keyHandler(keyOffset, 1);
+        const keyUpHandler = keyHandler(keyOffset, 0);
+        this.params.inputManager.addKeyHandlers(
+          key,
+          keyDownHandler,
+          keyUpHandler,
+        );
+      },
+    );
   }
 
   private async initWasm(): Promise<void> {
@@ -73,7 +79,8 @@ class WasmEngine {
 
   private allocWasmMem(): void {
     const startSize = this.wasmRegionsSizes[wasmUtils.MemRegionsEnum.START_MEM];
-    const startOffset = this.wasmRegionsOffsets[wasmUtils.MemRegionsEnum.START_MEM];
+    const startOffset =
+      this.wasmRegionsOffsets[wasmUtils.MemRegionsEnum.START_MEM];
     const wasmMemStartTotalSize = startOffset + startSize;
     const { wasmMemStartPages: initial, wasmMemMaxPages: maximum } = mainConfig;
     assert(initial * PAGE_SIZE_BYTES >= wasmMemStartTotalSize);
@@ -96,7 +103,6 @@ class WasmEngine {
   }
 
   private initWasmMemRegions(): void {
-
     const { imageWidth, imageHeight } = this.params;
     const numTotalWorkers = this.NumTotalWorkers;
 
@@ -115,19 +121,28 @@ class WasmEngine {
       fontCharsSize: fontChars.length * FONT_Y_SIZE,
       stringsSize: stringsArrayData.length,
       texturesPixelsSize: this.params.assetManager.PixelsDataSize,
-      texturesIndexSize: wasmImages.calcWasmTexturesIndexSize(this.params.assetManager.Textures),
+      texturesIndexSize: wasmImages.calcWasmTexturesIndexSize(
+        this.params.assetManager.Textures,
+      ),
       // TODO use 64bit/8 byte counter for mem counters? see wasm workerHeapManager
       workersMemCountersSize: numTotalWorkers * Uint32Array.BYTES_PER_ELEMENT,
       inputKeysSize: Object.values(keys).length * Uint8Array.BYTES_PER_ELEMENT,
       hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
     };
 
-    const [sizes, offsets] = wasmUtils.getMemRegionsSizesAndOffsets(wasmMemParams);
+    const [sizes, offsets] =
+      wasmUtils.getMemRegionsSizesAndOffsets(wasmMemParams);
     this.wasmRegionsSizes = sizes;
     this.wasmRegionsOffsets = offsets;
 
-    console.log('wasm mem regions sizes: ', JSON.stringify(this.wasmRegionsSizes));
-    console.log('wasm mem regions offsets: ', JSON.stringify(this.wasmRegionsOffsets));
+    console.log(
+      'wasm mem regions sizes: ',
+      JSON.stringify(this.wasmRegionsSizes),
+    );
+    console.log(
+      'wasm mem regions offsets: ',
+      JSON.stringify(this.wasmRegionsOffsets),
+    );
     console.log(
       `wasm mem start offset: ${
         this.wasmRegionsOffsets[wasmUtils.MemRegionsEnum.START_MEM]
@@ -171,7 +186,6 @@ class WasmEngine {
   }
 
   private async initWasmRun() {
-
     this.wasmRun = new WasmRun();
 
     const { imageWidth, imageHeight } = this.params;
@@ -248,7 +262,7 @@ class WasmEngine {
   public get WasmModules(): WasmModules {
     return this.wasmModules;
   }
-  
+
   public get WasmViews(): WasmViews {
     return this.wasmViews;
   }

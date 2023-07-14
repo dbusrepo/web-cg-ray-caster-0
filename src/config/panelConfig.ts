@@ -41,11 +41,11 @@ const panelConfig = {
   // canvasDisplayWidthWinMode: 512,
   // canvasDisplayHeightWinMode: 384,
 
-  canvasDisplayWidthWinMode: 800,
-  canvasDisplayHeightWinMode: 600,
+  // canvasDisplayWidthWinMode: 800,
+  // canvasDisplayHeightWinMode: 600,
 
-  // canvasDisplayWidthWinMode: 1024,
-  // canvasDisplayHeightWinMode: 768,
+  canvasDisplayWidthWinMode: 1024,
+  canvasDisplayHeightWinMode: 768,
 
   // canvasDisplayWidthWinMode: 1280,
   // canvasDisplayHeightWinMode: 1024,

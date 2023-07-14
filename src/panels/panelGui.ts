@@ -175,6 +175,8 @@ abstract class PanelGui {
         case EventLogVis.INVISIBLE:
           this.panel.setEventLogVisibility(false);
           break;
+        default:
+          assert(false, 'unknown event log vis state');
       }
     });
   }

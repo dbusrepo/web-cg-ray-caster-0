@@ -10,9 +10,9 @@ const enum AuxAppWorkerCommandEnum {
 }
 
 type AuxAppWorkerParams = {
-  workerIndex: number,
-  numWorkers: number,
-  wasmRunParams: WasmRunParams,
+  workerIndex: number;
+  numWorkers: number;
+  wasmRunParams: WasmRunParams;
   syncArray: Int32Array;
   sleepArray: Int32Array;
 };
@@ -29,7 +29,8 @@ class AuxAppWorker {
     const wasmViews = buildWasmMemViews(
       wasmRunParams.wasmMem,
       wasmRunParams.wasmMemRegionsOffsets,
-      wasmRunParams.wasmMemRegionsSizes);
+      wasmRunParams.wasmMemRegionsSizes,
+    );
     await this.wasmRun.init(wasmRunParams, wasmViews);
   }
 
@@ -37,7 +38,7 @@ class AuxAppWorker {
     const { syncArray, workerIndex } = this.params;
     console.log(`Aux app worker ${workerIndex} running`);
     try {
-      while (true) {
+      for (;;) {
         Atomics.wait(syncArray, workerIndex, 0);
         // this.wasmRun.WasmModules.engine.render();
         // TODO:
@@ -45,7 +46,9 @@ class AuxAppWorker {
         Atomics.notify(syncArray, workerIndex);
       }
     } catch (ex) {
-      console.log(`Error while running aux app worker ${this.params.workerIndex}`);
+      console.log(
+        `Error while running aux app worker ${this.params.workerIndex}`,
+      );
       console.error(ex);
     }
   }
@@ -57,7 +60,9 @@ const commands = {
   [AuxAppWorkerCommandEnum.INIT]: async (params: AuxAppWorkerParams) => {
     auxAppWorker = new AuxAppWorker();
     await auxAppWorker.init(params);
-    postMessage({ status: `Aux app worker ${params.workerIndex} init completed` });
+    postMessage({
+      status: `Aux app worker ${params.workerIndex} init completed`,
+    });
   },
   [AuxAppWorkerCommandEnum.RUN]: async () => {
     await auxAppWorker.run();

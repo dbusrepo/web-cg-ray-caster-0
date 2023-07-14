@@ -82,7 +82,6 @@ class ConsolePanel extends React.Component<
       if (key === this.props.hotkey) {
         event.preventDefault();
         this.setOpen(!this.state.open);
-        return;
       }
     };
 
@@ -128,8 +127,10 @@ class ConsolePanel extends React.Component<
 
     this.histLines = this.props.history
       .map((e) => e.stmt)
-      .filter((line, index, array) => line.substring(this.props.prompt.length).trim())
-      .filter((line, index, array) => array[index - 1] !== line)
+      .filter((line, index, array) =>
+        line.substring(this.props.prompt.length).trim(),
+      )
+      .filter((line, index, array) => array[index - 1] !== line);
 
     this.histLines.push(this.props.prompt); // add empty prompt
     this.histSearchIdx = this.histLines.length - 1;
@@ -330,11 +331,13 @@ class ConsolePanel extends React.Component<
 
   private onInputKeyChange(event: React.ChangeEvent<HTMLInputElement>) {
     event.preventDefault();
-    const inputEl = this.inputRef; //event.target as HTMLInputElement;
+    const inputEl = this.inputRef; // event.target as HTMLInputElement;
     const { prompt } = this.props;
     const input = inputEl.value;
     const line = this.props.prompt + input.substring(prompt.length);
-    assert(this.histSearchIdx >= 0 && this.histSearchIdx < this.histLines.length);
+    assert(
+      this.histSearchIdx >= 0 && this.histSearchIdx < this.histLines.length,
+    );
     this.histLines[this.histSearchIdx] = line;
     inputEl.value = line;
   }
@@ -366,7 +369,8 @@ class ConsolePanel extends React.Component<
     const numLines = this.histLines.length;
     if (numLines) {
       assert(this.histSearchIdx >= 0 && this.histSearchIdx < numLines);
-      this.histSearchIdx = (this.histSearchIdx + direction + numLines) % numLines;
+      this.histSearchIdx =
+        (this.histSearchIdx + direction + numLines) % numLines;
       this.inputRef.value = this.histLines[this.histSearchIdx];
     }
   }
@@ -437,7 +441,7 @@ class ConsolePanel extends React.Component<
         </div>
 
         <input
-          spellcheck={false}
+          spellCheck={false}
           className="console-input"
           style={inputStyle}
           ref={(el) => {

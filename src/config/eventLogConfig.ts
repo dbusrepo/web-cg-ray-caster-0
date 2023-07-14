@@ -10,7 +10,7 @@ const eventLogConfig = {
   // height of the event log container is given as a % of the canvas container
   // height (aka the canvas display height)
   percHeightWin: 0.4, // 40% when win in its own container
-  percHeightFull: 0.20, // 15 % of fs height in the same container
+  percHeightFull: 0.2, // 15 % of fs height in the same container
   // ************************************************************************
 
   fontSize: 12,

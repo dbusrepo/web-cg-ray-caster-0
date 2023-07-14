@@ -8,7 +8,8 @@ function genNextMipLevelRGBA(curMip: BitImageRGBA) {
 
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-  const mixPixels = (a: Uint8Array, b: Uint8Array, t: number) => a.map((v, i) => lerp(v, b[i], t));
+  const mixPixels = (a: Uint8Array, b: Uint8Array, t: number) =>
+    a.map((v, i) => lerp(v, b[i], t));
 
   const getSrcPixel = (x: number, y: number) => {
     const offset = (x + y * srcWidth) * BPP_RGBA;
@@ -19,11 +20,11 @@ function genNextMipLevelRGBA(curMip: BitImageRGBA) {
   for (let y = 0; y < nextHeight; ++y) {
     for (let x = 0; x < nextWidth; ++x) {
       // texcoords of the center texel next mip
-      const u = (x + .5) / nextWidth;
-      const v = (y + .5) / nextHeight;
+      const u = (x + 0.5) / nextWidth;
+      const v = (y + 0.5) / nextHeight;
       // same texcoords in current mip - 0.5 for centering
-      const au = (u * srcWidth - .5);
-      const av = (v * srcHeight - .5);
+      const au = u * srcWidth - 0.5;
+      const av = v * srcHeight - 0.5;
       // src top left pixel
       const tx = au | 0;
       const ty = av | 0;
@@ -55,13 +56,13 @@ function genNextMipLevelRGBA(curMip: BitImageRGBA) {
 type AssetTextureRGBAParams = {
   generateMipmaps: boolean;
   rotate: boolean;
-}
+};
 
 class AssetTextureRGBA {
   private levels: BitImageRGBA[];
 
   constructor(image: BitImageRGBA, params: AssetTextureRGBAParams) {
-    this.levels = new Array();
+    this.levels = [];
     this.levels.push(image);
     if (params.generateMipmaps) {
       this.generateMipmaps();
@@ -78,7 +79,10 @@ class AssetTextureRGBA {
     for (let y = 0; y < Height; ++y) {
       let srcOffset = y * Width * BPP_RGBA;
       for (let x = 0; x < Width; ++x) {
-        const srcPixel = curImage.Buf8.subarray(srcOffset, srcOffset + BPP_RGBA);
+        const srcPixel = curImage.Buf8.subarray(
+          srcOffset,
+          srcOffset + BPP_RGBA,
+        );
         const dstOffset = ((Width - x - 1) * Height + y) * BPP_RGBA;
         buf.set(srcPixel, dstOffset);
         srcOffset += BPP_RGBA;

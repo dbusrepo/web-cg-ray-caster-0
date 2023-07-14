@@ -2,8 +2,8 @@ import assert from 'assert';
 
 const PR = Math.round(window.devicePixelRatio || 1); // #pixels per col
 
-const CSS_SIZE_FACTOR = 1.3;
-const CSS_WIDTH = 80 * CSS_SIZE_FACTOR ;
+const CSS_SIZE_FACTOR = 1.4;
+const CSS_WIDTH = 80 * CSS_SIZE_FACTOR;
 const CSS_HEIGHT = 48 * CSS_SIZE_FACTOR;
 
 const WIDTH = 80 * PR;
@@ -22,7 +22,7 @@ const GRAPH_HEIGHT = CSS_GRAPH_HEIGHT * PR;
 const BG_ALPHA = 0.9;
 
 type StatsPanelConfig = {
-  title: string; 
+  title: string;
   fg: string;
   bg: string;
   graphHeight: number;

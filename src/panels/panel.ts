@@ -91,8 +91,7 @@ abstract class Panel {
     this.panelContainerWinFull = document.createElement('div');
     this.panelContainerWinFull.classList.add('panel-container-win-full');
     this.board.appendChild(this.panelContainerWinFull); // TODO in init
-    this.panelContainerWinFullHeight =
-      this.panelContainerWinFull.offsetHeight;
+    this.panelContainerWinFullHeight = this.panelContainerWinFull.offsetHeight;
     this.panelDiv = document.createElement('div');
     this.panelDiv.tabIndex = -1; // TODO call this before focus() !
     // this._panelContainer.appendChild(this._panel); // done before run
@@ -291,8 +290,10 @@ abstract class Panel {
   private setCanvasWinStyle(): void {
     resetClassName(this.canvas);
     this.canvas.classList.add('canvas', 'canvas-win');
-    this.canvasContainer.style.width = `${this.cfg.canvasDisplayWidthWinMode}px`;
-    this.canvasContainer.style.height = `${this.cfg.canvasDisplayHeightWinMode}px`;
+    const displayWidthPx = `${this.cfg.canvasDisplayWidthWinMode}px`;
+    const displayHeightPx = `${this.cfg.canvasDisplayHeightWinMode}px`;
+    this.canvasContainer.style.width = displayWidthPx;
+    this.canvasContainer.style.height = displayHeightPx;
     resetClassName(this.canvasContainer);
     this.canvasContainer.classList.add(
       'canvas-container',
@@ -339,11 +340,7 @@ abstract class Panel {
       lineHeight: this.cfg.eventLogConfig.lineHeight,
     };
     const eventHandlers = {};
-    this.eventLog = new EventLog(
-      eventContainer,
-      eventLogConfig,
-      eventHandlers,
-    );
+    this.eventLog = new EventLog(eventContainer, eventLogConfig, eventHandlers);
   }
 
   protected initConsole(): void {
@@ -584,9 +581,7 @@ abstract class Panel {
 
   private moveEventLogBottomPanelInsidePanel(): void {
     assert(this.eventLogBottomPanel);
-    this.eventLogBottomPanel.parentNode?.removeChild(
-      this.eventLogBottomPanel,
-    );
+    this.eventLogBottomPanel.parentNode?.removeChild(this.eventLogBottomPanel);
     // pushed as last el
     this.panelDiv.appendChild(this.eventLogBottomPanel);
   }

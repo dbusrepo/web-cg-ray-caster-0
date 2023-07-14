@@ -15,20 +15,20 @@ abstract class BitImage {
     return this.width;
   }
 
-  get Height() {
-    return this.height;
-  }
-
-  get Buf8() {
-    return this.buf8;
-  }
-
   set Width(w: number) {
     this.width = w;
   }
 
+  get Height() {
+    return this.height;
+  }
+
   set Height(h: number) {
     this.height = h;
+  }
+
+  get Buf8() {
+    return this.buf8;
   }
 
   set Buf8(p: Uint8Array) {
