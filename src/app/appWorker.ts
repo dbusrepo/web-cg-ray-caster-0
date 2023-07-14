@@ -386,7 +386,7 @@ Date.now() - initStart
       ++frameCnt;
       statsTimeAcc += timeSinceLastFrame;
       if (statsTimeAcc >= AppWorker.STATS_PERIOD_MS) {
-        statsTimeAcc = statsTimeAcc % AppWorker.STATS_PERIOD_MS;
+        statsTimeAcc %= AppWorker.STATS_PERIOD_MS;
         // const tspent = (tnow - start_time) / App.MILLI_IN_SEC;
         const now = performance.now();
         const elapsed = now - lastStatsTime;

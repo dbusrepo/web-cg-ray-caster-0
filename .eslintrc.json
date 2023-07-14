@@ -49,6 +49,8 @@
     "no-multi-assign": "off",
     "prefer-const": "off",
     "prefer-template": "off",
+    "no-labels": "off",
+    "no-unused-labels": "off",
     "one-var": "off",
     "no-restricted-globals": "off",
     "no-use-before-define": "off",

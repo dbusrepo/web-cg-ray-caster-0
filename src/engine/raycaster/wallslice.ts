@@ -8,7 +8,8 @@ class WallSlice {
   constructor(
     // private wallSlicePtr: number,
     private distance: number,
-    private colIdxPtr: number,
+    private hitPtr: number,
+    private sidePtr: number,
     private topPtr: number,
     private bottomPtr: number,
     private texXPtr: number,
@@ -30,12 +31,20 @@ class WallSlice {
     gWasmView.setFloat64(this.distance, distance, true);
   }
 
-  get ColIdx(): number {
-    return gWasmView.getUint16(this.colIdxPtr, true);
+  get Hit(): number {
+    return gWasmView.getUint8(this.hitPtr);
   }
 
-  set ColIdx(colIdx: number) {
-    gWasmView.setUint16(this.colIdxPtr, colIdx, true);
+  set Hit(hit: number) {
+    gWasmView.setUint8(this.hitPtr, hit);
+  }
+
+  set Side(side: number) {
+    gWasmView.setUint8(this.sidePtr, side);
+  }
+
+  get Side(): number {
+    return gWasmView.getUint8(this.sidePtr);
   }
 
   get Top(): number {
@@ -117,7 +126,8 @@ function getWasmWallSlicesView(
     wallSlices[i] = new WallSlice(
       // wallSlicePtr,
       wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceColIdxPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceHitPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexXPtr(wallSlicePtr),

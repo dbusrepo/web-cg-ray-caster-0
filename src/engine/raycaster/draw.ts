@@ -90,7 +90,7 @@ function drawBorders(borderColor: number) {
   }
 }
 
-function drawSceneV(wallSlices: WallSlice[]) {
+function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
   assert(drawParams !== undefined);
 
   const {
@@ -98,26 +98,14 @@ function drawSceneV(wallSlices: WallSlice[]) {
     frameStride,
     screenPtr,
     wallTextures,
+    viewWidth: width,
     viewHeight: height,
   } = drawParams;
 
-  function drawWallSlice(wallSlice: WallSlice) {
-    let {
-      ColIdx: colIdx,
-      Top: top,
-      Bottom: bottom,
-      TexId: texId,
-      MipLvl: mipLvl,
-      TexX: texX,
-      TexStepY: texStepY,
-      TexPosY: texPosY,
-      CachedMipmap: mipmap,
-    } = wallSlice;
+  for (let i = colStart; i < colEnd; i++) {
+    let { Hit: hit, Top: top, Bottom: bottom } = wallSlices[i];
 
-    // const image = wallTextures[texId].getMipmap(mipLvl);
-    const { Width: texWidth, Height: texHeight, PitchLg2: pitchLg2 } = mipmap;
-
-    const colPtr = screenPtr + colIdx;
+    const colPtr = screenPtr + i;
     let dstPtr = colPtr;
     // dstPtr = colPtr + top * stride; // when no ceiling is drawn
 
@@ -128,26 +116,40 @@ function drawSceneV(wallSlices: WallSlice[]) {
     }
     // assert(dstPtr === colPtr + top * stride);
 
-    // rem mipmap is rotated 90ccw
-    // const mipStride = 1 << pitchLg2;
-    const mipColOffs = texX << pitchLg2;
-    const { Buf32: mipPixels } = mipmap;
+    if (hit) {
+      let {
+        TexId: texId,
+        MipLvl: mipLvl,
+        TexX: texX,
+        TexStepY: texStepY,
+        TexPosY: texPosY,
+        CachedMipmap: mipmap,
+      } = wallSlices[i];
 
-    // // textured wall
-    for (let y = top; y < bottom; y++) {
-      const texY = texPosY | 0;
-      texPosY += texStepY;
-      const color = mipPixels[mipColOffs + texY];
-      // const color = mipmap.Buf32[texY * texWidth + texX];
-      frameBuf32[dstPtr] = color;
-      dstPtr += frameStride;
+      // const mipmap = wallTextures[texId].getMipmap(mipLvl);
+      const { Width: texWidth, Height: texHeight, PitchLg2: pitchLg2 } = mipmap;
+
+      // rem mipmap is rotated 90ccw
+      // const mipStride = 1 << pitchLg2;
+      const mipColOffs = texX << pitchLg2;
+      const { Buf32: mipPixels } = mipmap;
+
+      // // textured wall
+      for (let y = top; y < bottom; y++) {
+        const texY = texPosY | 0;
+        texPosY += texStepY;
+        const color = mipPixels[mipColOffs + texY];
+        // const color = mipmap.Buf32[texY * texWidth + texX];
+        frameBuf32[dstPtr] = color;
+        dstPtr += frameStride;
+      }
+    } else {
+      // solid color
+      for (let y = top; y < bottom; y++) {
+        frameBuf32[dstPtr] = 0xff000000;
+        dstPtr += frameStride;
+      }
     }
-
-    // solid color
-    // for (let y = top; y < bottom; y++) {
-    //   frameBuf32[dstPtr] = 0xff0000ff;
-    //   dstPtr += frameStride;
-    // }
 
     // draw floor
     // assert(dstPtr === colPtr + bottom * stride);
@@ -155,10 +157,6 @@ function drawSceneV(wallSlices: WallSlice[]) {
       frameBuf32[dstPtr] = 0xff777777;
       dstPtr += frameStride;
     }
-  }
-
-  for (const wallSlice of wallSlices) {
-    drawWallSlice(wallSlice);
   }
 
   // const colPtr = drawParams.screenPtr;
@@ -180,10 +178,5 @@ function drawSceneV(wallSlices: WallSlice[]) {
   // }
 }
 
-export {
-  initDrawParams,
-  drawBackground,
-  drawBorders,
-  drawSceneV, 
-};
+export { initDrawParams, drawBackground, drawBorders, drawSceneV };
 

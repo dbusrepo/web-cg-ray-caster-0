@@ -7,7 +7,9 @@ import { logi } from '../importVars';
 
   private distance: f64;
 
-  private colIdx: u16;
+  private hit: u8;
+
+  private side: u8;
 
   private top: u16;
   private bottom: u16;
@@ -24,12 +26,24 @@ import { logi } from '../importVars';
     return this.distance;
   }
 
-  get ColIdx(): u16 {
-    return this.colIdx;
+  set Distance(distance: f64) {
+    this.distance = distance;
   }
 
-  set ColIdx(colIdx: u16) {
-    this.colIdx = colIdx;
+  get Hit(): u8 {
+    return this.hit;
+  }
+
+  set Hit(hit: u8) {
+    this.hit = hit;
+  }
+
+  get Side(): u8 {
+    return this.side;
+  }
+
+  set Side(side: u8) {
+    this.side = side;
   }
 
   get Top(): u16 {
@@ -107,8 +121,12 @@ function getWallSliceDistancePtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('distance');
 }
 
-function getWallSliceColIdxPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('colIdx');
+function getWallSliceHitPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('hit');
+}
+
+function getWallSliceSidePtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('side');
 }
 
 function getWallSliceTopPtr(wallSlicePtr: PTR_T): PTR_T {
@@ -143,7 +161,8 @@ export {
   WallSlice,
   newWallSlice,
   getWallSliceDistancePtr,
-  getWallSliceColIdxPtr,
+  getWallSliceHitPtr,
+  getWallSliceSidePtr,
   getWallSliceTopPtr,
   getWallSliceBottomPtr,
   getWallSliceTexXPtr,
