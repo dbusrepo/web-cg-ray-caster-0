@@ -63,11 +63,11 @@ function isPowerOf2(value: number): boolean {
 }
 
 function nextPowerOf2(value: number): number {
-  return Math.pow(2, Math.ceil(Math.log2(value)));
+  return 2 ** Math.ceil(Math.log2(value));
 }
 
 function nextGreaterPowerOf2(value: number): number {
-  return Math.pow(2, Math.ceil(Math.log2(value + 1)));
+  return 2 ** Math.ceil(Math.log2(value + 1));
 }
 
 export {

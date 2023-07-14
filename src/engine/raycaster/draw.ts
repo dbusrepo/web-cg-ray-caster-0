@@ -118,6 +118,7 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
 
     if (hit) {
       let {
+        Side: side,
         TexId: texId,
         MipLvl: mipLvl,
         TexX: texX,

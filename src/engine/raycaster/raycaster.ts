@@ -368,7 +368,7 @@ class Raycaster {
     this.yGrid[2] = 0;
 
     // this.xGrid[4 + (mapWidth + 1) * 2] = 3;
-    // this.yGrid[4 + (mapWidth + 1) * 1] = 3;
+    this.yGrid[4 + (mapWidth + 1) * 2] = 3;
   }
 
   get Viewport() {
