@@ -23,7 +23,11 @@ const WIDTH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const HEIGHT_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const PITCH_LG2_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const MIP_DESC_SIZE = WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + PITCH_LG2_FIELD_SIZE + OFFSET_TO_MIP_DATA_FIELD_SIZE;
+const MIP_DESC_SIZE =
+  WIDTH_FIELD_SIZE +
+  HEIGHT_FIELD_SIZE +
+  PITCH_LG2_FIELD_SIZE +
+  OFFSET_TO_MIP_DATA_FIELD_SIZE;
 
 const wasmTexFieldSizes = {
   NUM_MIPS_FIELD_SIZE,
@@ -55,7 +59,10 @@ function copyTextures2WasmMem(
 ) {
   assert(texDescIndexSize !== undefined);
   const { length: numTextures } = textures;
-  const texsIndexView = new DataView(texturesIndex.buffer, texturesIndex.byteOffset);
+  const texsIndexView = new DataView(
+    texturesIndex.buffer,
+    texturesIndex.byteOffset,
+  );
   let nextTexDescOffs = 0;
   let nextFirstMipDescOffs = texDescIndexSize;
   let nextMipPixelsOffs = 0;
@@ -64,12 +71,24 @@ function copyTextures2WasmMem(
     const { Levels: levels } = texture;
     const numMips = levels.length;
     texsIndexView.setUint32(nextTexDescOffs, numMips, true);
-    texsIndexView.setUint32(nextTexDescOffs + NUM_MIPS_FIELD_SIZE, nextFirstMipDescOffs, true);
-    const mipDescView = new DataView(texturesIndex.buffer, texturesIndex.byteOffset + nextFirstMipDescOffs);
+    texsIndexView.setUint32(
+      nextTexDescOffs + NUM_MIPS_FIELD_SIZE,
+      nextFirstMipDescOffs,
+      true,
+    );
+    const mipDescView = new DataView(
+      texturesIndex.buffer,
+      texturesIndex.byteOffset + nextFirstMipDescOffs,
+    );
     let nextMipDescFieldOffset = 0;
     for (let j = 0; j < numMips; ++j) {
       const level = levels[j];
-      const { Width: width, Height: height, PitchLg2: pitchLg2, Buf8: buf8 } = level;
+      const {
+        Width: width,
+        Height: height,
+        PitchLg2: pitchLg2,
+        Buf8: buf8,
+      } = level;
       mipDescView.setUint32(nextMipDescFieldOffset, width, true);
       nextMipDescFieldOffset += WIDTH_FIELD_SIZE;
       mipDescView.setUint32(nextMipDescFieldOffset, height, true);
@@ -86,8 +105,4 @@ function copyTextures2WasmMem(
   }
 }
 
-export {
-  copyTextures2WasmMem,
-  calcWasmTexturesIndexSize,
-  wasmTexFieldSizes,
-};
+export { copyTextures2WasmMem, calcWasmTexturesIndexSize, wasmTexFieldSizes };

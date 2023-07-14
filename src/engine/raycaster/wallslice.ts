@@ -1,9 +1,13 @@
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
+import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class WallSlice {
+  private cachedMipmap: BitImageRGBA;
+
   constructor(
     // private wallSlicePtr: number,
+    private distance: number,
     private colIdxPtr: number,
     private topPtr: number,
     private bottomPtr: number,
@@ -17,6 +21,14 @@ class WallSlice {
   // get WallSlicePtr(): number {
   //   return this.wallSlicePtr;
   // }
+
+  get Distance(): number {
+    return gWasmView.getFloat64(this.distance, true);
+  }
+
+  set Distance(distance: number) {
+    gWasmView.setFloat64(this.distance, distance, true);
+  }
 
   get ColIdx(): number {
     return gWasmView.getUint16(this.colIdxPtr, true);
@@ -61,7 +73,7 @@ class WallSlice {
   get TexPosY(): number {
     return gWasmView.getFloat64(this.texPosYPtr, true);
   }
-  
+
   set TexPosY(texPosY: number) {
     gWasmView.setFloat64(this.texPosYPtr, texPosY, true);
   }
@@ -81,16 +93,30 @@ class WallSlice {
   set MipLvl(mipLvl: number) {
     gWasmView.setUint8(this.mipLvlPtr, mipLvl);
   }
+
+  get CachedMipmap(): BitImageRGBA {
+    return this.cachedMipmap;
+  }
+
+  set CachedMipmap(cachedMipmap: BitImageRGBA) {
+    this.cachedMipmap = cachedMipmap;
+  }
 }
 
-function getWasmWallSlicesView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number, numColumns: number): WallSlice[] {
+function getWasmWallSlicesView(
+  wasmEngineModule: WasmEngineModule,
+  wasmRaycasterPtr: number,
+  numColumns: number,
+): WallSlice[] {
   const wallSlicesPtr = wasmEngineModule.getWallSlicesPtr(wasmRaycasterPtr);
-  const wallSliceObjSizeLg2 = wasmEngineModule.getWallSliceObjSizeLg2(wasmRaycasterPtr);
+  const wallSliceObjSizeLg2 =
+    wasmEngineModule.getWallSliceObjSizeLg2(wasmRaycasterPtr);
   const wallSlices = new Array<WallSlice>(numColumns);
   for (let i = 0; i < numColumns; i++) {
     const wallSlicePtr = wallSlicesPtr + (i << wallSliceObjSizeLg2);
     wallSlices[i] = new WallSlice(
       // wallSlicePtr,
+      wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
       wasmEngineModule.getWallSliceColIdxPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),

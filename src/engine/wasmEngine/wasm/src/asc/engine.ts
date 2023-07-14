@@ -58,6 +58,7 @@ import {
 import { 
   WallSlice,
   newWallSlice,
+  getWallSliceDistancePtr,
   getWallSliceColIdxPtr,
   getWallSliceTopPtr,
   getWallSliceBottomPtr,
@@ -329,6 +330,7 @@ export {
   getPlayerPlaneYPtr,
   getPlayerPitchPtr,
 
+  getWallSliceDistancePtr,
   getWallSliceColIdxPtr,
   getWallSliceTopPtr,
   getWallSliceBottomPtr,

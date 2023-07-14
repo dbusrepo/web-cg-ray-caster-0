@@ -4,6 +4,9 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
 @final @unmanaged class WallSlice {
+
+  private distance: f64;
+
   private colIdx: u16;
 
   private top: u16;
@@ -16,6 +19,10 @@ import { logi } from '../importVars';
 
   private texId: u16;
   private mipLvl: u8;
+
+  get Distance(): f64 {
+    return this.distance;
+  }
 
   get ColIdx(): u16 {
     return this.colIdx;
@@ -96,6 +103,10 @@ function newWallSlice(): WallSlice {
   return wallSlice;
 }
 
+function getWallSliceDistancePtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('distance');
+}
+
 function getWallSliceColIdxPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('colIdx');
 }
@@ -131,6 +142,7 @@ function getWallSliceMipLvlPtr(wallSlicePtr: PTR_T): PTR_T {
 export {
   WallSlice,
   newWallSlice,
+  getWallSliceDistancePtr,
   getWallSliceColIdxPtr,
   getWallSliceTopPtr,
   getWallSliceBottomPtr,

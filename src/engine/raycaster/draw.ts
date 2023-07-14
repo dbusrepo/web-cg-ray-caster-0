@@ -17,7 +17,7 @@ class DrawParams {
   ) {
     this.screenPtr = viewStartY * frameStride + viewStartX;
   }
-};
+}
 
 let drawParams: DrawParams;
 
@@ -31,9 +31,12 @@ function initDrawParams(
   wallTextures: Texture[],
 ) {
   drawParams = new DrawParams(
-    frameBuf32, frameStride,
-    viewStartX, viewStartY,
-    viewWidth, viewHeight,
+    frameBuf32,
+    frameStride,
+    viewStartX,
+    viewStartY,
+    viewWidth,
+    viewHeight,
     wallTextures,
   );
 }
@@ -50,7 +53,11 @@ function drawBackground(color: number) {
     viewHeight: height,
   } = drawParams;
 
-  for (let i = startY, offset = startY * stride; i < startY + height; i++, offset += stride) {
+  for (
+    let i = startY, offset = startY * stride;
+    i < startY + height;
+    i++, offset += stride
+  ) {
     frameBuf32.fill(color, offset + startX, offset + startX + width);
   }
 }
@@ -73,7 +80,11 @@ function drawBorders(borderColor: number) {
   frameBuf32.fill(borderColor, 0, upperLimit);
   frameBuf32.fill(borderColor, lowerLimit, frameBuf32.length);
 
-  for (let i = startY, offset = startY * stride; i < startY + height; i++, offset += stride) {
+  for (
+    let i = startY, offset = startY * stride;
+    i < startY + height;
+    i++, offset += stride
+  ) {
     frameBuf32.fill(borderColor, offset, offset + startX);
     frameBuf32.fill(borderColor, offset + startX + width, offset + stride);
   }
@@ -84,7 +95,7 @@ function drawSceneV(wallSlices: WallSlice[]) {
 
   const {
     frameBuf32,
-    frameStride: stride,
+    frameStride,
     screenPtr,
     wallTextures,
     viewHeight: height,
@@ -100,43 +111,50 @@ function drawSceneV(wallSlices: WallSlice[]) {
       TexX: texX,
       TexStepY: texStepY,
       TexPosY: texPosY,
+      CachedMipmap: mipmap,
     } = wallSlice;
 
-    const image = wallTextures[texId].getMipmap(mipLvl);
-    const { Width : texWidth, Height: texHeight } = image;
+    // const image = wallTextures[texId].getMipmap(mipLvl);
+    const { Width: texWidth, Height: texHeight, PitchLg2: pitchLg2 } = mipmap;
 
     const colPtr = screenPtr + colIdx;
-    let dstPtr = colPtr; 
+    let dstPtr = colPtr;
+    // dstPtr = colPtr + top * stride; // when no ceiling is drawn
 
     // // draw ceil
     for (let y = 0; y < top; y++) {
       frameBuf32[dstPtr] = 0xffbbbbbb;
-      dstPtr += stride;
+      dstPtr += frameStride;
     }
     // assert(dstPtr === colPtr + top * stride);
 
-    // dstPtr = colPtr + top * stride; //TODO: remove
-    // textured wall
+    // rem mipmap is rotated 90ccw
+    // const mipStride = 1 << pitchLg2;
+    const mipColOffs = texX << pitchLg2;
+    const { Buf32: mipPixels } = mipmap;
+
+    // // textured wall
     for (let y = top; y < bottom; y++) {
       const texY = texPosY | 0;
       texPosY += texStepY;
-      const color = image.Buf32[texY * texWidth + texX];
+      const color = mipPixels[mipColOffs + texY];
+      // const color = mipmap.Buf32[texY * texWidth + texX];
       frameBuf32[dstPtr] = color;
-      dstPtr += stride;
-    }
-    
-    // draw floor
-    // assert(dstPtr === colPtr + bottom * stride);
-    for (let y = bottom; y < height; y++) {
-      frameBuf32[dstPtr] = 0xff777777;
-      dstPtr += stride;
+      dstPtr += frameStride;
     }
 
     // solid color
     // for (let y = top; y < bottom; y++) {
     //   frameBuf32[dstPtr] = 0xff0000ff;
-    //   dstPtr += stride;
+    //   dstPtr += frameStride;
     // }
+
+    // draw floor
+    // assert(dstPtr === colPtr + bottom * stride);
+    for (let y = bottom; y < height; y++) {
+      frameBuf32[dstPtr] = 0xff777777;
+      dstPtr += frameStride;
+    }
   }
 
   for (const wallSlice of wallSlices) {
