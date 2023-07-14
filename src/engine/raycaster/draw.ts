@@ -13,7 +13,7 @@ class DrawParams {
     public viewStartY: number,
     public viewWidth: number,
     public viewHeight: number,
-    public wallTextures: Texture[],
+    public wallTextures: Texture[][],
   ) {
     this.screenPtr = viewStartY * frameStride + viewStartX;
   }
@@ -28,7 +28,7 @@ function initDrawParams(
   viewStartY: number,
   viewWidth: number,
   viewHeight: number,
-  wallTextures: Texture[],
+  wallTextures: Texture[][],
 ) {
   drawParams = new DrawParams(
     frameBuf32,
@@ -139,7 +139,19 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
       for (let y = top; y < bottom; y++) {
         const texY = texPosY | 0;
         texPosY += texStepY;
-        const color = mipPixels[mipColOffs + texY];
+        let color = mipPixels[mipColOffs + texY];
+        if (side === 0) {
+          let r = (color & 0xff0000) >> 16;
+          let g = (color & 0x00ff00) >> 8;
+          let b = (color & 0x0000ff) >> 0;
+          r = (r * 3) >> 2;
+          g = (g * 3) >> 2;
+          b = (b * 3) >> 2;
+          // r >>>= 1;
+          // g >>>= 1;
+          // b >>>= 1;
+          color = (0xff << 24) | (r << 16) | (g << 8) | (b << 0);
+        }
         // const color = mipmap.Buf32[texY * texWidth + texX];
         frameBuf32[dstPtr] = color;
         dstPtr += frameStride;

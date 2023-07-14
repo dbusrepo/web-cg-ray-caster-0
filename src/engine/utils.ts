@@ -26,7 +26,8 @@ function makeColorRGB(r: number, g: number, b: number): number {
   return (0xff << 24) | (b << 16) | (g << 8) | r; // ABGR
 }
 
-function makeColor(color: number): number { // RGBA -> ABGR
+function makeColor(color: number): number {
+  // RGBA -> ABGR
   const r = (color >> 24) & 0xff;
   const g = (color >> 16) & 0xff;
   const b = (color >> 8) & 0xff;
@@ -41,10 +42,7 @@ function randColor(): number {
   return color;
 }
 
-const arrAvg = (
-  values: Float32Array | Float64Array,
-  count: number,
-) => {
+const arrAvg = (values: Float32Array | Float64Array, count: number) => {
   let acc = 0;
   const numIter = Math.min(count, values.length);
   if (numIter === 0) return 0;

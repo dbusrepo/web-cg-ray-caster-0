@@ -34,7 +34,7 @@ class Raycaster {
 
   private wasmRaycasterPtr: number;
 
-  private wallTextures: Texture[];
+  private wallTextures: Texture[][];
 
   private mapWidth: number;
   private mapHeight: number;
@@ -295,7 +295,7 @@ class Raycaster {
       );
 
       const mipLevel = 0;
-      const mipmap = this.wallTextures[texId].getMipmap(mipLevel);
+      const mipmap = this.wallTextures[texId][side].getMipmap(mipLevel);
       const { Width: texWidth, Height: texHeight } = mipmap;
 
       // wallX -= Math.floor(wallX);
