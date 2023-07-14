@@ -1,6 +1,9 @@
 import assert from 'assert';
 import type { WasmViews } from './wasmEngine/wasmViews';
-import type { WasmModules, WasmEngineModule } from '../engine/wasmEngine/wasmLoader';
+import type {
+  WasmModules,
+  WasmEngineModule,
+} from '../engine/wasmEngine/wasmLoader';
 import { buildWasmMemViews } from './wasmEngine/wasmViews';
 import type { WasmRunParams } from './wasmEngine/wasmRun';
 import { WasmRun } from './wasmEngine/wasmRun';
@@ -14,10 +17,10 @@ const enum AuxWorkerCommandEnum {
 }
 
 type AuxWorkerParams = {
-  workerIndex: number,
-  numWorkers: number,
+  workerIndex: number;
+  numWorkers: number;
   frameStride: number;
-  wasmRunParams: WasmRunParams,
+  wasmRunParams: WasmRunParams;
 };
 
 class AuxWorker {
@@ -37,8 +40,14 @@ class AuxWorker {
 
     await this.initWasmRun();
 
-    this.player = getWasmPlayerView(this.wasmEngineModule, this.wasmRaycasterPtr);
-    this.viewport = getWasmViewportView(this.wasmEngineModule, this.wasmRaycasterPtr);
+    this.player = getWasmPlayerView(
+      this.wasmEngineModule,
+      this.wasmRaycasterPtr,
+    );
+    this.viewport = getWasmViewportView(
+      this.wasmEngineModule,
+      this.wasmRaycasterPtr,
+    );
 
     this.raycaster = new Raycaster();
     const raycasterParams: RaycasterParams = {
@@ -59,7 +68,8 @@ class AuxWorker {
     const wasmViews = buildWasmMemViews(
       wasmRunParams.wasmMem,
       wasmRunParams.wasmMemRegionsOffsets,
-      wasmRunParams.wasmMemRegionsSizes);
+      wasmRunParams.wasmMemRegionsSizes,
+    );
     await this.wasmRun.init(wasmRunParams, wasmViews);
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
     this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
@@ -81,7 +91,9 @@ class AuxWorker {
         Atomics.notify(wasmViews.syncArr, workerIndex);
       }
     } catch (ex) {
-      console.log(`Error while running aux app worker ${this.params.workerIndex}`);
+      console.log(
+        `Error while running aux app worker ${this.params.workerIndex}`,
+      );
       console.error(ex);
     }
   }
@@ -93,7 +105,9 @@ const commands = {
   [AuxWorkerCommandEnum.INIT]: async (params: AuxWorkerParams) => {
     auxWorker = new AuxWorker();
     await auxWorker.init(params);
-    postMessage({ status: `aux app worker ${params.workerIndex} init completed` });
+    postMessage({
+      status: `aux app worker ${params.workerIndex} init completed`,
+    });
   },
   [AuxWorkerCommandEnum.RUN]: async () => {
     await auxWorker.run();

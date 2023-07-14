@@ -45,7 +45,7 @@ class Player {
   get DirX(): number {
     return gWasmView.getFloat64(this.dirXPtr, true);
   }
-  
+
   set DirX(value: number) {
     gWasmView.setFloat64(this.dirXPtr, value, true);
   }
@@ -83,7 +83,10 @@ class Player {
   }
 }
 
-function getWasmPlayerView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Player {
+function getWasmPlayerView(
+  wasmEngineModule: WasmEngineModule,
+  wasmRaycasterPtr: number,
+): Player {
   const playerPtr = wasmEngineModule.getPlayerPtr(wasmRaycasterPtr);
   const posXPtr = wasmEngineModule.getPlayerPosXPtr(playerPtr);
   const posYPtr = wasmEngineModule.getPlayerPosYPtr(playerPtr);

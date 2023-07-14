@@ -14,7 +14,10 @@ import type { KeyHandler, Key } from '../input/inputManager';
 import { InputManager, keys, keyOffsets } from '../input/inputManager';
 import type { AuxAppWorkerParams } from './auxAppWorker';
 import { AuxAppWorkerCommandEnum, AuxAppWorkerDesc } from './auxAppWorker';
-import type { WasmModules, WasmEngineModule } from '../engine/wasmEngine/wasmLoader';
+import type {
+  WasmModules,
+  WasmEngineModule,
+} from '../engine/wasmEngine/wasmLoader';
 import { WasmRun } from '../engine/wasmEngine/wasmRun';
 import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
 import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
@@ -31,7 +34,8 @@ type AppWorkerParams = {
 };
 
 class AppWorker {
-  private static readonly RENDER_PERIOD_MS = MILLI_IN_SEC / mainConfig.targetRPS;
+  private static readonly RENDER_PERIOD_MS =
+    MILLI_IN_SEC / mainConfig.targetRPS;
   private static readonly UPDATE_PERIOD_MS =
     (mainConfig.multiplier * MILLI_IN_SEC) / mainConfig.targetUPS;
 
@@ -75,7 +79,7 @@ class AppWorker {
     // this.raycaster.castScene();
     await this.runAuxWorkers();
   }
-  
+
   private async initWasmRaycaster() {
     this.initViewport();
     this.initPlayer();
@@ -126,23 +130,26 @@ class AppWorker {
   }
 
   private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
-    const ctx = <OffscreenCanvasRenderingContext2D>(
-      canvas.getContext('2d', {
-        alpha: false,
-        desynchronized: true, // TODO:
-      })
-    );
+    const ctx = <OffscreenCanvasRenderingContext2D>canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true, // TODO:
+    });
     ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
     return ctx;
   }
 
   private initBorder() {
-    this.wasmBorderColorPtr = this.wasmEngineModule.getBorderColorPtr(this.wasmRaycasterPtr);
+    this.wasmBorderColorPtr = this.wasmEngineModule.getBorderColorPtr(
+      this.wasmRaycasterPtr,
+    );
     this.BorderColor = makeColor(0xffff00ff);
   }
 
   private initViewport() {
-    const viewport = getWasmViewportView(this.wasmEngineModule, this.wasmRaycasterPtr);
+    const viewport = getWasmViewportView(
+      this.wasmEngineModule,
+      this.wasmRaycasterPtr,
+    );
     const VIEWPORT_BORDER = 0;
     viewport.StartX = VIEWPORT_BORDER;
     viewport.StartY = VIEWPORT_BORDER;
@@ -155,7 +162,10 @@ class AppWorker {
   }
 
   private initPlayer() {
-    const player = getWasmPlayerView(this.wasmEngineModule, this.wasmRaycasterPtr);
+    const player = getWasmPlayerView(
+      this.wasmEngineModule,
+      this.wasmRaycasterPtr,
+    );
     player.PosX = 0.5;
     player.PosY = 0.5;
     player.DirX = 1;
@@ -218,7 +228,7 @@ class AppWorker {
                 name: `aux-app-worker-${workerIndex}`,
                 type: 'module',
               },
-            )
+            ),
           };
           this.auxWorkers.push(engineWorker);
           const workerParams: AuxWorkerParams = {
@@ -239,8 +249,8 @@ class AppWorker {
             --remWorkers;
             console.log(
               `Aux app worker id=${workerIndex} init, left count=${remWorkers}, time=${
-Date.now() - initStart
-}ms with data = ${JSON.stringify(data)}`,
+                Date.now() - initStart
+              }ms with data = ${JSON.stringify(data)}`,
             );
             if (remWorkers === 0) {
               console.log(
@@ -250,13 +260,17 @@ Date.now() - initStart
             }
           };
           engineWorker.worker.onerror = (error) => {
-            console.log(`Aux app worker id=${workerIndex} error: ${error.message}\n`);
+            console.log(
+              `Aux app worker id=${workerIndex} error: ${error.message}\n`,
+            );
             reject(error);
           };
         }
       });
     } catch (error) {
-      console.error(`Error during aux app workers init: ${JSON.stringify(error)}`);
+      console.error(
+        `Error during aux app workers init: ${JSON.stringify(error)}`,
+      );
     }
   }
 
@@ -308,7 +322,7 @@ Date.now() - initStart
       statsCnt = 0;
       resync = false;
       updateCnt = 0;
-      renderCnt  = 0;
+      renderCnt = 0;
       isRunning = true;
       isPaused = false;
       requestAnimationFrame(frame);
@@ -320,13 +334,17 @@ Date.now() - initStart
       frameStartTime = performance.now();
       timeSinceLastFrame = frameStartTime - lastFrameStartTime;
       lastFrameStartTime = frameStartTime;
-      timeSinceLastFrame = Math.min(timeSinceLastFrame, AppWorker.UPDATE_TIME_MAX);
+      timeSinceLastFrame = Math.min(
+        timeSinceLastFrame,
+        AppWorker.UPDATE_TIME_MAX,
+      );
       timeSinceLastFrame = Math.max(timeSinceLastFrame, 0);
-      timeSinceLastFrameArr[timeLastFrameCnt++ % timeSinceLastFrameArr.length] = timeSinceLastFrame;
+      timeSinceLastFrameArr[timeLastFrameCnt++ % timeSinceLastFrameArr.length] =
+        timeSinceLastFrame;
       // avgTimeSinceLastFrame = timeSinceLastFrame;
       // console.log(`avgTimeSinceLastFrame = ${avgTimeSinceLastFrame}`);
-      avgTimeSinceLastFrame = arrAvg(timeSinceLastFrameArr, timeLastFrameCnt,);
-    }
+      avgTimeSinceLastFrame = arrAvg(timeSinceLastFrameArr, timeLastFrameCnt);
+    };
 
     const frame = () => {
       requestAnimationFrame(frame);
@@ -466,11 +484,15 @@ Date.now() - initStart
   private rotate(moveSpeed: number) {
     const player = this.raycaster.Player;
     const oldDirX = player.DirX;
-    player.DirX = player.DirX * Math.cos(moveSpeed) - player.DirY * Math.sin(moveSpeed);
-    player.DirY = oldDirX * Math.sin(moveSpeed) + player.DirY * Math.cos(moveSpeed);
+    player.DirX =
+      player.DirX * Math.cos(moveSpeed) - player.DirY * Math.sin(moveSpeed);
+    player.DirY =
+      oldDirX * Math.sin(moveSpeed) + player.DirY * Math.cos(moveSpeed);
     const oldPlaneX = player.PlaneX;
-    player.PlaneX = player.PlaneX * Math.cos(moveSpeed) - player.PlaneY * Math.sin(moveSpeed);
-    player.PlaneY = oldPlaneX * Math.sin(moveSpeed) + player.PlaneY * Math.cos(moveSpeed);
+    player.PlaneX =
+      player.PlaneX * Math.cos(moveSpeed) - player.PlaneY * Math.sin(moveSpeed);
+    player.PlaneY =
+      oldPlaneX * Math.sin(moveSpeed) + player.PlaneY * Math.cos(moveSpeed);
   }
 
   private moveForward(moveSpeed: number, dir: number) {
@@ -522,10 +544,12 @@ const commands = {
   [AppWorkerCommandEnum.KEY_UP]: (inputEvent: InputEvent) => {
     appWorker.onKeyUp(inputEvent);
   },
-  [AppWorkerCommandEnum.RESIZE_CANVAS_DISPLAY_SIZE]: (resizeEvent: CanvasDisplayResizeEvent) => {
+  [AppWorkerCommandEnum.RESIZE_CANVAS_DISPLAY_SIZE]: (
+    resizeEvent: CanvasDisplayResizeEvent,
+  ) => {
     const { width, height } = resizeEvent;
     appWorker.onCanvasDisplayResize(width, height);
-  }
+  },
 };
 
 self.onmessage = ({ data: { command, params } }) => {

@@ -4,10 +4,11 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 class Viewport {
   constructor(
     private viewportPtr: number,
-    private startXPtr: number, 
+    private startXPtr: number,
     private startYPtr: number,
     private widthPtr: number,
-    private heightPtr: number) {}
+    private heightPtr: number,
+  ) {}
 
   get WasmPtr(): number {
     return this.viewportPtr;
@@ -46,13 +47,22 @@ class Viewport {
   }
 }
 
-function getWasmViewportView(wasmEngineModule: WasmEngineModule, wasmRaycasterPtr: number): Viewport {
+function getWasmViewportView(
+  wasmEngineModule: WasmEngineModule,
+  wasmRaycasterPtr: number,
+): Viewport {
   const viewportPtr = wasmEngineModule.getViewportPtr(wasmRaycasterPtr);
   const startXPtr = wasmEngineModule.getViewportStartXPtr(viewportPtr);
   const startYPtr = wasmEngineModule.getViewportStartYPtr(viewportPtr);
   const widthPtr = wasmEngineModule.getViewportWidthPtr(viewportPtr);
   const heightPtr = wasmEngineModule.getViewportHeightPtr(viewportPtr);
-  const viewport = new Viewport(viewportPtr, startXPtr, startYPtr, widthPtr, heightPtr);
+  const viewport = new Viewport(
+    viewportPtr,
+    startXPtr,
+    startYPtr,
+    widthPtr,
+    heightPtr,
+  );
   return viewport;
 }
 

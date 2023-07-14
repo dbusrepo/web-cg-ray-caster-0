@@ -173,7 +173,7 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
   }
 
   // const colPtr = drawParams.screenPtr;
-  // let scrPtr = colPtr + wallTop * stride; 
+  // let scrPtr = colPtr + wallTop * stride;
 
   // // textured wall
   // for (let y = wallTop; y < wallBottom; y++) {
@@ -192,4 +192,3 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
 }
 
 export { initDrawParams, drawBackground, drawBorders, drawSceneV };
-
