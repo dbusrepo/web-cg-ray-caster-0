@@ -9,7 +9,7 @@ import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
 import { AssetManager } from '../engine/assets/assetManager';
 import type { InputEvent, CanvasDisplayResizeEvent } from './events';
-import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from '../app/appTypes';
+import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from './appTypes';
 import type { KeyHandler, Key } from '../input/inputManager';
 import { InputManager, keys, keyOffsets } from '../input/inputManager';
 import type { AuxAppWorkerParams } from './auxAppWorker';
@@ -212,9 +212,7 @@ class AppWorker {
     const initStart = Date.now();
     try {
       let nextWorkerIdx = 1; // start from 1, 0 is for the main worker
-      const genWorkerIdx = () => {
-        return nextWorkerIdx++;
-      };
+      const genWorkerIdx = () => nextWorkerIdx++;
       let remWorkers = numAuxWorkers;
       await new Promise<void>((resolve, reject) => {
         for (let i = 0; i < numAuxWorkers; ++i) {
@@ -248,7 +246,8 @@ class AppWorker {
           engineWorker.worker.onmessage = ({ data }) => {
             --remWorkers;
             console.log(
-              `Aux app worker id=${workerIndex} init, left count=${remWorkers}, time=${
+              `Aux app worker id=${workerIndex} init,
+               left count=${remWorkers}, time=${
                 Date.now() - initStart
               }ms with data = ${JSON.stringify(data)}`,
             );
@@ -424,7 +423,7 @@ class AppWorker {
         const avgFrameTime = arrAvg(frameTimeArr, renderCnt);
         const avgUfps = MILLI_IN_SEC / avgFrameTime;
         // console.log(`avgUfps = ${avgUfps}, avgFrameTime = ${avgFrameTime}`);
-        const stats: StatsValues = {
+        const statsValues: StatsValues = {
           [StatsNameEnum.FPS]: avgFps,
           [StatsNameEnum.RPS]: avgRps,
           [StatsNameEnum.UPS]: avgUps,
@@ -432,7 +431,7 @@ class AppWorker {
         };
         postMessage({
           command: AppCommandEnum.UPDATE_STATS,
-          params: stats,
+          params: statsValues,
         });
       }
     };

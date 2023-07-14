@@ -1,9 +1,6 @@
 import assert from 'assert';
 import type { WasmViews } from './wasmEngine/wasmViews';
-import type {
-  WasmModules,
-  WasmEngineModule,
-} from '../engine/wasmEngine/wasmLoader';
+import type { WasmModules, WasmEngineModule } from './wasmEngine/wasmLoader';
 import { buildWasmMemViews } from './wasmEngine/wasmViews';
 import type { WasmRunParams } from './wasmEngine/wasmRun';
 import { WasmRun } from './wasmEngine/wasmRun';
@@ -82,7 +79,7 @@ class AuxWorker {
     const wasmViews = this.wasmRun.WasmViews;
 
     try {
-      while (true) {
+      for (;;) {
         Atomics.wait(wasmViews.syncArr, this.params.workerIndex, 0);
 
         // this.wasmEngineModule.render();
