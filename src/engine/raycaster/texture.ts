@@ -3,7 +3,6 @@ import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { ascImportImages } from '../../../assets/build/images';
 import { gWasmView, gWasmViews } from '../wasmEngine/wasmRun';
 import { wasmTexFieldSizes } from '../wasmEngine/wasmMemInitImages';
-import { makeColorRGB } from '../utils';
 
 class Texture {
   constructor(private mipmaps: BitImageRGBA[]) {}
@@ -57,7 +56,17 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number) {
   return mipmap;
 }
 
-const initTexture = (texId: number): [Texture, Texture] => {
+const initTexturePair = (
+  texId: number,
+  darkerTexId: number,
+): [Texture, Texture] => {
+  const texture = initTexture(texId);
+  const darkerTexture = initTexture(darkerTexId, true);
+
+  return [texture, darkerTexture];
+};
+
+const initTexture = (texId: number, makeDarker = false): Texture => {
   assert(texId >= 0 && texId < Object.keys(ascImportImages).length);
 
   const texDescOffs =
@@ -78,11 +87,14 @@ const initTexture = (texId: number): [Texture, Texture] => {
 
   for (let i = 0; i < numMipmaps; i++) {
     mipmaps[i] = wasmMipmap2BitImageRGBAView(mipmapDescOffs);
+    if (makeDarker) {
+      mipmaps[i].makeDarker();
+    }
     mipmapDescOffs += wasmTexFieldSizes.MIP_DESC_SIZE;
   }
 
   const texture = new Texture(mipmaps);
-  return [texture, texture];
+  return texture;
 };
 
-export { Texture, initTexture };
+export { Texture, initTexture, initTexturePair };

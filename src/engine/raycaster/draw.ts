@@ -97,7 +97,7 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
     frameBuf32,
     frameStride,
     screenPtr,
-    wallTextures,
+    // wallTextures,
     viewWidth: width,
     viewHeight: height,
   } = drawParams;
@@ -118,9 +118,9 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
 
     if (hit) {
       let {
-        Side: side,
-        TexId: texId,
-        MipLvl: mipLvl,
+        // Side: side,
+        // TexId: texId,
+        // MipLvl: mipLvl,
         TexX: texX,
         TexStepY: texStepY,
         TexPosY: texPosY,
@@ -140,18 +140,6 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
         const texY = texPosY | 0;
         texPosY += texStepY;
         let color = mipPixels[mipColOffs + texY];
-        if (side === 0) {
-          let r = (color & 0xff0000) >> 16;
-          let g = (color & 0x00ff00) >> 8;
-          let b = (color & 0x0000ff) >> 0;
-          r = (r * 3) >> 2;
-          g = (g * 3) >> 2;
-          b = (b * 3) >> 2;
-          // r >>>= 1;
-          // g >>>= 1;
-          // b >>>= 1;
-          color = (0xff << 24) | (r << 16) | (g << 8) | (b << 0);
-        }
         // const color = mipmap.Buf32[texY * texWidth + texX];
         frameBuf32[dstPtr] = color;
         dstPtr += frameStride;

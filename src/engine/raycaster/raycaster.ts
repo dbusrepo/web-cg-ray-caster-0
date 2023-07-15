@@ -4,7 +4,7 @@ import type { InputEvent } from '../../app/events';
 import { AssetManager } from '../assets/assetManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
-import { randColor, makeColor, sleep } from '../utils';
+import { randColor, colorRGBAtoABGR, sleep } from '../utils';
 
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
@@ -17,7 +17,7 @@ import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import { initDrawParams, drawBackground, drawSceneV } from './draw';
 
 import { ascImportImages } from '../../../assets/build/images';
-import { Texture, initTexture } from './texture';
+import { Texture, initTexturePair } from './texture';
 
 type RaycasterParams = {
   wasmRun: WasmRun;
@@ -77,7 +77,7 @@ class Raycaster {
 
     // console.log('raycaster starting...');
 
-    this.backgroundColor = makeColor(0x000000ff);
+    this.backgroundColor = colorRGBAtoABGR(0x000000ff);
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
 
@@ -131,10 +131,18 @@ class Raycaster {
 
   private initTextures() {
     this.wallTextures = [];
-    // this.wallTextures[0] = initTexture(wasmViews, ascImportImages.BLUESTONE);
-    this.wallTextures[0] = initTexture(ascImportImages.GREYSTONE);
-    this.wallTextures[1] = initTexture(ascImportImages.BLUESTONE);
-    this.wallTextures[2] = initTexture(ascImportImages.REDBRICK);
+    this.wallTextures[0] = initTexturePair(
+      ascImportImages.GREYSTONE,
+      ascImportImages.GREYSTONE_D,
+    );
+    this.wallTextures[1] = initTexturePair(
+      ascImportImages.BLUESTONE,
+      ascImportImages.BLUESTONE_D,
+    );
+    this.wallTextures[2] = initTexturePair(
+      ascImportImages.REDBRICK,
+      ascImportImages.REDBRICK_D,
+    );
   }
 
   castScene() {
@@ -205,7 +213,7 @@ class Raycaster {
       // let hit = false;
       let side = 0;
       let gridIdx = srcMapIdx;
-      let MAX_STEPS = 100; // TODO
+      let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
       let texId = 0;
       let wallX = 0;
@@ -305,15 +313,14 @@ class Raycaster {
         wallX = 1 - wallX;
       }
 
-      const texX = (wallX * texWidth) | 0;
-
+      const texX = wallX * texWidth;
       const texStepY = texHeight / wallSliceHeight;
       const texPosY = (wallTop - projWallTop) * texStepY;
 
+      wallSlice.TexId = texId;
       wallSlice.TexX = texX;
       wallSlice.TexStepY = texStepY;
       wallSlice.TexPosY = texPosY;
-      wallSlice.TexId = texId;
       wallSlice.MipLvl = mipLevel;
       wallSlice.CachedMipmap = mipmap;
     }

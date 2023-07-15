@@ -72,6 +72,23 @@ class BitImageRGBA extends BitImage {
   get Buf32() {
     return this.buf32;
   }
+
+  makeDarker() {
+    const buf32 = this.Buf32;
+    for (let i = 0; i < buf32.length; ++i) {
+      // png texels are stored in rgba, read as abgr due to little endian
+      const c = buf32[i]; // abgr
+      const a = (c >> 24) & 0xff;
+      const b = (c >> 16) & 0xff;
+      const g = (c >> 8) & 0xff;
+      const r = c & 0xff;
+      const r2 = (r * 3) >> 2;
+      const g2 = (g * 3) >> 2;
+      const b2 = (b * 3) >> 2;
+      // stored as abgr, bytes swapped by endian, read as abgr
+      buf32[i] = utils.RGBAtoABGR(r2, g2, b2, a);
+    }
+  }
 }
 
 export { BitImageRGBA, BPP_RGBA };

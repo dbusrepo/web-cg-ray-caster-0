@@ -726,3 +726,23 @@ logi(nextPowerOfTwo(8));
 //     }
 //   },
 // };
+
+if (side === 0) {
+  let r = (color & 0xff0000) >> 16;
+  let g = (color & 0x00ff00) >> 8;
+  let b = (color & 0x0000ff) >> 0;
+  r = (r * 3) >> 2;
+  g = (g * 3) >> 2;
+  b = (b * 3) >> 2;
+  // r >>>= 1;
+  // g >>>= 1;
+  // b >>>= 1;
+  color = (0xff << 24) | (r << 16) | (g << 8) | (b << 0);
+}
+
+write color value in abgr format (or use the make color function from a rgba value):
+so abgr -> little endian swap when storing and then when loading -> abgr again (when 
+values are read for drawing by the impl it seems the values are assumed to be in abgr format)
+
+note texels fron png are written in rgba format in memory but when loaded they are in abgr format
+(bytes are swapped cause of little endian)

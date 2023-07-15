@@ -21,7 +21,7 @@ import type {
 import { WasmRun } from '../engine/wasmEngine/wasmRun';
 import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
 import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
-import { arrAvg, randColor, makeColor, sleep } from '../engine/utils';
+import { arrAvg, randColor, colorRGBAtoABGR, sleep } from '../engine/utils';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
 import type { AuxWorkerParams } from '../engine/auxWorker';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
@@ -142,7 +142,7 @@ class AppWorker {
     this.wasmBorderColorPtr = this.wasmEngineModule.getBorderColorPtr(
       this.wasmRaycasterPtr,
     );
-    this.BorderColor = makeColor(0xffff00ff);
+    this.BorderColor = colorRGBAtoABGR(0xffff00ff);
   }
 
   private initViewport() {
