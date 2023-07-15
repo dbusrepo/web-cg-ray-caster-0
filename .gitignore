@@ -11,5 +11,4 @@ npm-debug.log
 **/wasm/src/asc/**/*.d
 **/wasm/src/asc/**/gen_*.*
 build_flags
-src/assets/build
 tsbuildinfo
