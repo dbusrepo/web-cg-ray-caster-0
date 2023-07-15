@@ -46,7 +46,7 @@ const writeOpts = {
 
 const getImagesUrlsFunName = 'getImagesUrls';
 const getImagesUrlsPrefix = `const ${getImagesUrlsFunName} = async () => {
-  const paths: Promise<typeof import("*.png")>[] = [`;
+  const paths: Promise<typeof import('*.png')>[] = [`;
 const getImagesUrlsSuffix = `  ];
   return (await Promise.all(paths)).map((imp) => imp.default);
 };\n`;
