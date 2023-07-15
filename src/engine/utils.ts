@@ -1,12 +1,4 @@
-type TypedArray =
-  | Int8Array
-  | Uint8Array
-  | Int16Array
-  | Uint16Array
-  | Int32Array
-  | Uint32Array;
-
-type Range = [start: number, end: number];
+import type { Range, TypedArray } from './ctypes';
 
 // split [0..numTasks-1] between [0..numWorkers-1] workers and get the index
 // range for worker workerIdx. Workers on head get one more task if needed.

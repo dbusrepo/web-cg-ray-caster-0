@@ -286,6 +286,7 @@ class AppWorker {
 
     let timeLastFrameCnt: number;
     let frameCnt: number;
+    let frameTimeCnt: number;
     let renderCnt: number;
     let updateCnt: number;
     let statsCnt: number;
@@ -313,6 +314,7 @@ class AppWorker {
         AppWorker.TIMES_SINCE_LAST_FRAME_ARR_LEN,
       );
       frameCnt = 0;
+      frameTimeCnt = 0;
       timeLastFrameCnt = 0;
       statsTimeAcc = 0;
       fpsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
@@ -396,7 +398,7 @@ class AppWorker {
 
     const saveFrameTime = () => {
       const frameTime = performance.now() - frameStartTime;
-      frameTimeArr[renderCnt % frameTimeArr.length] = frameTime;
+      frameTimeArr[frameTimeCnt++ % frameTimeArr.length] = frameTime;
     };
 
     const stats = () => {
@@ -420,9 +422,8 @@ class AppWorker {
         const avgFps = arrAvg(fpsArr, statsCnt);
         const avgRps = arrAvg(rpsArr, statsCnt);
         const avgUps = arrAvg(upsArr, statsCnt);
-        const avgFrameTime = arrAvg(frameTimeArr, renderCnt);
+        const avgFrameTime = arrAvg(frameTimeArr, frameTimeCnt);
         const avgUfps = MILLI_IN_SEC / avgFrameTime;
-        // console.log(`avgUfps = ${avgUfps}, avgFrameTime = ${avgFrameTime}`);
         const statsValues: StatsValues = {
           [StatsNameEnum.FPS]: avgFps,
           [StatsNameEnum.RPS]: avgRps,
