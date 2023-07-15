@@ -22,7 +22,7 @@ ASC_BUILD_DIR := $(BUILD_DIR)/asc
 
 # rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-ASC_ALL_SOURCE_FILES := $(shell find src/asc/ -type f -name '*.ts')
+ASC_ALL_SOURCE_FILES := $(shell find src/asc/ -type f \( -name '*.ts' ! -name 'gen_*.ts' \))
 # ASC_ALL_SOURCE_FILES := $(wildcard $(ASC_SOURCE_DIR)/**/*.ts)
 
 # ASC_DEP_FILES := $(wildcard $(ASC_SOURCE_DIR)/*.d)
