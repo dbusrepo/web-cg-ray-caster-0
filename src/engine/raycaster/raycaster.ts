@@ -314,6 +314,9 @@ class Raycaster {
       }
 
       const texX = wallX * texWidth;
+
+      assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
+
       const texStepY = texHeight / wallSliceHeight;
       const texPosY = (wallTop - projWallTop) * texStepY;
 
