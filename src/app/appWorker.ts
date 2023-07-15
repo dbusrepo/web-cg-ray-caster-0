@@ -74,7 +74,6 @@ class AppWorker {
     await this.initAssetManager();
     await this.initWasmEngine();
     await this.initRaycaster();
-    this.initMap();
     drawBorders(this.BorderColor);
     // this.raycaster.castScene();
     await this.runAuxWorkers();
@@ -185,10 +184,6 @@ class AppWorker {
       frameStride: this.imageData.width,
     };
     await this.raycaster.init(raycasterParams);
-  }
-
-  private initMap() {
-    this.raycaster.initMap();
   }
 
   private async runAuxWorkers() {

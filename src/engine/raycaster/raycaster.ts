@@ -39,6 +39,9 @@ class Raycaster {
   private mapWidth: number;
   private mapHeight: number;
 
+  private floorMap: Uint8Array;
+  // private ceilingMap: Uint8Array;
+
   private xGrid: Uint8Array;
   private yGrid: Uint8Array;
 
@@ -82,6 +85,9 @@ class Raycaster {
     // this.rotate(Math.PI / 4);
 
     // this.renderBorders(); // TODO:
+
+    this.initMap();
+    this.initFloorMap();
   }
 
   private initFrameBuf() {
@@ -143,6 +149,57 @@ class Raycaster {
       ascImportImages.REDBRICK,
       ascImportImages.REDBRICK_D,
     );
+  }
+
+  public initMap() {
+    const { wasmRun } = this.params;
+
+    // TODO:
+    const mapWidth = 10;
+    const mapHeight = 10;
+
+    this.mapWidth = mapWidth;
+    this.mapHeight = mapHeight;
+
+    this.wasmEngineModule.allocMap(mapWidth, mapHeight);
+
+    const xGridPtr = this.wasmEngineModule.getXGridPtr(this.wasmRaycasterPtr);
+    const yGridPtr = this.wasmEngineModule.getYGridPtr(this.wasmRaycasterPtr);
+
+    // console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
+
+    this.xGrid = new Uint8Array(
+      wasmRun.WasmMem.buffer,
+      xGridPtr,
+      (mapWidth + 1) * mapHeight,
+    );
+
+    this.yGrid = new Uint8Array(
+      wasmRun.WasmMem.buffer,
+      yGridPtr,
+      (mapWidth + 1) * (mapHeight + 1),
+    );
+
+    for (let i = 0; i < mapHeight; i++) {
+      this.xGrid[i * (mapWidth + 1)] = 1;
+      this.xGrid[i * (mapWidth + 1) + mapWidth] = 1;
+    }
+
+    // ignore last col mapWidth, it's there to have the same width as xGrid
+    for (let i = 0; i < mapWidth; i++) {
+      this.yGrid[i] = 1;
+      this.yGrid[mapHeight * (mapWidth + 1) + i] = 1;
+    }
+
+    this.xGrid[4] = 1;
+    this.yGrid[2] = 0;
+
+    // this.xGrid[4 + (mapWidth + 1) * 2] = 3;
+    this.yGrid[4 + (mapWidth + 1) * 2] = 3;
+  }
+
+  private initFloorMap() {
+    this.floorMap = new Uint8Array(this.mapWidth * this.mapHeight);
   }
 
   castScene() {
@@ -332,53 +389,6 @@ class Raycaster {
 
     // console.log('Rendering ', wallSliceIdx, ' wall slices');
     drawSceneV(this.wallSlices, colStart, colEnd);
-  }
-
-  public initMap() {
-    const { wasmRun } = this.params;
-
-    // TODO:
-    const mapWidth = 10;
-    const mapHeight = 10;
-
-    this.mapWidth = mapWidth;
-    this.mapHeight = mapHeight;
-
-    this.wasmEngineModule.allocMap(mapWidth, mapHeight);
-
-    const xGridPtr = this.wasmEngineModule.getXGridPtr(this.wasmRaycasterPtr);
-    const yGridPtr = this.wasmEngineModule.getYGridPtr(this.wasmRaycasterPtr);
-
-    // console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
-
-    this.xGrid = new Uint8Array(
-      wasmRun.WasmMem.buffer,
-      xGridPtr,
-      (mapWidth + 1) * mapHeight,
-    );
-
-    this.yGrid = new Uint8Array(
-      wasmRun.WasmMem.buffer,
-      yGridPtr,
-      (mapWidth + 1) * (mapHeight + 1),
-    );
-
-    for (let i = 0; i < mapHeight; i++) {
-      this.xGrid[i * (mapWidth + 1)] = 1;
-      this.xGrid[i * (mapWidth + 1) + mapWidth] = 1;
-    }
-
-    // ignore last col mapWidth, it's there to have the same width as xGrid
-    for (let i = 0; i < mapWidth; i++) {
-      this.yGrid[i] = 1;
-      this.yGrid[mapHeight * (mapWidth + 1) + i] = 1;
-    }
-
-    this.xGrid[4] = 1;
-    this.yGrid[2] = 0;
-
-    // this.xGrid[4 + (mapWidth + 1) * 2] = 3;
-    this.yGrid[4 + (mapWidth + 1) * 2] = 3;
   }
 
   get Viewport() {
