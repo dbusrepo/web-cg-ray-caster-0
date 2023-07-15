@@ -12,7 +12,7 @@ async function decodePNGs(
     imageBuffers.map(async (imgBuffer) => {
       const fileType = await fileTypeFromBuffer(imgBuffer);
       if (!fileType) {
-        throw new Error(`_getImagesInitData: file type not found`);
+        throw new Error(`decodePNGs: file type not found`);
       }
       let imgInfo: ImageInfo;
       const image = new BitImageRGBA();
