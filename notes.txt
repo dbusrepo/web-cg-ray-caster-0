@@ -239,24 +239,28 @@ https://stackoverflow.com/questions/30924280/what-is-the-best-way-to-determine-i
 https://stackoverflow.com/questions/466204/rounding-up-to-next-power-of-2
 https://stackoverflow.com/questions/47074126/log2-of-an-integer-that-is-a-power-of-2
 
--how to link another remote:
-
-for ex. from a specific project that wants to link this as another remote:
-
-git remote add base-origin https://github.com/dbusrepo/web-graphics-base.git
-gco base-origin/main -> switch to main branch of base proj
-gcob base-origin-main -> create a local branch on it
-git branch -u base-origin/main  <- set tracking with remote branch
-git pull base-origin main (or simply git pull after the prev cmd) <- we pull from the main branch of base proj
-
-similarly if we want to add to this proj another remote from a specifi proj:
-
-git remote add ray-casting-origin https://github.com/dbusrepo/web-ray-casting.git
+##################################################
 
 Add new project derived from base:
 
 git config user.name dbusrepo
 git config user.email dbusrepo@gmail.com
+
+-how to link the base proj in a new proj:
+
+git remote add origin-web-cg-base git@github.com:dbusrepo/web-cg-base.git
+or (with https):
+git remote add origin-web-cg-base https://github.com/dbusrepo/web-cg-base.git
+
+gco origin-web-cg-base/main -> switch to base main last commit
+gcob base-main -> create a local branch on it
+git branch --set-upstream-to=origin-web-cg-base/main <- set tracking with remote branch
+git config push.default upstream <- to allow pushing to a branch with a different name
+// see https://git-scm.com/docs/git-config#Documentation/git-config.txt-pushdefault
+
+similarly if we want to add to this proj another remote from a specifi proj:
+
+git remote add ray-casting-origin https://github.com/dbusrepo/web-ray-casting.git
 
 git init
 git remote add origin https://github.com/dbusrepo/Line-drawing-wasm.git  <- project origin
