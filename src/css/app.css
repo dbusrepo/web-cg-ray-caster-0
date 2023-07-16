@@ -23,6 +23,13 @@ body {
   height: 100%;
   margin: 0 !important;
   padding: 0 !important;
+  scrollbar-width: none; /* disable scrollbar in Firefox */
+}
+
+/* disable scrollbar in Chrome and Safari */
+/* html::-webkit-scrollbar { */
+body::-webkit-scrollbar {
+  display: none;
 }
 
 /* grey colors: #cccccc #8C92AC */
@@ -48,6 +55,12 @@ body {
   flex-wrap: wrap;
   /* text-align: center; */
   /* border: '5px solid #c0c0c0', */
+  scrollbar-width: none; /* disable scrollbar in Firefox */
+}
+
+/* disable scrollbar in Chrome and Safari */
+#board::-webkit-scrollbar {
+  display: none;
 }
 
 .row {
@@ -112,6 +125,12 @@ body {
   border: none;
   /* z-index: 999; */
   /* padding: 0; */
+  scrollbar-width: none; /* disable scrollbar in Firefox */
+}
+
+/* disable scrollbar in Chrome and Safari */
+.panel-container-win-full::-webkit-scrollbar {
+  display: none;
 }
 
 .panel-full {
@@ -250,7 +269,7 @@ body {
   scrollbar-width: none; /* disable scrollbar in Firefox */
 }
 
-/* disable event log history scrollbar in Chrome */
+/* disable scrollbar in Chrome and Safari */
 .event-log-history::-webkit-scrollbar {
   display: none;
 }
@@ -332,7 +351,7 @@ body {
   scrollbar-width: none; /* disable scrollbar in Firefox */
 }
 
-/* disable console history scrollbar in Chrome */
+/* disable scrollbar in Chrome and Safari */
 .console-history::-webkit-scrollbar {
   display: none;
 }
@@ -340,6 +359,21 @@ body {
 /* disable scrollbar in Firefox */
 .tp-rotv {
   scrollbar-width: none;
+}
+
+/* disable scrollbar in Chrome and Safari */
+.tp-rotv::-webkit-scrollbar {
+  display: none;
+}
+
+/* disable scrollbar in Firefox */
+.guify-panel-container {
+  scrollbar-width: none;
+}
+
+/* disable scrollbar in Chrome and Safari */
+.guify-panel-container::-webkit-scrollbar {
+  display: none;
 }
 
 .console-input {
