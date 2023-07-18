@@ -131,7 +131,7 @@ class AppWorker {
   private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
     const ctx = <OffscreenCanvasRenderingContext2D>canvas.getContext('2d', {
       alpha: false,
-      desynchronized: false, // TODO:
+      desynchronized: true, // TODO:
     });
     ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
     return ctx;
