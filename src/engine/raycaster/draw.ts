@@ -14,6 +14,7 @@ class DrawParams {
     public viewWidth: number,
     public viewHeight: number,
     public wallTextures: Texture[][],
+    public floorTextures: Texture[],
   ) {
     this.screenPtr = viewStartY * frameStride + viewStartX;
   }
@@ -29,6 +30,7 @@ function initDrawParams(
   viewWidth: number,
   viewHeight: number,
   wallTextures: Texture[][],
+  floorTextures: Texture[],
 ) {
   drawParams = new DrawParams(
     frameBuf32,
@@ -38,6 +40,7 @@ function initDrawParams(
     viewWidth,
     viewHeight,
     wallTextures,
+    floorTextures,
   );
 }
 
@@ -90,7 +93,15 @@ function drawBorders(borderColor: number) {
   }
 }
 
-function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
+type DrawSceneVParams = {
+  wallSlices: WallSlice[];
+  colStart: number;
+  colEnd: number;
+  posX: number;
+  posY: number;
+};
+
+function drawSceneV(drawVParams: DrawSceneVParams) {
   assert(drawParams !== undefined);
 
   const {
@@ -102,8 +113,10 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
     viewHeight: height,
   } = drawParams;
 
+  const { wallSlices, colStart, colEnd } = drawVParams;
+
   for (let i = colStart; i < colEnd; i++) {
-    let { Hit: hit, Top: top, Bottom: bottom } = wallSlices[i];
+    const { Hit: hit, Top: top, Bottom: bottom } = wallSlices[i];
 
     const colPtr = screenPtr + i;
     let dstPtr = colPtr;
@@ -125,7 +138,13 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
         TexStepY: texStepY,
         TexPosY: texPosY,
         CachedMipmap: mipmap,
+        Distance: wallDistance,
+        floorWallX,
+        floorWallY,
       } = wallSlices[i];
+
+      const { floorTextures } = drawParams;
+      const { posX, posY } = drawVParams;
 
       // const mipmap = wallTextures[texId].getMipmap(mipLvl);
       const { Width: texWidth, Height: texHeight, PitchLg2: pitchLg2 } = mipmap;
@@ -135,7 +154,7 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
       const mipColOffs = texX << pitchLg2;
       const { Buf32: mipPixels } = mipmap;
 
-      // // textured wall
+      // textured wall
       for (let y = top; y < bottom; y++) {
         const texY = texPosY | 0;
         texPosY += texStepY;
@@ -144,20 +163,68 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
         frameBuf32[dstPtr] = color;
         dstPtr += frameStride;
       }
+
+      assert(bottom >= 0); // TODO: remove?
+
+      // draw textured floor
+      assert(dstPtr === colPtr + bottom * frameStride);
+
+      const sliceHeight = bottom - top;
+      if (sliceHeight < height) {
+        // console.log(posX, posY, floorWallX, floorWallY, distance);
+
+        const floorTex = floorTextures[0].getMipmap(0);
+
+        // assert(bottom >= height || wallDistance > 1);
+        assert(wallDistance >= 1);
+
+        for (let y = bottom + 1; y <= height; y++) {
+          // y in [bottom + 1, height], dist in [1, +inf)
+          const dist = height / (2.0 * y - height);
+          let weight = dist / wallDistance;
+          // assert(weight >= 0);
+          // assert(weight <= 1);
+          let floorX = weight * floorWallX + (1 - weight) * posX;
+          let floorY = weight * floorWallY + (1 - weight) * posY;
+          floorX -= floorX | 0;
+          floorY -= floorY | 0;
+          // assert(floorX >= 0 && floorX < 1);
+          // assert(floorY >= 0 && floorY < 1);
+          const floorTexX = (floorX * floorTex.Width) | 0;
+          const floorTexY = (floorY * floorTex.Height) | 0;
+          const colorOffset = (floorTexX << floorTex.PitchLg2) + floorTexY;
+          // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
+          const color = floorTex.Buf32[colorOffset];
+          // console.log(colorOffset);
+          // console.log('color: ', color);
+          frameBuf32[dstPtr] = color;
+          dstPtr += frameStride;
+        }
+      } else {
+        for (let y = bottom; y < height; y++) {
+          frameBuf32[dstPtr] = 0xff777777;
+          dstPtr += frameStride;
+        }
+      }
+
     } else {
-      // solid color
+      // wall solid color
       for (let y = top; y < bottom; y++) {
         frameBuf32[dstPtr] = 0xff000000;
         dstPtr += frameStride;
       }
+
+      // draw solid floor
+      // assert(dstPtr === colPtr + bottom * stride);
+      for (let y = bottom; y < height; y++) {
+        frameBuf32[dstPtr] = 0xff777777;
+        dstPtr += frameStride;
+      }
     }
 
-    // draw floor
+    // draw textured floor
     // assert(dstPtr === colPtr + bottom * stride);
-    for (let y = bottom; y < height; y++) {
-      frameBuf32[dstPtr] = 0xff777777;
-      dstPtr += frameStride;
-    }
+    // const distWall = hit ? hit.Dist : 0;
   }
 
   // const colPtr = drawParams.screenPtr;
@@ -179,4 +246,11 @@ function drawSceneV(wallSlices: WallSlice[], colStart: number, colEnd: number) {
   // }
 }
 
-export { initDrawParams, drawBackground, drawBorders, drawSceneV };
+export {
+  DrawParams,
+  initDrawParams,
+  drawBackground,
+  drawBorders,
+  DrawSceneVParams,
+  drawSceneV,
+};

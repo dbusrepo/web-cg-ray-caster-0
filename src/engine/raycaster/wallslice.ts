@@ -5,6 +5,9 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 class WallSlice {
   private cachedMipmap: BitImageRGBA;
 
+  public floorWallX: number;
+  public floorWallY: number;
+
   constructor(
     // private wallSlicePtr: number,
     private distance: number,

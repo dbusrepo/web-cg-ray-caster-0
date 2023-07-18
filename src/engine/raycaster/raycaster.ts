@@ -14,10 +14,15 @@ import { WasmRun } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
-import { initDrawParams, drawBackground, drawSceneV } from './draw';
+import {
+  DrawSceneVParams,
+  initDrawParams,
+  drawBackground,
+  drawSceneV,
+} from './draw';
 
 import { ascImportImages } from '../../../assets/build/images';
-import { Texture, initTexturePair } from './texture';
+import { Texture, initTexture, initTexturePair } from './texture';
 
 type RaycasterParams = {
   wasmRun: WasmRun;
@@ -35,6 +40,7 @@ class Raycaster {
   private wasmRaycasterPtr: number;
 
   private wallTextures: Texture[][];
+  private floorTextures: Texture[];
 
   private mapWidth: number;
   private mapHeight: number;
@@ -70,8 +76,6 @@ class Raycaster {
       this.wasmRaycasterPtr,
     );
 
-    this.initFrameBuf();
-
     this.initZBufferView();
     this.initWallSlices();
 
@@ -88,6 +92,8 @@ class Raycaster {
 
     this.initMap();
     this.initFloorMap();
+
+    this.initFrameBuf();
   }
 
   private initFrameBuf() {
@@ -112,6 +118,7 @@ class Raycaster {
       this.viewport.Width,
       this.viewport.Height,
       this.wallTextures,
+      this.floorTextures,
     );
   }
 
@@ -149,13 +156,16 @@ class Raycaster {
       ascImportImages.REDBRICK,
       ascImportImages.REDBRICK_D,
     );
+
+    this.floorTextures = [];
+    this.floorTextures[0] = initTexture(ascImportImages.GREYSTONE);
   }
 
   public initMap() {
     const { wasmRun } = this.params;
 
     // TODO:
-    const mapWidth = 10;
+    const mapWidth = 10
     const mapHeight = 10;
 
     this.mapWidth = mapWidth;
@@ -192,7 +202,7 @@ class Raycaster {
     }
 
     this.xGrid[4] = 1;
-    this.yGrid[2] = 0;
+    // this.yGrid[2] = 0; // test hole // TODO:
 
     // this.xGrid[4 + (mapWidth + 1) * 2] = 3;
     this.yGrid[4 + (mapWidth + 1) * 2] = 3;
@@ -200,6 +210,11 @@ class Raycaster {
 
   private initFloorMap() {
     this.floorMap = new Uint8Array(this.mapWidth * this.mapHeight);
+    for (let y = 0; y < this.mapHeight; y++) {
+      for (let x = 0; x < this.mapWidth; x++) {
+        this.floorMap[y * this.mapWidth + x] = 0;
+      }
+    }
   }
 
   castScene() {
@@ -234,6 +249,8 @@ class Raycaster {
     const colStart = 0;
     const colEnd = vpWidth;
 
+    const midY = vpHeight >> 1;
+
     // for (let x = 0; x < width; x++) {
     for (let x = colStart; x < colEnd; x++) {
       // const cameraX = (2 * x) / vpWidth - 1;
@@ -243,26 +260,31 @@ class Raycaster {
       const deltaDistX = 1 / Math.abs(rayDirX);
       const deltaDistY = 1 / Math.abs(rayDirY);
 
-      let stepX, stepY;
-      let sideDistX, sideDistY;
-      let incX, incY;
+      let stepX, stepY; // +1 or -1, step in map
+      let offsX, offsY; // offset in linear grid
+      let incX, incY; // offsets to check right/bottom walls in xgrid/ygrid
+      let sideDistX, sideDistY; // distances to next x/y grid line
 
       if (rayDirX < 0) {
         stepX = -1;
+        offsX = -1;
         incX = 0;
         sideDistX = cellX * deltaDistX;
       } else {
         stepX = 1;
+        offsX = 1;
         incX = 1;
         sideDistX = (1.0 - cellX) * deltaDistX;
       }
 
       if (rayDirY < 0) {
-        stepY = -gridWidth;
+        stepY = -1;
+        offsY = -gridWidth;
         incY = 0;
         sideDistY = cellY * deltaDistY;
       } else {
-        stepY = gridWidth;
+        stepY = 1;
+        offsY = gridWidth;
         incY = gridWidth;
         sideDistY = (1.0 - cellY) * deltaDistY;
       }
@@ -276,6 +298,8 @@ class Raycaster {
       let wallX = 0;
       let flipTexX = false;
       let outOfGrid = false;
+      let rayMapX = mapX;
+      let rayMapY = mapY;
 
       do {
         if (sideDistX < sideDistY) {
@@ -293,7 +317,8 @@ class Raycaster {
             break;
           } else {
             sideDistX += deltaDistX;
-            gridIdx += stepX;
+            gridIdx += offsX;
+            rayMapX += stepX;
           }
         } else {
           const checkGridIdx = gridIdx + incY;
@@ -310,7 +335,8 @@ class Raycaster {
             break;
           } else {
             sideDistY += deltaDistY;
-            gridIdx += stepY;
+            gridIdx += offsY;
+            rayMapY += stepY;
           }
         }
       } while (--MAX_STEPS);
@@ -319,7 +345,6 @@ class Raycaster {
 
       const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
-      const midY = vpHeight >> 1;
       const projWallTop = midY - (wallSliceHeight >> 1);
       const projWallBottom = projWallTop + wallSliceHeight;
 
@@ -330,12 +355,12 @@ class Raycaster {
 
       let wallBottom = projWallBottom;
       if (projWallBottom >= vpHeight) {
-        wallBottom = vpHeight - 1;
+        wallBottom = vpHeight;
       }
 
       assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
       assert(wallTop >= 0, `invalid top ${wallTop}`);
-      assert(wallBottom < vpHeight, `invalid bottom ${wallBottom}`);
+      assert(wallBottom <= vpHeight, `invalid bottom ${wallBottom}`);
 
       const wallSlice = this.wallSlices[x];
       wallSlice.Distance = perpWallDist;
@@ -366,12 +391,11 @@ class Raycaster {
       // wallX -= Math.floor(wallX);
       // wallX %= 1;
       wallX -= wallX | 0;
+
+      let texX = (wallX * texWidth) | 0;
       if (flipTexX) {
-        wallX = 1 - wallX;
+        texX = texWidth - texX - 1;
       }
-
-      const texX = wallX * texWidth;
-
       assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
       const texStepY = texHeight / wallSliceHeight;
@@ -383,12 +407,42 @@ class Raycaster {
       wallSlice.TexPosY = texPosY;
       wallSlice.MipLvl = mipLevel;
       wallSlice.CachedMipmap = mipmap;
-    }
 
-    // console.log(`render time: ${Date.now() - t0} ms`);
+      const sliceHeight = wallBottom - wallTop;
 
-    // console.log('Rendering ', wallSliceIdx, ' wall slices');
-    drawSceneV(this.wallSlices, colStart, colEnd);
+      if (sliceHeight < vpHeight) {
+        // floor visible
+        let floorWallX: number;
+        let floorWallY: number;
+
+        if (side === 0 && rayDirX > 0) {
+          floorWallX = rayMapX + 1.0;
+          floorWallY = rayMapY + wallX;
+        } else if (side === 0 && rayDirX < 0) {
+          floorWallX = rayMapX;
+          floorWallY = rayMapY + wallX;
+        } else if (side === 1 && rayDirY > 0) {
+          floorWallX = rayMapX + wallX;
+          floorWallY = rayMapY + 1.0;
+        } else {
+          floorWallX = rayMapX + wallX;
+          floorWallY = rayMapY;
+        }
+
+        wallSlice.floorWallX = floorWallX;
+        wallSlice.floorWallY = floorWallY;
+      }
+    } // end col loop
+
+    const drawSceneVParams = {
+      wallSlices: this.wallSlices,
+      colStart,
+      colEnd,
+      posX,
+      posY,
+    };
+
+    drawSceneV(drawSceneVParams);
   }
 
   get Viewport() {
