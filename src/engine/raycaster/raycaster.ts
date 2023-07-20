@@ -118,6 +118,7 @@ class Raycaster {
       this.viewport.Width,
       this.viewport.Height,
       this.wallTextures,
+      this.floorTexturesMap,
     );
   }
 

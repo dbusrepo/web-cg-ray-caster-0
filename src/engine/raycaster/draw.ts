@@ -14,6 +14,7 @@ class DrawParams {
     public viewWidth: number,
     public viewHeight: number,
     public wallTextures: Texture[][],
+    public floorTexturesMap: Texture[],
   ) {
     this.screenPtr = viewStartY * frameStride + viewStartX;
   }
@@ -29,6 +30,7 @@ function initDrawParams(
   viewWidth: number,
   viewHeight: number,
   wallTextures: Texture[][],
+  floorTexturesMap: Texture[],
 ) {
   drawParams = new DrawParams(
     frameBuf32,
@@ -38,6 +40,7 @@ function initDrawParams(
     viewWidth,
     viewHeight,
     wallTextures,
+    floorTexturesMap,
   );
 }
 
@@ -98,7 +101,6 @@ type DrawSceneVParams = {
   posY: number;
   mapWidth: number;
   mapHeight: number;
-  floorTexturesMap: Texture[];
 };
 
 function drawSceneVert(drawVertParams: DrawSceneVParams) {
@@ -143,7 +145,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         floorWallY,
       } = wallSlices[i];
 
-      const { posX, posY, mapWidth, mapHeight, floorTexturesMap } =
+      const { posX, posY, mapWidth, mapHeight } =
         drawVertParams;
 
       // const mipmap = wallTextures[texId].getMipmap(mipLvl);
@@ -177,6 +179,8 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
 
       // assert(bottom >= height || wallDistance > 1);
       // assert(wallDistance >= 1); // true when bottom < height
+
+      const { floorTexturesMap } = drawParams;
 
       for (let y = bottom + 1; y <= height; y++) {
         // y in [bottom + 1, height], dist in [1, +inf), dist == 1 when y == height
