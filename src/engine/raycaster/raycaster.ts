@@ -18,7 +18,7 @@ import {
   DrawSceneVParams,
   initDrawParams,
   drawBackground,
-  drawSceneV,
+  drawSceneVert,
 } from './draw';
 
 import { ascImportImages } from '../../../assets/build/images';
@@ -39,13 +39,13 @@ class Raycaster {
 
   private wasmRaycasterPtr: number;
 
-  private wallTextures: Texture[][];
-  private floorTextures: Texture[];
-
   private mapWidth: number;
   private mapHeight: number;
 
-  private floorMap: Uint8Array;
+  private wallTextures: Texture[][];
+  private floorTextures: Texture[];
+
+  private floorTexturesMap: Texture[];
   // private ceilingMap: Uint8Array;
 
   private xGrid: Uint8Array;
@@ -118,7 +118,6 @@ class Raycaster {
       this.viewport.Width,
       this.viewport.Height,
       this.wallTextures,
-      this.floorTextures,
     );
   }
 
@@ -159,13 +158,13 @@ class Raycaster {
 
     this.floorTextures = [];
     this.floorTextures[0] = initTexture(ascImportImages.GREYSTONE);
+    this.floorTextures[1] = initTexture(ascImportImages.BLUESTONE);
   }
 
   public initMap() {
     const { wasmRun } = this.params;
 
-    // TODO:
-    const mapWidth = 10
+    const mapWidth = 10;
     const mapHeight = 10;
 
     this.mapWidth = mapWidth;
@@ -209,12 +208,19 @@ class Raycaster {
   }
 
   private initFloorMap() {
-    this.floorMap = new Uint8Array(this.mapWidth * this.mapHeight);
+    let texId = 0;
+    this.floorTexturesMap = new Array<Texture>(this.mapWidth * this.mapHeight);
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
-        this.floorMap[y * this.mapWidth + x] = 0;
+        texId = 0;
+        assert(texId >= 0 && texId < this.floorTextures.length);
+        this.floorTexturesMap[y * this.mapWidth + x] =
+          this.floorTextures[texId];
       }
     }
+    texId = 1;
+    assert(texId >= 0 && texId < this.floorTextures.length);
+    this.floorTexturesMap[4 * this.mapWidth + 4] = this.floorTextures[texId];
   }
 
   castScene() {
@@ -292,6 +298,7 @@ class Raycaster {
       // let hit = false;
       let side = 0;
       let gridIdx = srcMapIdx;
+      let checkGridIdx;
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
       let texId = 0;
@@ -303,40 +310,34 @@ class Raycaster {
 
       do {
         if (sideDistX < sideDistY) {
-          const checkGridIdx = gridIdx + incX;
+          checkGridIdx = gridIdx + incX;
           if (checkGridIdx < 0 || checkGridIdx >= xGrid.length) {
             outOfGrid = true;
             break;
           }
           side = 0;
           perpWallDist = sideDistX;
-          if (xGrid[checkGridIdx] > 0) {
-            texId = xGrid[checkGridIdx] - 1;
-            wallX = posY + perpWallDist * rayDirY;
-            flipTexX = rayDirX > 0;
-            break;
-          } else {
+          if (!xGrid[checkGridIdx]) {
             sideDistX += deltaDistX;
             gridIdx += offsX;
             rayMapX += stepX;
+          } else {
+            break;
           }
         } else {
-          const checkGridIdx = gridIdx + incY;
+          checkGridIdx = gridIdx + incY;
           if (checkGridIdx < 0 || checkGridIdx >= yGrid.length) {
             outOfGrid = true;
             break;
           }
           side = 1;
           perpWallDist = sideDistY;
-          if (yGrid[checkGridIdx] > 0) {
-            texId = yGrid[checkGridIdx] - 1;
-            wallX = posX + perpWallDist * rayDirX;
-            flipTexX = rayDirY < 0;
-            break;
-          } else {
+          if (!yGrid[checkGridIdx]) {
             sideDistY += deltaDistY;
             gridIdx += offsY;
             rayMapY += stepY;
+          } else {
+            break;
           }
         }
       } while (--MAX_STEPS);
@@ -358,14 +359,15 @@ class Raycaster {
         wallBottom = vpHeight;
       }
 
-      assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
-      assert(wallTop >= 0, `invalid top ${wallTop}`);
-      assert(wallBottom <= vpHeight, `invalid bottom ${wallBottom}`);
+      // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
+      // assert(wallTop >= 0, `invalid top ${wallTop}`);
+      // assert(wallBottom <= vpHeight, `invalid bottom ${wallBottom}`);
 
       const wallSlice = this.wallSlices[x];
       wallSlice.Distance = perpWallDist;
       wallSlice.Top = wallTop;
       wallSlice.Bottom = wallBottom;
+      wallSlice.Side = side;
 
       if (outOfGrid || MAX_STEPS <= 0) {
         wallSlice.Hit = 0;
@@ -377,12 +379,42 @@ class Raycaster {
       }
 
       wallSlice.Hit = 1;
-      wallSlice.Side = side;
 
-      assert(
-        texId >= 0 && texId < this.wallTextures.length,
-        `invalid texture id ${texId}`,
-      );
+      // used for vert floor/ceil rend
+      let floorWallX;
+      let floorWallY;
+
+      const sliceHeight = wallBottom - wallTop;
+
+      if (side === 0) {
+        texId = xGrid[checkGridIdx] - 1;
+        wallX = posY + perpWallDist * rayDirY;
+        wallX -= wallX | 0;
+        flipTexX = rayDirX > 0;
+        floorWallY = rayMapY + wallX;
+        floorWallX = rayMapX;
+        if (rayDirX > 0) {
+          floorWallX += 1;
+        }
+      } else {
+        texId = yGrid[checkGridIdx] - 1;
+        wallX = posX + perpWallDist * rayDirX;
+        wallX -= wallX | 0;
+        flipTexX = rayDirY < 0;
+        floorWallX = rayMapX + wallX;
+        floorWallY = rayMapY;
+        if (rayDirY > 0) {
+          floorWallY += 1;
+        }
+      }
+
+      wallSlice.floorWallX = floorWallX;
+      wallSlice.floorWallY = floorWallY;
+
+      // assert(
+      //   texId >= 0 && texId < this.wallTextures.length,
+      //   `invalid texture id ${texId}`,
+      // );
 
       const mipLevel = 0;
       const mipmap = this.wallTextures[texId][side].getMipmap(mipLevel);
@@ -390,13 +422,13 @@ class Raycaster {
 
       // wallX -= Math.floor(wallX);
       // wallX %= 1;
-      wallX -= wallX | 0;
+      // wallX -= wallX | 0;
 
       let texX = (wallX * texWidth) | 0;
       if (flipTexX) {
         texX = texWidth - texX - 1;
       }
-      assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
+      // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
       const texStepY = texHeight / wallSliceHeight;
       const texPosY = (wallTop - projWallTop) * texStepY;
@@ -408,30 +440,26 @@ class Raycaster {
       wallSlice.MipLvl = mipLevel;
       wallSlice.CachedMipmap = mipmap;
 
-      const sliceHeight = wallBottom - wallTop;
-
-      if (sliceHeight < vpHeight) {
+      // const sliceHeight = wallBottom - wallTop;
+      // if (sliceHeight < vpHeight) {
         // floor visible
-        let floorWallX: number;
-        let floorWallY: number;
-
-        if (side === 0 && rayDirX > 0) {
-          floorWallX = rayMapX + 1.0;
-          floorWallY = rayMapY + wallX;
-        } else if (side === 0 && rayDirX < 0) {
-          floorWallX = rayMapX;
-          floorWallY = rayMapY + wallX;
-        } else if (side === 1 && rayDirY > 0) {
-          floorWallX = rayMapX + wallX;
-          floorWallY = rayMapY + 1.0;
-        } else {
-          floorWallX = rayMapX + wallX;
-          floorWallY = rayMapY;
-        }
-
-        wallSlice.floorWallX = floorWallX;
-        wallSlice.floorWallY = floorWallY;
-      }
+        // if (side === 0 && rayDirX > 0) {
+        //   floorWallX = rayMapX + 1.0;
+        //   floorWallY = rayMapY + wallX;
+        // } else if (side === 0 && rayDirX < 0) {
+        //   floorWallX = rayMapX;
+        //   floorWallY = rayMapY + wallX;
+        // } else if (side === 1 && rayDirY > 0) {
+        //   floorWallX = rayMapX + wallX;
+        //   floorWallY = rayMapY + 1.0;
+        // } else {
+        //   floorWallX = rayMapX + wallX;
+        //   floorWallY = rayMapY;
+        // }
+        //
+        // wallSlice.floorWallX = floorWallX;
+        // wallSlice.floorWallY = floorWallY;
+      // }
     } // end col loop
 
     const drawSceneVParams = {
@@ -440,9 +468,12 @@ class Raycaster {
       colEnd,
       posX,
       posY,
+      mapWidth,
+      mapHeight,
+      floorTexturesMap: this.floorTexturesMap, // TODO: move
     };
 
-    drawSceneV(drawSceneVParams);
+    drawSceneVert(drawSceneVParams);
   }
 
   get Viewport() {

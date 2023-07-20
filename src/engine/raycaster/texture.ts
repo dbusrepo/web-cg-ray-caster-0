@@ -8,7 +8,7 @@ class Texture {
   constructor(private mipmaps: BitImageRGBA[]) {}
 
   getMipmap(lvl: number): BitImageRGBA {
-    assert(lvl >= 0 && lvl < this.mipmaps.length);
+    // assert(lvl >= 0 && lvl < this.mipmaps.length);
     return this.mipmaps[lvl];
   }
 
