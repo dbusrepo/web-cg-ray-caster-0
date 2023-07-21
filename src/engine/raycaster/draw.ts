@@ -166,7 +166,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         dstPtr += frameStride;
       }
 
-      assert(bottom >= 0); // TODO: remove?
+      // assert(bottom >= 0); // TODO: remove?
 
       // draw textured floor
       assert(dstPtr === colPtr + bottom * frameStride);
