@@ -740,9 +740,10 @@ if (side === 0) {
   color = (0xff << 24) | (r << 16) | (g << 8) | (b << 0);
 }
 
-write color value in abgr format (or use the make color function from a rgba value):
-so abgr -> little endian swap when storing and then when loading -> abgr again (when 
-values are read for drawing by the impl it seems the values are assumed to be in abgr format)
+write color value in abgr format (or use the make color function from a rgba
+value): so abgr -> little endian swap when storing and then when loading ->
+abgr again (when values are read for drawing by the impl it seems the values
+are assumed to be in abgr format)
 
-note texels fron png are written in rgba format in memory but when loaded they are in abgr format
-(bytes are swapped cause of little endian)
+note texels fron png are written in rgba format in memory but when loaded they
+are in abgr format (bytes are swapped cause of little endian)
