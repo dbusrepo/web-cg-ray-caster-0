@@ -447,27 +447,6 @@ class Raycaster {
       wallSlice.TexPosY = texPosY;
       wallSlice.MipLvl = mipLevel;
       wallSlice.CachedMipmap = mipmap;
-
-      // const sliceHeight = wallBottom - wallTop;
-      // if (sliceHeight < vpHeight) {
-        // floor visible
-        // if (side === 0 && rayDirX > 0) {
-        //   floorWallX = rayMapX + 1.0;
-        //   floorWallY = rayMapY + wallX;
-        // } else if (side === 0 && rayDirX < 0) {
-        //   floorWallX = rayMapX;
-        //   floorWallY = rayMapY + wallX;
-        // } else if (side === 1 && rayDirY > 0) {
-        //   floorWallX = rayMapX + wallX;
-        //   floorWallY = rayMapY + 1.0;
-        // } else {
-        //   floorWallX = rayMapX + wallX;
-        //   floorWallY = rayMapY;
-        // }
-        //
-        // wallSlice.floorWallX = floorWallX;
-        // wallSlice.floorWallY = floorWallY;
-      // }
     } // end col loop
 
     const drawSceneVParams = {

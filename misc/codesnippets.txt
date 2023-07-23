@@ -753,3 +753,24 @@ note texels fron png are already written in rgba format so when they are loaded
 @inline function align<T>(): SIZE_T {
   return alignof<T>();
 }
+
+// const sliceHeight = wallBottom - wallTop;
+// if (sliceHeight < vpHeight) {
+  // floor visible
+  // if (side === 0 && rayDirX > 0) {
+  //   floorWallX = rayMapX + 1.0;
+  //   floorWallY = rayMapY + wallX;
+  // } else if (side === 0 && rayDirX < 0) {
+  //   floorWallX = rayMapX;
+  //   floorWallY = rayMapY + wallX;
+  // } else if (side === 1 && rayDirY > 0) {
+  //   floorWallX = rayMapX + wallX;
+  //   floorWallY = rayMapY + 1.0;
+  // } else {
+  //   floorWallX = rayMapX + wallX;
+  //   floorWallY = rayMapY;
+  // }
+  //
+  // wallSlice.floorWallX = floorWallX;
+  // wallSlice.floorWallY = floorWallY;
+// }
