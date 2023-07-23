@@ -44,4 +44,5 @@ export declare const FONT_X_SIZE: usize;
 export declare const FONT_Y_SIZE: usize;
 export declare const FONT_SPACING: usize;
 
+export declare const frameColorRGBAPtr: usize;
 export declare const raycasterPtr: usize;

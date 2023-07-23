@@ -153,10 +153,6 @@ class AppWorker {
     viewport.StartY = VIEWPORT_BORDER;
     viewport.Width = this.params.engineCanvas.width - VIEWPORT_BORDER * 2;
     viewport.Height = this.params.engineCanvas.height - VIEWPORT_BORDER * 2;
-    // console.log('main worker viewport.startX', this.viewport.StartX);
-    // console.log('main worker viewport.startY', this.viewport.StartY);
-    // console.log('main worker player.posX', this.player.PosX);
-    // console.log('main worker player.posY', this.player.PosY);
   }
 
   private initPlayer() {
@@ -231,6 +227,7 @@ class AppWorker {
               ...this.wasmEngine.WasmRunParams,
               workerIdx: workerIndex,
               raycasterPtr: this.wasmRaycasterPtr,
+              frameColorRGBAPtr: this.wasmEngineModule.getFrameColorRGBAPtr(),
             },
           };
           engineWorker.worker.postMessage({

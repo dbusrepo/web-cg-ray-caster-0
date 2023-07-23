@@ -747,3 +747,9 @@ drawing by the impl it seems the colo bytes values should be in abgr format)
 
 note texels fron png are already written in rgba format so when they are loaded
 (bytes are swapped little endian) they are in abgr format
+
+
+// @ts-ignore: decorator
+@inline function align<T>(): SIZE_T {
+  return alignof<T>();
+}

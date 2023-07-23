@@ -25,6 +25,7 @@ type WasmRunParams = {
   surface0sizes: [number, number];
   surface1sizes: [number, number];
   raycasterPtr: number;
+  frameColorRGBAPtr: number;
 };
 
 let gWasmRun: WasmRun;
@@ -58,6 +59,7 @@ class WasmRun {
       numTextures,
       workerIdx,
       raycasterPtr,
+      frameColorRGBAPtr,
     } = this.params;
 
     const logf = (f: number) =>
@@ -109,6 +111,7 @@ class WasmRun {
       logf,
 
       raycasterPtr,
+      frameColorRGBAPtr,
     };
 
     return wasmImports;
