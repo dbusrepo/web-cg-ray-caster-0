@@ -10,7 +10,7 @@ class WallSlice {
 
   constructor(
     // private wallSlicePtr: number,
-    private distance: number,
+    private distancePtr: number,
     private hitPtr: number,
     private sidePtr: number,
     private topPtr: number,
@@ -27,11 +27,11 @@ class WallSlice {
   // }
 
   get Distance(): number {
-    return gWasmView.getFloat64(this.distance, true);
+    return gWasmView.getFloat64(this.distancePtr, true);
   }
 
   set Distance(distance: number) {
-    gWasmView.setFloat64(this.distance, distance, true);
+    gWasmView.setFloat64(this.distancePtr, distance, true);
   }
 
   get Hit(): number {
