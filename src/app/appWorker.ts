@@ -1,9 +1,6 @@
 import assert from 'assert';
-import {
-  // BPP_PAL,
-  // BPP_RGBA,
-  MILLI_IN_SEC,
-} from '../common';
+import { MILLI_IN_SEC } from '../common';
+
 import { mainConfig } from '../config/mainConfig';
 import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
@@ -21,13 +18,14 @@ import type {
 import { WasmRun } from '../engine/wasmEngine/wasmRun';
 import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
 import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
-import { arrAvg, randColor, colorRGBAtoABGR, sleep } from '../engine/utils';
+import { arrAvg, sleep } from '../engine/utils';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
 import type { AuxWorkerParams } from '../engine/auxWorker';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 import { Viewport, getWasmViewportView } from '../engine/raycaster/viewport';
 import { Player, getWasmPlayerView } from '../engine/raycaster/player';
 import { drawBorders } from '../engine/raycaster/draw';
+import { FrameColorRGBAWasm } from '../engine/wasmEngine/frameColorRGBAWasm';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -66,6 +64,7 @@ class AppWorker {
   private raycaster: Raycaster;
 
   private wasmBorderColorPtr: number;
+
 
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
@@ -141,7 +140,7 @@ class AppWorker {
     this.wasmBorderColorPtr = this.wasmEngineModule.getBorderColorPtr(
       this.wasmRaycasterPtr,
     );
-    this.BorderColor = colorRGBAtoABGR(0xffff00ff);
+    this.BorderColor = FrameColorRGBAWasm.colorRGBAtoABGR(0xffff00ff);
   }
 
   private initViewport() {

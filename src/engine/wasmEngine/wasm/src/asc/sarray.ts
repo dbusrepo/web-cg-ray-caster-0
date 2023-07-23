@@ -31,6 +31,7 @@ const HEADER_SIZE = getTypeSize<Header>() + HEADER_ALIGN_MASK;
 
   private idx2Ptr(idx: SIZE_T): PTR_T {
     const header = getHeader(this);
+    // TODO:
     myAssert(idx < header.length);
     const offset = idx << header.objSizelg2;
     return header.dataPtr + offset;

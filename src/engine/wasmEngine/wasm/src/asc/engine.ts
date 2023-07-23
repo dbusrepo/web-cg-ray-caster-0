@@ -69,6 +69,19 @@ import {
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
 } from './raycaster/wallslice';
+import {
+  FrameColorRGBA, 
+  newFrameColorRGBA,
+  // deleteFrameColorRGBA, 
+  MAX_LIGHT_LEVELS,
+  BPP_RGBA,
+  getRedLightTablePtr,
+  getGreenLightTablePtr,
+  getBlueLightTablePtr,
+  getRedFogTablePtr,
+  getGreenFogTablePtr,
+  getBlueFogTablePtr,
+} from './frameColorRGBA';
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -77,6 +90,11 @@ const MAIN_THREAD_IDX = mainWorkerIdx;
 
 let raycaster = changetype<Raycaster>(NULL_PTR);
 let textures = changetype<SArray<Texture>>(NULL_PTR);
+let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
+
+function getFrameColorRGBAPtr(): PTR_T {
+  return changetype<PTR_T>(frameColorRGBA);
+}
 
 function allocMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
@@ -85,6 +103,8 @@ function allocMap(mapWidth: i32, mapHeight: i32): void {
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
+
+    frameColorRGBA = newFrameColorRGBA();
 
     raycaster = newRaycaster();
 
@@ -104,6 +124,12 @@ function initData(): void {
 function init(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     initSharedHeap();
+    // logi(align<u64>());
+    // logi(hrTimerPtr);
+    // const t0 = <u64>process.hrtime();
+    // draw.clearBg(0, frameHeight, 0xff_00_00_00);
+    // const t1 = <u64>process.hrtime();
+    // store<u64>(hrTimerPtr, t1 - t0);
   }
 
   initMemManager();
@@ -124,6 +150,16 @@ function getPlayerPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.PlayerPtr;
 }
 
+// function drawQuad(x: i32, y: i32, w: i32, h: i32, colorARGB: u32): void {
+//   for (let i = 0; i < h; ++i) {
+//     const rowPtr = rgbaSurface0ptr + (y + i) * rgbaSurface0width * BPP_RGBA
+//     for (let j = 0; j < w; ++j) {
+//       const screenPtr = rowPtr + (x + j) * BPP_RGBA;
+//       store<u32>(screenPtr, colorARGB);
+//     }
+//   }
+// }
+
 function render(): void {
 
   // utils.sleep(sleepLoc, 1);
@@ -137,6 +173,16 @@ function render(): void {
   // if (workerIdx == MAIN_THREAD_IDX) {
   draw.clearBg(s, e, 0xff_00_00_00); // ABGR
   // }
+
+  // const color1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0xff);
+  // for (let l = 0; l < MAX_LIGHT_LEVELS; ++l) {
+  //   const color2 = frameColorRGBA.lightColorABGR(color1, l);
+  //   // const color2 = frameColorRGBA.fogColorABGR(color1, l);
+  //   drawQuad(0, l * 2, 100, 2, color2);
+  // }
+
+  // logi(c++);
+  // heapAlloc(1024*1024);
 
   // const t1 = <u64>process.hrtime();
   // store<u64>(hrTimerPtr, t1 - t0);
@@ -341,4 +387,12 @@ export {
   getWallSliceTexPosYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
+
+  getFrameColorRGBAPtr,
+  getRedLightTablePtr,
+  getGreenLightTablePtr,
+  getBlueLightTablePtr,
+  getRedFogTablePtr,
+  getGreenFogTablePtr,
+  getBlueFogTablePtr,
 };

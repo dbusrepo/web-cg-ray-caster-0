@@ -14,28 +14,6 @@ function range(workerIdx: number, numWorkers: number, numTasks: number): Range {
   return [start, end];
 }
 
-function RGBAtoABGR(r: number, g: number, b: number, a = 0xff): number {
-  return (a << 24) | (b << 16) | (g << 8) | r;
-}
-
-// RGBA -> ABGR
-function colorRGBAtoABGR(color: number): number {
-  const r = (color >> 24) & 0xff;
-  const g = (color >> 16) & 0xff;
-  const b = (color >> 8) & 0xff;
-  const a = color & 0xff;
-  return RGBAtoABGR(r, g, b, a);
-}
-
-// TODO:
-function randColor(): number {
-  const r = (Math.random() * 255) | 0;
-  const g = (Math.random() * 255) | 0;
-  const b = (Math.random() * 255) | 0;
-  const color = RGBAtoABGR(r, g, b);
-  return color;
-}
-
 const arrAvg = (values: Float32Array | Float64Array, count: number) => {
   let acc = 0;
   const numIter = Math.min(count, values.length);
@@ -66,9 +44,6 @@ export {
   arrAvg,
   range,
   Range,
-  randColor,
-  colorRGBAtoABGR,
-  RGBAtoABGR,
   sleep,
   isPowerOf2,
   nextPowerOf2,

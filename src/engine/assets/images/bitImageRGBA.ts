@@ -1,8 +1,7 @@
 import assert from 'assert';
 import { BitImage } from './bitImage';
+import { BPP_RGBA, FrameColorRGBA } from '../../frameColorRGBA';
 import * as utils from '../../utils';
-
-const BPP_RGBA = 4;
 
 class BitImageRGBA extends BitImage {
   private pitchLg2: number; // lg2 of pitch pixels u32
@@ -85,8 +84,9 @@ class BitImageRGBA extends BitImage {
       const r2 = (r * 3) >> 2;
       const g2 = (g * 3) >> 2;
       const b2 = (b * 3) >> 2;
+      const a2 = a;
       // stored as abgr, bytes swapped by endian, read as abgr
-      buf32[i] = utils.RGBAtoABGR(r2, g2, b2, a);
+      buf32[i] = FrameColorRGBA.colorABGR(a2, b2, g2, r2);
     }
   }
 }

@@ -4,7 +4,7 @@ import type { InputEvent } from '../../app/events';
 import { AssetManager } from '../assets/assetManager';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { InputManager, keys, keyOffsets } from '../../input/inputManager';
-import { randColor, colorRGBAtoABGR, sleep } from '../utils';
+import { sleep } from '../utils';
 
 import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 import { WasmEngine } from '../wasmEngine/wasmEngine';
@@ -23,6 +23,10 @@ import {
 
 import { ascImportImages } from '../../../assets/build/images';
 import { Texture, initTexture, initTexturePair } from './texture';
+import {
+  FrameColorRGBAWasm,
+  getFrameColorRGBAWasmView,
+} from '../wasmEngine/frameColorRGBAWasm';
 
 type RaycasterParams = {
   wasmRun: WasmRun;
@@ -36,6 +40,7 @@ class Raycaster {
   private player: Player;
 
   private wasmEngineModule: WasmEngineModule;
+  private frameColorRGBAWasm: FrameColorRGBAWasm;
 
   private wasmRaycasterPtr: number;
 
@@ -65,6 +70,7 @@ class Raycaster {
     this.initTextures();
 
     this.wasmEngineModule = wasmRun.WasmModules.engine;
+    this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
     this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
 
     this.player = getWasmPlayerView(
@@ -84,7 +90,7 @@ class Raycaster {
 
     // console.log('raycaster starting...');
 
-    this.backgroundColor = colorRGBAtoABGR(0x000000ff);
+    this.backgroundColor = FrameColorRGBAWasm.colorRGBAtoABGR(0x000000ff);
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
 

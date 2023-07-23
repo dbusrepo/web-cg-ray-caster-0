@@ -61,23 +61,23 @@ import { logi } from './importVars';
   }
 }
 
-let textureAlloc = changetype<ObjectAllocator<Texture>>(NULL_PTR);
+let textureAllocator = changetype<ObjectAllocator<Texture>>(NULL_PTR);
 
 function initTextureAllocator(): void {
-  textureAlloc = newObjectAllocator<Texture>(16);
+  textureAllocator = newObjectAllocator<Texture>(16);
 }
 
 function newTexture(texIdx: usize): Texture {
-  if (changetype<PTR_T>(textureAlloc) === NULL_PTR) {
+  if (changetype<PTR_T>(textureAllocator) === NULL_PTR) {
     initTextureAllocator();
   }
-  const tex = textureAlloc.new();
+  const tex = textureAllocator.new();
   tex.init(texIdx);
   return tex;
 }
 
 function deleteTexture(tex: Texture): void {
-  textureAlloc.delete(changetype<Texture>(tex));
+  textureAllocator.delete(changetype<Texture>(tex));
 }
 
 export { Texture, newTexture, deleteTexture };

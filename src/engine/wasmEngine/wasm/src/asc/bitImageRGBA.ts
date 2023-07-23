@@ -56,7 +56,7 @@ function newBitImageRGBA(descPtr: PTR_T): BitImageRGBA {
 }
 
 function deleteBitImageRGBA(bitImage: BitImageRGBA): void {
-  bitImageAllocator.delete(changetype<BitImageRGBA>(bitImage));
+  bitImageAllocator.delete(bitImage);
 }
 
 export { BitImageRGBA, newBitImageRGBA, deleteBitImageRGBA };
