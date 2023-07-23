@@ -56,7 +56,7 @@ class EnginePanelGui extends PanelGui {
   updateFps(fps: number) {
     this.maxDeque.push(fps);
     this.tweakOptions[EnginePanelTweakOptionsKeys.FPS] = fps;
-    this.fpsMonitor.label = `${fps.toFixed(0)} FPS`;
+    this.fpsMonitor.label = 'FPS'; // `${fps.toFixed(0)} FPS`; // TODO: use padding
     // https://github.com/cocopon/tweakpane/issues/371
     // // @ts-ignore
     // const max = this.fpsMonitor.controller_.valueController.props_?.get('maxValue');
