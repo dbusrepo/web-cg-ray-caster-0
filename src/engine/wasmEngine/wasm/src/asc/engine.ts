@@ -177,12 +177,12 @@ function render(): void {
   draw.clearBg(s, e, 0xff_ff_00_00); // ABGR
 
   // if (workerIdx == MAIN_THREAD_IDX) {
-    // const color1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0xff);
-    // for (let l = 0; l < MAX_LIGHT_LEVELS; ++l) {
-    //   const color2 = frameColorRGBA.lightColorABGR(color1, l);
-    //   // const color2 = frameColorRGBA.fogColorABGR(color1, l);
-    //   drawQuad(0, l * 2, 100, 2, color2);
-    // }
+  //   const color1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0xff);
+  //   for (let l = 0; l < MAX_LIGHT_LEVELS; ++l) {
+  //     const color2 = frameColorRGBA.lightColorABGR(color1, l);
+  //     // const color2 = frameColorRGBA.fogColorABGR(color1, l);
+  //     drawQuad(0, l * 2, 100, 2, color2);
+  //   }
   // }
 
 

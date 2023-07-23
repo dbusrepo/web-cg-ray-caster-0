@@ -82,7 +82,7 @@ class AuxWorker {
       for (;;) {
         Atomics.wait(wasmViews.syncArr, this.params.workerIndex, 0);
 
-        this.wasmEngineModule.render();
+        // this.wasmEngineModule.render();
 
         Atomics.store(wasmViews.syncArr, workerIndex, 0);
         Atomics.notify(wasmViews.syncArr, workerIndex);

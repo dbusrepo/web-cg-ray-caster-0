@@ -9,7 +9,7 @@ import {
 } from '../engine/wasmEngine/wasm/wasmConfig.mjs';
 
 const mainConfig = {
-  numAuxWorkers: 1,
+  numAuxWorkers: 0,
 
   wasmMemStartOffset: startOffset,
   wasmMemStartPages: initialMemoryPages,
