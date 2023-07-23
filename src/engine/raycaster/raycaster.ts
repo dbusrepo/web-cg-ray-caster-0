@@ -125,6 +125,7 @@ class Raycaster {
       this.viewport.Height,
       this.wallTextures,
       this.floorTexturesMap,
+      this.frameColorRGBAWasm,
     );
   }
 

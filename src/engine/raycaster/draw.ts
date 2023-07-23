@@ -2,6 +2,7 @@ import assert from 'assert';
 import { WallSlice } from './wallslice';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from './texture';
+import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 
 class DrawParams {
   public screenPtr: number;
@@ -15,6 +16,7 @@ class DrawParams {
     public viewHeight: number,
     public wallTextures: Texture[][],
     public floorTexturesMap: Texture[],
+    public frameColorRGBAWasm: FrameColorRGBAWasm,
   ) {
     this.screenPtr = viewStartY * frameStride + viewStartX;
   }
@@ -31,6 +33,7 @@ function initDrawParams(
   viewHeight: number,
   wallTextures: Texture[][],
   floorTexturesMap: Texture[],
+  frameColorRGBAWasm: FrameColorRGBAWasm,
 ) {
   drawParams = new DrawParams(
     frameBuf32,
@@ -41,6 +44,7 @@ function initDrawParams(
     viewHeight,
     wallTextures,
     floorTexturesMap,
+    frameColorRGBAWasm,
   );
 }
 
@@ -107,6 +111,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
   assert(drawParams !== undefined);
 
   const {
+    frameColorRGBAWasm,
     frameBuf32,
     frameStride,
     screenPtr,
@@ -162,24 +167,16 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         texPosY += texStepY;
         let color = mipPixels[mipColOffs + texY];
         // const color = mipmap.Buf32[texY * texWidth + texX];
+        // color = frameColorRGBAWasm.lightColorABGR(color, 255);
         frameBuf32[dstPtr] = color;
+        // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
         dstPtr += frameStride;
       }
 
       // assert(bottom >= 0); // TODO: remove?
+      // assert(dstPtr === colPtr + bottom * frameStride);
 
       // draw textured floor
-      assert(dstPtr === colPtr + bottom * frameStride);
-
-      // const sliceHeight = bottom - top;
-      // if (sliceHeight < height) {
-        // console.log(posX, posY, floorWallX, floorWallY, distance);
-
-      // const floorTex = floorTextures[0].getMipmap(0);
-
-      // assert(bottom >= height || wallDistance > 1);
-      // assert(wallDistance >= 1); // true when bottom < height
-
       const { floorTexturesMap } = drawParams;
 
       for (let y = bottom + 1; y <= height; y++) {
@@ -225,10 +222,10 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       }
 
       // } else {
-      //   for (let y = bottom; y < height; y++) {
-      //     frameBuf32[dstPtr] = 0xff777777;
-      //     dstPtr += frameStride;
-      //   }
+        // for (let y = bottom; y < height; y++) {
+        //   frameBuf32[dstPtr] = 0xff777777;
+        //   dstPtr += frameStride;
+        // }
       // }
 
     } else {
