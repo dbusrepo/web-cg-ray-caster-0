@@ -43,18 +43,17 @@ class App {
     const addKeyListener = (keyEvent: KeyEvent) =>
       panel.InputElement.addEventListener(keyEvent, (event) => {
         if (
-          !panel.InputKeys.has(event.code) ||
-          panel.ignoreInputKey(event.code)
+          panel.InputKeys.has(event.code) &&
+          !panel.ignoreInputKey(event.code)
         ) {
-          return;
+          this.appWorker.postMessage({
+            command: keyEvent2cmd[keyEvent],
+            params: {
+              code: event.code,
+              panelId: panel.Id,
+            },
+          });
         }
-        this.appWorker.postMessage({
-          command: keyEvent2cmd[keyEvent],
-          params: {
-            code: event.code,
-            panelId: panel.Id,
-          },
-        });
       });
 
     (Object.values(KeyEventsEnum) as KeyEventsEnum[]).forEach(addKeyListener);
