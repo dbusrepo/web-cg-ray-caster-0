@@ -379,12 +379,8 @@ class AppWorker {
       if (renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
         this.wasmEngine.syncWorkers(this.auxWorkers);
-        try {
-          // this.wasmEngineModule.render();
-          this.raycaster.castScene();
-        } catch (e) {
-          console.error(e);
-        }
+        // this.wasmEngineModule.render();
+        this.raycaster.castScene();
         this.wasmEngine.waitWorkers(this.auxWorkers);
         this.drawWasmFrame();
         saveFrameTime();

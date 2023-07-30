@@ -52,9 +52,9 @@ class App {
           panel.InputKeys.has(event.code) &&
           !panel.ignoreInputKey(event.code)
         ) {
-          const { inputKeys } = this.wasmViews;
           const keyOffset = keyOffsets[event.code as Key];
           if (keyOffset !== undefined) {
+            const { inputKeys } = this.wasmViews;
             inputKeys[keyOffset] = keyEvent === KeyEventsEnum.KEY_DOWN ? 1 : 0;
           }
           // this.appWorker.postMessage({
