@@ -1,5 +1,7 @@
+import * as WasmUtils from '../engine/wasmEngine/wasmMemUtils';
+
 enum AppCommandEnum {
-  INIT = 'init',
+  APP_WORKER_INITD = 'app_worker_initd',
   UPDATE_STATS = 'updateStats',
   EVENT = 'event',
   REGISTER_KEY_HANDLER = 'register_handler',
@@ -18,5 +20,12 @@ enum KeyEventsEnum {
 
 type KeyEvent = `${KeyEventsEnum}`;
 
+type AppPostInitParams = {
+  wasmMem: WebAssembly.Memory;
+  wasmMemRegionsOffsets: WasmUtils.WasmMemRegionsData;
+  wasmMemRegionsSizes: WasmUtils.WasmMemRegionsData;
+};
+
+export type { AppPostInitParams };
 export type { KeyEvent, PanelId };
 export { AppCommandEnum, PanelIdEnum, KeyEventsEnum };

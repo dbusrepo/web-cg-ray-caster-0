@@ -13,13 +13,19 @@ import { StatsPanel } from '../ui/stats/statsPanel';
 import { Panel } from '../panels/panel';
 import { EnginePanel } from '../panels/enginePanel';
 // import { ViewPanel } from '../panels/viewPanel';
-import type { KeyEvent, PanelId } from './appTypes';
+import type { AppPostInitParams, KeyEvent, PanelId } from './appTypes';
 import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from './appTypes';
+import * as WasmUtils from '../engine/wasmEngine/wasmMemUtils';
+import type { WasmViews } from '../engine/wasmEngine/wasmViews';
+import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
+import type { Key } from '../input/inputManager';
+import { keyOffsets } from '../input/inputManager';
 
 class App {
   private stats: Stats;
   private enginePanel: EnginePanel;
   private appWorker: Worker;
+  private wasmViews: WasmViews;
 
   async init() {
     this.stats = this.initStatsPanel();
@@ -46,13 +52,18 @@ class App {
           panel.InputKeys.has(event.code) &&
           !panel.ignoreInputKey(event.code)
         ) {
-          this.appWorker.postMessage({
-            command: keyEvent2cmd[keyEvent],
-            params: {
-              code: event.code,
-              panelId: panel.Id,
-            },
-          });
+          const { inputKeys } = this.wasmViews;
+          const keyOffset = keyOffsets[event.code as Key];
+          if (keyOffset !== undefined) {
+            inputKeys[keyOffset] = keyEvent === KeyEventsEnum.KEY_DOWN ? 1 : 0;
+          }
+          // this.appWorker.postMessage({
+          //   command: keyEvent2cmd[keyEvent],
+          //   params: {
+          //     code: event.code,
+          //     panelId: panel.Id,
+          //   },
+          // });
         }
       });
 
@@ -136,7 +147,8 @@ class App {
   }
 
   private initAppWorkerMsgHandlers() {
-    let { enginePanel } = this;
+    let app = this;
+    let { enginePanel } = app;
 
     let resolveInit: (value: void | PromiseLike<void>) => void;
 
@@ -145,7 +157,12 @@ class App {
     });
 
     const commands = {
-      [AppCommandEnum.INIT]: () => {
+      [AppCommandEnum.APP_WORKER_INITD]: (params: AppPostInitParams) => {
+        app.wasmViews = buildWasmMemViews(
+          params.wasmMem,
+          params.wasmMemRegionsOffsets,
+          params.wasmMemRegionsSizes,
+        );
         resolveInit();
       },
       [AppCommandEnum.UPDATE_STATS]: (values: StatsValues) => {

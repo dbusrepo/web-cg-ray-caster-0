@@ -6,7 +6,12 @@ import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
 import { AssetManager } from '../engine/assets/assetManager';
 import type { InputEvent, CanvasDisplayResizeEvent } from './events';
-import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from './appTypes';
+import {
+  AppPostInitParams,
+  AppCommandEnum,
+  PanelIdEnum,
+  KeyEventsEnum,
+} from './appTypes';
 import type { KeyHandler, Key } from '../input/inputManager';
 import { InputManager, keys, keyOffsets } from '../input/inputManager';
 import type { AuxAppWorkerParams } from './auxAppWorker';
@@ -506,6 +511,10 @@ class AppWorker {
   onCanvasDisplayResize(displayWidth: number, displayHeight: number) {
     // console.log('onCanvasDisplayResize', displayWidth, displayHeight);
   }
+
+  get WasmEngine(): WasmEngine {
+    return this.wasmEngine;
+  }
 }
 
 let appWorker: AppWorker;
@@ -523,7 +532,12 @@ const commands = {
     appWorker = new AppWorker();
     await appWorker.init(params);
     postMessage({
-      command: AppCommandEnum.INIT,
+      command: AppCommandEnum.APP_WORKER_INITD,
+      params: {
+        wasmMem: appWorker.WasmEngine.WasmMem,
+        wasmMemRegionsOffsets: appWorker.WasmEngine.WasmRegionsOffsets,
+        wasmMemRegionsSizes: appWorker.WasmEngine.WasmRegionsSizes,
+      },
     });
   },
   [AppWorkerCommandEnum.RUN]: () => {

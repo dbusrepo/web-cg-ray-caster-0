@@ -5,10 +5,13 @@ import { EnginePanelInputKeysEnum } from '../panels/enginePanelTypes';
 
 type Key = EnginePanelInputKey; // | ViewPanelInputKey;
 const keys = { ...EnginePanelInputKeysEnum }; // ...ViewPanelInputKeysEnum };
-const keyOffsets = (Object.values(keys) as Key[]).reduce((acc, key, index) => {
-  acc[key] = index;
-  return acc;
-}, {} as Record<Key, number>);
+const keyOffsets = (Object.values(keys) as Key[]).reduce(
+  (acc, key, index) => {
+    acc[key] = index;
+    return acc;
+  },
+  {} as Record<Key, number>,
+);
 
 export type { Key };
 export { keys, keyOffsets };
