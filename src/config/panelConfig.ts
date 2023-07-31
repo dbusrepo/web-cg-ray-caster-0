@@ -35,6 +35,9 @@ const panelConfig = {
   // canvasWidth: 1366,
   // canvasHeight: 768,
 
+  // canvasWidth: 1600,
+  // canvasHeight: 900,
+
   // canvasDisplayWidthWinMode: 320,
   // canvasDisplayHeightWinMode: 200,
 
@@ -49,6 +52,9 @@ const panelConfig = {
 
   // canvasDisplayWidthWinMode: 1280,
   // canvasDisplayHeightWinMode: 1024,
+
+  // canvasDisplayWidthWinMode: 1366,
+  // canvasDisplayHeightWinMode: 768,
 
   // FULL_WIN_KEY: 'F1',
   // FULL_SCREEN_KEY: 'F2',

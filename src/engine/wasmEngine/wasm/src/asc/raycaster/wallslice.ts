@@ -22,6 +22,9 @@ import { logi } from '../importVars';
   private texId: u16;
   private mipLvl: u8;
 
+  private floorWallX: f64;
+  private floorWallY: f64;
+
   get Distance(): f64 {
     return this.distance;
   }
@@ -101,6 +104,22 @@ import { logi } from '../importVars';
   set MipLvl(mipLvl: u8) {
     this.mipLvl = mipLvl;
   }
+
+  get FloorWallX(): f64 {
+    return this.floorWallX;
+  }
+
+  set FloorWallX(floorWallX: f64) {
+    this.floorWallX = floorWallX;
+  }
+
+  get FloorWallY(): f64 {
+    return this.floorWallY;
+  }
+
+  set FloorWallY(floorWallY: f64) {
+    this.floorWallY = floorWallY;
+  }
 }
 
 let wallSliceAllocator = changetype<ObjectAllocator<WallSlice>>(NULL_PTR);
@@ -157,6 +176,14 @@ function getWallSliceMipLvlPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('mipLvl');
 }
 
+function getWallSliceFloorWallXPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('floorWallX');
+}
+
+function getWallSliceFloorWallYPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('floorWallY');
+}
+
 export {
   WallSlice,
   newWallSlice,
@@ -170,5 +197,7 @@ export {
   getWallSliceTexPosYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
+  getWallSliceFloorWallXPtr,
+  getWallSliceFloorWallYPtr
 };
   

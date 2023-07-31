@@ -376,7 +376,7 @@ class AppWorker {
 
     const render = () => {
       renderTimeAcc += avgTimeSinceLastFrame;
-      if (renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
+      if (true && renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
         renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
         this.wasmEngine.syncWorkers(this.auxWorkers);
         // this.wasmEngineModule.render();

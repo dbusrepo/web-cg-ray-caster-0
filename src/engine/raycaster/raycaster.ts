@@ -416,8 +416,8 @@ class Raycaster {
         }
       }
 
-      wallSlice.floorWallX = floorWallX;
-      wallSlice.floorWallY = floorWallY;
+      wallSlice.FloorWallX = floorWallX;
+      wallSlice.FloorWallY = floorWallY;
 
       // assert(
       //   texId >= 0 && texId < this.wallTextures.length,

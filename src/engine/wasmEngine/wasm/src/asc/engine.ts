@@ -69,6 +69,8 @@ import {
   getWallSliceTexPosYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
+  getWallSliceFloorWallXPtr,
+  getWallSliceFloorWallYPtr,
 } from './raycaster/wallslice';
 import {
   FrameColorRGBA, 
@@ -402,6 +404,8 @@ export {
   getWallSliceTexPosYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
+  getWallSliceFloorWallXPtr,
+  getWallSliceFloorWallYPtr,
 
   getFrameColorRGBAPtr,
   getRedLightTablePtr,

@@ -146,12 +146,11 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         TexPosY: texPosY,
         CachedMipmap: mipmap,
         Distance: wallDistance,
-        floorWallX,
-        floorWallY,
+        FloorWallX: floorWallX,
+        FloorWallY: floorWallY,
       } = wallSlices[i];
 
-      const { posX, posY, mapWidth, mapHeight } =
-        drawVertParams;
+      const { posX, posY, mapWidth, mapHeight } = drawVertParams;
 
       // const mipmap = wallTextures[texId].getMipmap(mipLvl);
       const { Width: texWidth, Height: texHeight, PitchLg2: pitchLg2 } = mipmap;
@@ -176,58 +175,58 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       // assert(bottom >= 0); // TODO: remove?
       // assert(dstPtr === colPtr + bottom * frameStride);
 
-      // draw textured floor
-      const { floorTexturesMap } = drawParams;
+      const SOLID_FLOOR = false;
 
-      for (let y = bottom + 1; y <= height; y++) {
-        // y in [bottom + 1, height], dist in [1, +inf), dist == 1 when y == height
-        const dist = height / (2.0 * y - height);
-        let weight = dist / wallDistance;
-        // assert(weight >= 0);
-        // assert(weight <= 1);
-        let floorX = weight * floorWallX + (1 - weight) * posX;
-        let floorY = weight * floorWallY + (1 - weight) * posY;
-        const floorXidx = floorX | 0;
-        const floorYidx = floorY | 0;
-        const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
-        if (floorTexMapIdx < 0 || floorTexMapIdx >= floorTexturesMap.length) {
-          continue;
+      if (!SOLID_FLOOR) {
+        // draw textured floor
+        const { floorTexturesMap } = drawParams;
+        for (let y = bottom + 1; y <= height; y++) {
+          // y in [bottom + 1, height], dist in [1, +inf), dist == 1 when y == height
+          const dist = height / (2.0 * y - height);
+          let weight = dist / wallDistance;
+          // assert(weight >= 0);
+          // assert(weight <= 1);
+          let floorX = weight * floorWallX + (1 - weight) * posX;
+          let floorY = weight * floorWallY + (1 - weight) * posY;
+          const floorXidx = floorX | 0;
+          const floorYidx = floorY | 0;
+          const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
+          if (floorTexMapIdx < 0 || floorTexMapIdx >= floorTexturesMap.length) {
+            continue;
+          }
+          // const floorXidx = floorX | 0;
+          // const floorYidx = floorY | 0;
+          // if (
+          //   floorXidx < 0 ||
+          //   floorXidx >= mapWidth ||
+          //   floorYidx < 0 ||
+          //   floorYidx >= mapHeight
+          // ) {
+          //   continue;
+          // }
+          // const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
+          // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
+          const floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+          floorX -= floorXidx;
+          floorY -= floorYidx;
+          // assert(floorX >= 0 && floorX < 1);
+          // assert(floorY >= 0 && floorY < 1);
+          const floorTexX = (floorX * floorTex.Width) | 0;
+          const floorTexY = (floorY * floorTex.Height) | 0;
+          const colorOffset = (floorTexX << floorTex.PitchLg2) + floorTexY;
+          // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
+          const color = floorTex.Buf32[colorOffset];
+          // console.log(colorOffset);
+          // console.log('color: ', color);
+          frameBuf32[dstPtr] = color;
+          dstPtr += frameStride;
         }
-        // const floorXidx = floorX | 0;
-        // const floorYidx = floorY | 0;
-        // if (
-        //   floorXidx < 0 ||
-        //   floorXidx >= mapWidth ||
-        //   floorYidx < 0 ||
-        //   floorYidx >= mapHeight
-        // ) {
-        //   continue;
-        // }
-        // const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
-        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
-        const floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
-        floorX -= floorXidx;
-        floorY -= floorYidx;
-        // assert(floorX >= 0 && floorX < 1);
-        // assert(floorY >= 0 && floorY < 1);
-        const floorTexX = (floorX * floorTex.Width) | 0;
-        const floorTexY = (floorY * floorTex.Height) | 0;
-        const colorOffset = (floorTexX << floorTex.PitchLg2) + floorTexY;
-        // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
-        const color = floorTex.Buf32[colorOffset];
-        // console.log(colorOffset);
-        // console.log('color: ', color);
-        frameBuf32[dstPtr] = color;
-        dstPtr += frameStride;
+      } else {
+        for (let y = bottom; y < height; y++) {
+          frameBuf32[dstPtr] = 0xff777777;
+          dstPtr += frameStride;
+        }
       }
-
-      // } else {
-        // for (let y = bottom; y < height; y++) {
-        //   frameBuf32[dstPtr] = 0xff777777;
-        //   dstPtr += frameStride;
-        // }
-      // }
-
     } else {
       // wall solid color
       for (let y = top; y < bottom; y++) {

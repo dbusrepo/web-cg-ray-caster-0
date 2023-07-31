@@ -21,7 +21,7 @@ const mainConfig = {
   wasmSharedHeapSize: 0,
 
   targetRPS: 60,
-  targetUPS: 60,
+  targetUPS: 80,
 
   multiplier: 1,
 

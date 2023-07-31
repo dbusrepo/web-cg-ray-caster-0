@@ -5,9 +5,6 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 class WallSlice {
   private cachedMipmap: BitImageRGBA;
 
-  public floorWallX: number;
-  public floorWallY: number;
-
   constructor(
     // private wallSlicePtr: number,
     private distancePtr: number,
@@ -20,7 +17,17 @@ class WallSlice {
     private texPosYPtr: number,
     private texIdPtr: number,
     private mipLvlPtr: number,
+    private floorWallX: number,
+    private floorWallY: number,
   ) {}
+
+  get CachedMipmap(): BitImageRGBA {
+    return this.cachedMipmap;
+  }
+
+  set CachedMipmap(cachedMipmap: BitImageRGBA) {
+    this.cachedMipmap = cachedMipmap;
+  }
 
   // get WallSlicePtr(): number {
   //   return this.wallSlicePtr;
@@ -106,12 +113,20 @@ class WallSlice {
     gWasmView.setUint8(this.mipLvlPtr, mipLvl);
   }
 
-  get CachedMipmap(): BitImageRGBA {
-    return this.cachedMipmap;
+  get FloorWallX(): number {
+    return gWasmView.getFloat64(this.floorWallX, true);
   }
 
-  set CachedMipmap(cachedMipmap: BitImageRGBA) {
-    this.cachedMipmap = cachedMipmap;
+  set FloorWallX(floorWallX: number) {
+    gWasmView.setFloat64(this.floorWallX, floorWallX, true);
+  }
+
+  get FloorWallY(): number {
+    return gWasmView.getFloat64(this.floorWallY, true);
+  }
+
+  set FloorWallY(floorWallY: number) {
+    gWasmView.setFloat64(this.floorWallY, floorWallY, true);
   }
 }
 
@@ -138,6 +153,8 @@ function getWasmWallSlicesView(
       wasmEngineModule.getWallSliceTexPosYPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexIdPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceMipLvlPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceFloorWallXPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceFloorWallYPtr(wallSlicePtr),
     );
   }
   return wallSlices;
