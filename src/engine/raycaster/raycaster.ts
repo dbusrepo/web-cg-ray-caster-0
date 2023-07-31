@@ -172,8 +172,8 @@ class Raycaster {
   public initMap() {
     const { wasmRun } = this.params;
 
-    const mapWidth = 5;
-    const mapHeight = 5;
+    const mapWidth = 10;
+    const mapHeight = 10;
 
     this.mapWidth = mapWidth;
     this.mapHeight = mapHeight;
@@ -202,21 +202,22 @@ class Raycaster {
       gridWidth * yGridHeight,
     );
 
-    // for (let i = 0; i < xGridHeight; i++) {
-    //   this.xGrid[i * xGridWidth] = 1;
-    //   this.xGrid[i * xGridWidth + (xGridWidth - 1)] = 1;
-    // }
+    for (let i = 0; i < xGridHeight; i++) {
+      this.xGrid[i * gridWidth] = 1;
+      this.xGrid[i * gridWidth + (gridWidth - 1)] = 1;
+    }
 
-    // for (let i = 0; i < yGridWidth; i++) {
-    //   this.yGrid[i] = 1;
-    //   this.yGrid[i + (yGridHeight - 1) * yGridWidth] = 1;
-    // }
+    for (let i = 0; i < gridWidth; i++) {
+      this.yGrid[i] = 1;
+      this.yGrid[i + (yGridHeight - 1) * gridWidth] = 1;
+    }
 
-    // this.xGrid[4] = 1;
+    this.xGrid[4] = 1;
     // // this.yGrid[2] = 0; // test hole // TODO:
-    //
-    // this.xGrid[4 + xGridWidth * 2] = 1;
-    // this.yGrid[4 + yGridWidth * 2] = 3;
+
+    this.xGrid[4 + gridWidth * 2] = 1;
+    this.yGrid[4 + gridWidth * 2] = 3;
+    this.yGrid[5 + gridWidth * 2] = 3;
   }
 
   private initFloorMap() {
@@ -283,27 +284,32 @@ class Raycaster {
       const deltaDistX = 1 / Math.abs(rayDirX);
       const deltaDistY = 1 / Math.abs(rayDirY);
 
-      let stepX, stepY; // +1 or -1, step in map 
-      let checkX, checkY; // check offsets in xgrid/ygrid
       let sideDistX, sideDistY; // distances to next x/y grid line
+      let stepX, stepY; // +1 or -1, step in map 
+      let stepYoff; // offset for ygrid step
+      let xChkIdx, yChkOff, yChkIdx; // check offsets in xgrid/ygrid
 
       if (rayDirX < 0) {
         stepX = -1;
-        checkX = 0;
+        xChkIdx = 0;
         sideDistX = cellX * deltaDistX;
       } else {
         stepX = 1;
-        checkX = 1;
+        xChkIdx = 1;
         sideDistX = (1.0 - cellX) * deltaDistX;
       }
 
       if (rayDirY < 0) {
         stepY = -1;
-        checkY = 0;
+        stepYoff = -gridWidth;
+        yChkOff = 0;
+        yChkIdx = 0;
         sideDistY = cellY * deltaDistY;
       } else {
         stepY = 1;
-        checkY = 1;
+        stepYoff = gridWidth;
+        yChkOff = gridWidth;
+        yChkIdx = 1;
         sideDistY = (1.0 - cellY) * deltaDistY;
       }
 
@@ -312,6 +318,9 @@ class Raycaster {
 
       let gridX = mapX;
       let gridY = mapY;
+      let nextGridX, nextGridY;
+      // let gridYoff = gridY * gridWidth;
+      let gridOff = gridY * gridWidth + gridX;
       let checkGridX, checkGridY;
       let checkGridIdx = -1;
 
@@ -324,38 +333,35 @@ class Raycaster {
 
       do {
         if (sideDistX < sideDistY) {
-          checkGridX = gridX + checkX;
-          // assert(checkGridX >= 0 && checkGridX < xGridWidth, 'check x: checkGridX out of bounds')
-          // assert(gridY >= 0 && gridY < xGridHeight, 'check x: gridY out of bounds')
           side = 0;
           perpWallDist = sideDistX;
-          checkGridIdx = checkGridX + gridY * gridWidth;
+          checkGridIdx = gridOff + xChkIdx;
           if (xGrid[checkGridIdx]) {
             break;
           }
-          sideDistX += deltaDistX;
-          gridX += stepX;
-          if (gridX < 0 || gridX >= mapWidth) {
+          nextGridX = gridX + stepX;
+          if (nextGridX < 0 || nextGridX >= mapWidth) {
             outOfGrid = true;
             break;
           }
+          gridX = nextGridX;
+          sideDistX += deltaDistX;
+          gridOff += stepX;
         } else {
-          checkGridY = gridY + checkY;
-          // assert(checkGridY >= 0 && checkGridY < yGridHeight, 'check y: checkGridY out of bounds')
-          // assert(gridX >= 0 && gridX < xGridWidth, 'check y: gridX out of bounds')
           side = 1;
           perpWallDist = sideDistY;
-          checkGridIdx = gridX + checkGridY * gridWidth;
-          if (!yGrid[checkGridIdx]) {
-            sideDistY += deltaDistY;
-            gridY += stepY;
-            if (gridY < 0 || gridY >= mapHeight) {
-              outOfGrid = true;
-              break;
-            }
-          } else {
+          checkGridIdx = gridOff + yChkOff;
+          if (yGrid[checkGridIdx]) {
             break;
           }
+          nextGridY = gridY + stepY;
+          if (nextGridY < 0 || nextGridY >= mapHeight) {
+            outOfGrid = true;
+            break;
+          }
+          gridY = nextGridY;
+          sideDistY += deltaDistY;
+          gridOff += stepYoff;
         }
       } while (--MAX_STEPS);
 
@@ -398,14 +404,14 @@ class Raycaster {
         wallX -= wallX | 0;
         flipTexX = rayDirX > 0;
         floorWallY = gridY + wallX;
-        floorWallX = gridX + checkX;
+        floorWallX = gridX + xChkIdx;
       } else {
         wallGrid = yGrid;
         wallX = posX + perpWallDist * rayDirX;
         wallX -= wallX | 0;
         flipTexX = rayDirY < 0;
         floorWallX = gridX + wallX;
-        floorWallY = gridY + checkY;
+        floorWallY = gridY + yChkIdx;
       }
 
       wallSlice.FloorWallX = floorWallX;
