@@ -174,7 +174,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
     // assert(dstPtr === colPtr + top * stride);
 
     let {
-      // Side: side,
+      Side: side,
       // TexId: texId,
       // MipLvl: mipLvl,
       TexX: texX,
@@ -209,9 +209,10 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         dstPtr += frameStride;
       }
     } else {
-      // untextured wall
+      // no hit untextured wall
+      const color = side === 0 ? 0xff0000ff : 0xff00ff00;
       for (let y = top; y < bottom; y++) {
-        frameBuf32[dstPtr] = 0xff000000;
+        frameBuf32[dstPtr] = color;
         dstPtr += frameStride;
       }
     }
@@ -219,7 +220,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
     // assert(bottom >= 0); // TODO: remove?
     // assert(dstPtr === colPtr + bottom * frameStride);
 
-    const SOLID_FLOOR = false;
+    const SOLID_FLOOR = true;
 
     if (!SOLID_FLOOR) {
       // draw textured floor

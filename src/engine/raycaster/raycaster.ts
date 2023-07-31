@@ -172,8 +172,8 @@ class Raycaster {
   public initMap() {
     const { wasmRun } = this.params;
 
-    const mapWidth = 10;
-    const mapHeight = 10;
+    const mapWidth = 5;
+    const mapHeight = 5;
 
     this.mapWidth = mapWidth;
     this.mapHeight = mapHeight;
@@ -185,41 +185,38 @@ class Raycaster {
 
     // console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
 
-    const xGridWidth = mapWidth + 1;
+    const gridWidth = mapWidth + 1; // use the same
     const xGridHeight = mapHeight;
-    const yGridWidth = mapWidth;
+    // const yGridWidth = mapWidth;
     const yGridHeight = mapHeight + 1;
 
     this.xGrid = new Uint8Array(
       wasmRun.WasmMem.buffer,
       xGridPtr,
-      xGridWidth * xGridHeight,
+      gridWidth * xGridHeight,
     );
 
     this.yGrid = new Uint8Array(
       wasmRun.WasmMem.buffer,
       yGridPtr,
-      yGridWidth * yGridHeight,
+      gridWidth * yGridHeight,
     );
 
-    for (let i = 0; i < xGridHeight; i++) {
-      this.xGrid[i * xGridWidth] = 1;
-      this.xGrid[i * xGridWidth + (xGridWidth - 1)] = 1;
-    }
+    // for (let i = 0; i < xGridHeight; i++) {
+    //   this.xGrid[i * xGridWidth] = 1;
+    //   this.xGrid[i * xGridWidth + (xGridWidth - 1)] = 1;
+    // }
 
-    for (let i = 0; i < yGridWidth; i++) {
-      this.yGrid[i] = 1;
-      this.yGrid[i + (yGridHeight - 1) * yGridWidth] = 1;
-    }
+    // for (let i = 0; i < yGridWidth; i++) {
+    //   this.yGrid[i] = 1;
+    //   this.yGrid[i + (yGridHeight - 1) * yGridWidth] = 1;
+    // }
 
     // this.xGrid[4] = 1;
-    // this.yGrid[2] = 0; // test hole // TODO:
-
-    // this.xGrid[4 + (mapWidth + 1) * 2] = 3;
+    // // this.yGrid[2] = 0; // test hole // TODO:
+    //
+    // this.xGrid[4 + xGridWidth * 2] = 1;
     // this.yGrid[4 + yGridWidth * 2] = 3;
-    
-    console.log('xGrid', this.xGrid);
-    console.log('yGrid', this.yGrid);
   }
 
   private initFloorMap() {
@@ -265,9 +262,9 @@ class Raycaster {
     const cellX = posX - mapX;
     const cellY = posY - mapY;
 
-    const xGridWidth = mapWidth + 1;
+    const gridWidth = mapWidth + 1;
     const xGridHeight = mapHeight;
-    const yGridWidth = mapWidth;
+    // const yGridWidth = mapWidth;
     const yGridHeight = mapHeight + 1;
 
     // const gridHeight = mapHeight + 1;
@@ -328,41 +325,34 @@ class Raycaster {
       do {
         if (sideDistX < sideDistY) {
           checkGridX = gridX + checkX;
-          if (
-            checkGridX < 0 ||
-            checkGridX >= xGridWidth ||
-            gridY < 0 ||
-            gridY >= xGridHeight
-          ) {
-            outOfGrid = true;
-            break;
-          }
+          // assert(checkGridX >= 0 && checkGridX < xGridWidth, 'check x: checkGridX out of bounds')
+          // assert(gridY >= 0 && gridY < xGridHeight, 'check x: gridY out of bounds')
           side = 0;
           perpWallDist = sideDistX;
-          checkGridIdx = checkGridX + gridY * xGridWidth;
-          if (!xGrid[checkGridIdx]) {
-            sideDistX += deltaDistX;
-            gridX += stepX;
-          } else {
+          checkGridIdx = checkGridX + gridY * gridWidth;
+          if (xGrid[checkGridIdx]) {
+            break;
+          }
+          sideDistX += deltaDistX;
+          gridX += stepX;
+          if (gridX < 0 || gridX >= mapWidth) {
+            outOfGrid = true;
             break;
           }
         } else {
           checkGridY = gridY + checkY;
-          if (
-            checkGridY < 0 ||
-            checkGridY >= yGridHeight ||
-            gridX < 0 ||
-            gridX >= yGridWidth
-          ) {
-            outOfGrid = true;
-            break;
-          }
+          // assert(checkGridY >= 0 && checkGridY < yGridHeight, 'check y: checkGridY out of bounds')
+          // assert(gridX >= 0 && gridX < xGridWidth, 'check y: gridX out of bounds')
           side = 1;
           perpWallDist = sideDistY;
-          checkGridIdx = gridX + checkGridY * yGridWidth;
+          checkGridIdx = gridX + checkGridY * gridWidth;
           if (!yGrid[checkGridIdx]) {
             sideDistY += deltaDistY;
             gridY += stepY;
+            if (gridY < 0 || gridY >= mapHeight) {
+              outOfGrid = true;
+              break;
+            }
           } else {
             break;
           }
@@ -396,6 +386,31 @@ class Raycaster {
       wallSlice.Bottom = wallBottom;
       wallSlice.Side = side;
 
+      let wallGrid;
+
+      // used only for vert floor/ceil rend
+      let floorWallX;
+      let floorWallY;
+
+      if (side === 0) {
+        wallGrid = xGrid;
+        wallX = posY + perpWallDist * rayDirY;
+        wallX -= wallX | 0;
+        flipTexX = rayDirX > 0;
+        floorWallY = gridY + wallX;
+        floorWallX = gridX + checkX;
+      } else {
+        wallGrid = yGrid;
+        wallX = posX + perpWallDist * rayDirX;
+        wallX -= wallX | 0;
+        flipTexX = rayDirY < 0;
+        floorWallX = gridX + wallX;
+        floorWallY = gridY + checkY;
+      }
+
+      wallSlice.FloorWallX = floorWallX;
+      wallSlice.FloorWallY = floorWallY;
+
       if (outOfGrid || MAX_STEPS <= 0) {
         wallSlice.Hit = 0;
         // console.log('MAX_STEPS exceeded');
@@ -407,30 +422,7 @@ class Raycaster {
 
       wallSlice.Hit = 1;
 
-      // used for vert floor/ceil rend
-      let floorWallX;
-      let floorWallY;
-
-      // const sliceHeight = wallBottom - wallTop;
-
-      if (side === 0) {
-        texId = xGrid[checkGridIdx] - 1;
-        wallX = posY + perpWallDist * rayDirY;
-        wallX -= wallX | 0;
-        flipTexX = rayDirX > 0;
-        floorWallY = gridY + wallX;
-        floorWallX = gridX + (rayDirX > 0 ? 1 : 0);
-      } else {
-        texId = yGrid[checkGridIdx] - 1;
-        wallX = posX + perpWallDist * rayDirX;
-        wallX -= wallX | 0;
-        flipTexX = rayDirY < 0;
-        floorWallX = gridX + wallX;
-        floorWallY = gridY + (rayDirY > 0 ? 1 : 0);
-      }
-
-      wallSlice.FloorWallX = floorWallX;
-      wallSlice.FloorWallY = floorWallY;
+      texId = wallGrid[checkGridIdx] - 1;
 
       // assert(
       //   texId >= 0 && texId < this.wallTextures.length,

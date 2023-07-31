@@ -14,7 +14,7 @@ import { SArray, newSArray } from '../sarray';
     this.width = mapWidth;
     this.height = mapHeight;
     this.xGrid = newSArray<u8>((mapWidth + 1) * mapHeight);
-    this.yGrid = newSArray<u8>(mapWidth * (mapHeight + 1));
+    this.yGrid = newSArray<u8>((mapWidth + 1) * (mapHeight + 1));
   }
 
   get Width(): u32 {
