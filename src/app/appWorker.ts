@@ -170,7 +170,7 @@ class AppWorker {
     player.DirX = 1;
     player.DirY = 0;
     player.PlaneX = 0;
-    player.PlaneY = 0.66;
+    player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
     player.Pitch = 0;
     player.PosZ = 0.0;
   }
