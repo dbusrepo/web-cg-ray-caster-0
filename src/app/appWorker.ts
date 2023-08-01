@@ -77,7 +77,7 @@ class AppWorker {
     await this.initWasmEngine();
     await this.initRaycaster();
     drawBorders(this.BorderColor);
-    // this.raycaster.castScene();
+    // this.raycaster.drawView();
     await this.runAuxWorkers();
   }
 
@@ -371,7 +371,7 @@ class AppWorker {
     const render = () => {
       this.wasmEngine.syncWorkers(this.auxWorkers);
       // this.wasmEngineModule.render();
-      this.raycaster.castScene();
+      this.raycaster.drawView();
       this.wasmEngine.waitWorkers(this.auxWorkers);
       this.drawWasmFrame();
       saveFrameTime();

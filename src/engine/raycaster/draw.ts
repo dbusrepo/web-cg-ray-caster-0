@@ -5,7 +5,7 @@ import { Texture } from './texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 
 class DrawParams {
-  public screenPtr: number;
+  public framePtr: number;
 
   constructor(
     public frameBuf32: Uint32Array,
@@ -18,7 +18,7 @@ class DrawParams {
     public floorTexturesMap: Texture[],
     public frameColorRGBAWasm: FrameColorRGBAWasm,
   ) {
-    this.screenPtr = viewStartY * frameStride + viewStartX;
+    this.framePtr = viewStartY * frameStride + viewStartX;
   }
 }
 
@@ -106,6 +106,8 @@ type DrawSceneVParams = {
   mapWidth: number;
   mapHeight: number;
   midY: number;
+  minWallTop: number;
+  maxWallBottom: number;
 };
 
 function drawSceneVert(drawVertParams: DrawSceneVParams) {
@@ -115,62 +117,27 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
     frameColorRGBAWasm,
     frameBuf32,
     frameStride,
-    screenPtr,
+    framePtr,
     // wallTextures,
     viewWidth: width,
     viewHeight: height,
   } = drawParams;
 
-  const { wallSlices, colStart, colEnd, midY } = drawVertParams;
+  const { wallSlices, colStart, colEnd, midY, minWallTop, maxWallBottom } =
+    drawVertParams;
 
-  for (let i = colStart; i < colEnd; i++) {
-    const { Hit: hit, Top: top, Bottom: bottom } = wallSlices[i];
+  for (let x = colStart; x < colEnd; x++) {
+    const { Hit: hit, Top: top, Bottom: bottom } = wallSlices[x];
 
-    const colPtr = screenPtr + i;
+    const colPtr = framePtr + x;
     let dstPtr = colPtr;
-    // dstPtr = colPtr + top * stride; // when no ceiling is drawn
 
-    // if (!hit) {
-    //   // draw ceil
-    //
-    //   // for (let y = 0; y < midY; y++) {
-    //   //   frameBuf32[dstPtr] = 0xffbbbbbb;
-    //   //   dstPtr += frameStride;
-    //   // }
-    //   // // assert(dstPtr === colPtr + top * stride);
-    //
-    //   // draw floor
-    //   // for (let y = midY; y < height; y++) {
-    //   //   frameBuf32[dstPtr] = 0xff777777;
-    //   //   dstPtr += frameStride;
-    //   // }
-    //
-    //   for (let y = 0; y < top; y++) {
-    //     frameBuf32[dstPtr] = 0xffbbbbbb;
-    //     dstPtr += frameStride;
-    //   }
-    //
-    //   for (let y = top; y < bottom; y++) {
-    //     frameBuf32[dstPtr] = 0xff000000;
-    //     dstPtr += frameStride;
-    //   }
-    //
-    //   for (let y = bottom; y < height; y++) {
-    //     frameBuf32[dstPtr] = 0xff777777;
-    //     dstPtr += frameStride;
-    //   }
-    //
-    //   // assert(dstPtr === colPtr + height * stride);
-    //   continue;
-    // }
-
-    // if (hit) {
-
-    // // draw ceil
+    // draw ceil
     for (let y = 0; y < top; y++) {
       frameBuf32[dstPtr] = 0xffbbbbbb;
       dstPtr += frameStride;
     }
+
     // assert(dstPtr === colPtr + top * stride);
 
     let {
@@ -184,7 +151,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       Distance: wallDistance,
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
-    } = wallSlices[i];
+    } = wallSlices[x];
 
     const { posX, posY, mapWidth, mapHeight } = drawVertParams;
 
@@ -198,7 +165,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       const { Buf32: mipPixels } = mipmap;
 
       // textured wall
-      for (let y = top; y < bottom; y++) {
+      for (let y = top; y <= bottom; y++) {
         const texY = texPosY | 0;
         texPosY += texStepY;
         let color = mipPixels[mipColOffs + texY];
@@ -211,16 +178,13 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
     } else {
       // no hit untextured wall
       const color = side === 0 ? 0xff0000ff : 0xff00ff00;
-      for (let y = top; y < bottom; y++) {
+      for (let y = top; y <= bottom; y++) {
         frameBuf32[dstPtr] = color;
         dstPtr += frameStride;
       }
-
-      // dstPtr += frameStride * (bottom - top);
     }
 
-    // assert(bottom >= 0); // TODO: remove?
-    // assert(dstPtr === colPtr + bottom * frameStride);
+    // assert(dstPtr === colPtr + (bottom + 1) * frameStride);
 
     const SOLID_FLOOR = false;
 
@@ -231,9 +195,9 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       //   dstPtr += frameStride;
       // }
       const { floorTexturesMap } = drawParams;
-      for (let y = bottom + 1; y <= height; y++) {
-        // y in [bottom + 1, height], dist in [1, +inf), dist == 1 when y == height
-        const dist = height / (2.0 * y - height);
+      for (let y = bottom + 1; y < height; y++) {
+        // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
+        const dist = height / (2.0 * (y) - height);
         let weight = dist / wallDistance;
         // assert(weight >= 0);
         // assert(weight <= 1);
@@ -241,6 +205,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         let floorY = weight * floorWallY + (1 - weight) * posY;
         const floorXidx = floorX | 0;
         const floorYidx = floorY | 0;
+        // assert(floorXidx >= 0 && floorXidx < mapWidth, `floorXidx: ${floorXidx}, floorX: ${floorX}, weight: ${weight}, floorWallX: ${floorWallX}, posX: ${posX}`);
         // const floorXidx = floorX | 0;
         // const floorYidx = floorY | 0;
         // if (
@@ -254,7 +219,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         // const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
         const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
-        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
+        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
         if (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length) {
           const floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
           floorX -= floorXidx;
@@ -273,34 +238,24 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
         dstPtr += frameStride;
       }
     } else {
-      for (let y = bottom; y < height; y++) {
+      for (let y = bottom + 1; y < height; y++) {
         frameBuf32[dstPtr] = 0xff777777;
         dstPtr += frameStride;
       }
     }
 
-    // } else {
-      // // wall solid color
-      // for (let y = top; y < bottom; y++) {
-      //   frameBuf32[dstPtr] = 0xff000000;
-      //   dstPtr += frameStride;
-      // }
-      //
-      // // draw solid floor
-      // // assert(dstPtr === colPtr + bottom * stride);
-      // for (let y = bottom; y < height; y++) {
-      //   frameBuf32[dstPtr] = 0xff777777;
-      //   dstPtr += frameStride;
-      // }
-    // }
-
     assert(dstPtr === colPtr + height * frameStride);
-
-    // draw textured floor
-    // assert(dstPtr === colPtr + bottom * stride);
-    // const distWall = hit ? hit.Dist : 0;
   }
 
+  // // draw horizontal lines for minWallTop and maxWallBottom
+  // const minTopRowPtr = screenPtr + minWallTop * frameStride;
+  // const maxBottomRowPtr = screenPtr + maxWallBottom * frameStride;
+  // for (let i = colStart; i < colEnd; i++) {
+  //   frameBuf32[minTopRowPtr + i] = 0xff0000ff;
+  //   frameBuf32[maxBottomRowPtr + i] = 0xff0000ff;
+  // }
+
+  // ...
   // const colPtr = drawParams.screenPtr;
   // let scrPtr = colPtr + wallTop * stride;
 

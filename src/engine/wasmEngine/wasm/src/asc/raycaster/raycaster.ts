@@ -15,6 +15,8 @@ import { WallSlice, newWallSlice } from './wallslice';
   private map: Map;
   private zBuffer: SArray<f32>;
   private wallSlices: SArray<WallSlice>;
+  private minWallTop: u32;
+  private maxWallBottom: u32;
 
   allocBuffers(): void {
     this.allocZBuffer();
@@ -80,6 +82,22 @@ import { WallSlice, newWallSlice } from './wallslice';
   set BorderColor(borderColor: u32) {
     this.borderColor = borderColor;
   }
+
+  get MinWallTop(): u32 {
+    return this.minWallTop;
+  }
+
+  set MinWallTop(minWallTop: u32) {
+    this.minWallTop = minWallTop;
+  }
+  
+  get MaxWallBottom(): u32 {
+    return this.maxWallBottom;
+  }
+
+  set MaxWallBottom(maxWallBottom: u32) {
+    this.maxWallBottom = maxWallBottom;
+  }
 }
 
 let raycasterAlloc = changetype<ObjectAllocator<Raycaster>>(NULL_PTR);
@@ -130,6 +148,14 @@ function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
   return raycaster.WallSliceObjSizeLg2;
 }
 
+function getMinWallTopPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("minWallTop");
+}
+
+function getMaxWallBottomPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("maxWallBottom");
+}
+
 export {
   Raycaster,
   newRaycaster,
@@ -140,4 +166,6 @@ export {
   getWallSlicesPtr,
   allocBuffers,
   getWallSliceObjSizeLg2,
+  getMinWallTopPtr,
+  getMaxWallBottomPtr,
 };

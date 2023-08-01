@@ -35,6 +35,7 @@ type RaycasterParams = {
 
 class Raycaster {
   private params: RaycasterParams;
+  private wasmRun: WasmRun;
 
   private viewport: Viewport;
   private player: Player;
@@ -58,6 +59,8 @@ class Raycaster {
 
   private zBuffer: Float32Array;
   private wallSlices: WallSlice[];
+  private minWallTopPtr: number;
+  private maxWallBottomPtr: number;
 
   private wallHeight: number;
 
@@ -65,11 +68,12 @@ class Raycaster {
 
   public async init(params: RaycasterParams) {
     this.params = params;
-    const { wasmRun } = params;
+
+    this.wasmRun = params.wasmRun;
 
     this.initTextures();
 
-    this.wasmEngineModule = wasmRun.WasmModules.engine;
+    this.wasmEngineModule = this.wasmRun.WasmModules.engine;
     this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
     this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
 
@@ -84,6 +88,12 @@ class Raycaster {
 
     this.initZBufferView();
     this.initWallSlices();
+    this.minWallTopPtr = this.wasmEngineModule.getMinWallTopPtr(
+      this.wasmRaycasterPtr,
+    );
+    this.maxWallBottomPtr = this.wasmEngineModule.getMaxWallBottomPtr(
+      this.wasmRaycasterPtr,
+    );
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
@@ -103,8 +113,7 @@ class Raycaster {
   }
 
   private initFrameBuf() {
-    const { wasmRun } = this.params;
-    const { rgbaSurface0: frameBuf8 } = wasmRun.WasmViews;
+    const { rgbaSurface0: frameBuf8 } = this.wasmRun.WasmViews;
 
     const frameBuf32 = new Uint32Array(
       frameBuf8.buffer,
@@ -134,7 +143,7 @@ class Raycaster {
       this.wasmRaycasterPtr,
     );
     this.zBuffer = new Float32Array(
-      this.params.wasmRun.WasmMem.buffer,
+      this.wasmRun.WasmMem.buffer,
       zBufferPtr,
       this.viewport.Width,
     );
@@ -170,8 +179,6 @@ class Raycaster {
   }
 
   public initMap() {
-    const { wasmRun } = this.params;
-
     const mapWidth = 10;
     const mapHeight = 10;
 
@@ -191,13 +198,13 @@ class Raycaster {
     const yGridHeight = mapHeight + 1;
 
     this.xGrid = new Uint8Array(
-      wasmRun.WasmMem.buffer,
+      this.wasmRun.WasmMem.buffer,
       xGridPtr,
       gridWidth * xGridHeight,
     );
 
     this.yGrid = new Uint8Array(
-      wasmRun.WasmMem.buffer,
+      this.wasmRun.WasmMem.buffer,
       yGridPtr,
       gridWidth * yGridHeight,
     );
@@ -236,7 +243,7 @@ class Raycaster {
     this.floorTexturesMap[4 * this.mapWidth + 4] = this.floorTextures[texId];
   }
 
-  castScene() {
+  drawView() {
     // this.wasmEngine.WasmRun.WasmModules.engine.render();
     // this.wasmEngineModule.render();
 
@@ -275,6 +282,9 @@ class Raycaster {
     const colEnd = vpWidth;
 
     const midY = vpHeight >> 1;
+
+    this.MinWallTop = midY;
+    this.MaxWallBottom = midY;
 
     for (let x = colStart; x < colEnd; x++) {
       // const cameraX = (2 * x) / vpWidth - 1;
@@ -369,8 +379,12 @@ class Raycaster {
 
       const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
-      const projWallTop = midY - (wallSliceHeight >> 1);
-      const projWallBottom = projWallTop + wallSliceHeight;
+      const projWallBottom = midY + (wallSliceHeight >> 1);
+      const projWallTop = projWallBottom - wallSliceHeight + 1;
+
+      // const projWallTop = midY - (wallSliceHeight >> 1);
+      // const projWallBottom = projWallTop + wallSliceHeight - 1;
+      // const sliceHeight = projWallBottom - projWallTop + 1;
 
       let wallTop = projWallTop;
       if (projWallTop < 0) {
@@ -379,7 +393,7 @@ class Raycaster {
 
       let wallBottom = projWallBottom;
       if (projWallBottom >= vpHeight) {
-        wallBottom = vpHeight;
+        wallBottom = vpHeight - 1;
       }
 
       // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
@@ -391,6 +405,14 @@ class Raycaster {
       wallSlice.Top = wallTop;
       wallSlice.Bottom = wallBottom;
       wallSlice.Side = side;
+
+      if (wallTop < this.MinWallTop) {
+        this.MinWallTop = wallTop;
+      }
+
+      if (wallBottom > this.MaxWallBottom) {
+        this.MaxWallBottom = wallBottom;
+      }
 
       let wallGrid;
 
@@ -460,7 +482,7 @@ class Raycaster {
       wallSlice.CachedMipmap = mipmap;
     } // end col loop
 
-    const drawSceneVParams = {
+    const drawSceneVParams: DrawSceneVParams = {
       wallSlices: this.wallSlices,
       colStart,
       colEnd,
@@ -468,11 +490,28 @@ class Raycaster {
       posY,
       mapWidth,
       mapHeight,
-      floorTexturesMap: this.floorTexturesMap, // TODO: move
       midY,
+      minWallTop: this.MinWallTop,
+      maxWallBottom: this.MaxWallBottom,
     };
 
     drawSceneVert(drawSceneVParams);
+  }
+
+  private get MinWallTop(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.minWallTopPtr, true);
+  }
+
+  private set MinWallTop(val: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.minWallTopPtr, val, true);
+  }
+
+  private get MaxWallBottom(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.maxWallBottomPtr, true);
+  }
+
+  private set MaxWallBottom(val: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.maxWallBottomPtr, val, true);
   }
 
   get Viewport() {
