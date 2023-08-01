@@ -37,8 +37,6 @@ type AppWorkerParams = {
 };
 
 class AppWorker {
-  private static readonly RENDER_PERIOD_MS =
-    MILLI_IN_SEC / mainConfig.targetRPS;
   private static readonly UPDATE_PERIOD_MS =
     (mainConfig.multiplier * MILLI_IN_SEC) / mainConfig.targetUPS;
 
@@ -273,7 +271,6 @@ class AppWorker {
     let lastFrameStartTime: number;
     // let last_render_t: number;
     let updTimeAcc: number;
-    let renderTimeAcc: number;
     let elapsedTimeMs: number;
     let renderThen: number;
     let timeSinceLastFrame: number;
@@ -293,7 +290,6 @@ class AppWorker {
     let frameTimeArr: Float64Array;
     let timeSinceLastFrameArr: Float64Array;
     let fpsArr: Float32Array;
-    let rpsArr: Float32Array;
     let upsArr: Float32Array;
 
     let resync: boolean;
@@ -304,7 +300,6 @@ class AppWorker {
       lastFrameStartTime = lastStatsTime = renderThen = performance.now();
       frameTimeArr = new Float64Array(AppWorker.FRAME_TIMES_ARR_LEN);
       updTimeAcc = 0;
-      renderTimeAcc = 0;
       elapsedTimeMs = 0;
       timeSinceLastFrameArr = new Float64Array(
         AppWorker.TIMES_SINCE_LAST_FRAME_ARR_LEN,
@@ -314,7 +309,6 @@ class AppWorker {
       timeLastFrameCnt = 0;
       statsTimeAcc = 0;
       fpsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
-      rpsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
       upsArr = new Float32Array(AppWorker.STATS_ARR_LEN);
       statsCnt = 0;
       resync = false;
@@ -375,17 +369,13 @@ class AppWorker {
     };
 
     const render = () => {
-      renderTimeAcc += avgTimeSinceLastFrame;
-      if (true && renderTimeAcc >= AppWorker.RENDER_PERIOD_MS) {
-        renderTimeAcc %= AppWorker.RENDER_PERIOD_MS;
-        this.wasmEngine.syncWorkers(this.auxWorkers);
-        // this.wasmEngineModule.render();
-        this.raycaster.castScene();
-        this.wasmEngine.waitWorkers(this.auxWorkers);
-        this.drawWasmFrame();
-        saveFrameTime();
-        renderCnt++;
-      }
+      this.wasmEngine.syncWorkers(this.auxWorkers);
+      // this.wasmEngineModule.render();
+      this.raycaster.castScene();
+      this.wasmEngine.waitWorkers(this.auxWorkers);
+      this.drawWasmFrame();
+      saveFrameTime();
+      renderCnt++;
     };
 
     const saveFrameTime = () => {
@@ -405,20 +395,16 @@ class AppWorker {
         elapsedTimeMs += elapsed;
         const oneOverElapsed = MILLI_IN_SEC / elapsedTimeMs;
         const fps = frameCnt * oneOverElapsed;
-        const rps = renderCnt * oneOverElapsed;
         const ups = updateCnt * oneOverElapsed;
         const stat_idx = statsCnt++ % fpsArr.length;
         fpsArr[stat_idx] = fps;
-        rpsArr[stat_idx] = rps;
         upsArr[stat_idx] = ups;
         const avgFps = arrAvg(fpsArr, statsCnt);
-        const avgRps = arrAvg(rpsArr, statsCnt);
         const avgUps = arrAvg(upsArr, statsCnt);
         const avgFrameTime = arrAvg(frameTimeArr, frameTimeCnt);
         const avgUfps = MILLI_IN_SEC / avgFrameTime;
         const statsValues: StatsValues = {
           [StatsNameEnum.FPS]: avgFps,
-          [StatsNameEnum.RPS]: avgRps,
           [StatsNameEnum.UPS]: avgUps,
           [StatsNameEnum.UFPS]: avgUfps,
         };
