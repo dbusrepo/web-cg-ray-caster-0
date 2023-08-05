@@ -108,6 +108,7 @@ type DrawSceneVParams = {
   midY: number;
   minWallTop: number;
   maxWallBottom: number;
+  viewerHeight: number;
 };
 
 function drawSceneVert(drawVertParams: DrawSceneVParams) {
@@ -123,8 +124,18 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
     viewHeight: height,
   } = drawParams;
 
-  const { wallSlices, colStart, colEnd, midY, minWallTop, maxWallBottom } =
-    drawVertParams;
+  const {
+    wallSlices,
+    colStart,
+    colEnd,
+    posX,
+    posY,
+    mapWidth,
+    viewerHeight,
+    midY,
+    minWallTop,
+    maxWallBottom,
+  } = drawVertParams;
 
   for (let x = colStart; x < colEnd; x++) {
     const { Hit: hit, Top: top, Bottom: bottom } = wallSlices[x];
@@ -152,8 +163,6 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
     } = wallSlices[x];
-
-    const { posX, posY, mapWidth, mapHeight } = drawVertParams;
 
     if (hit) {
       // const mipmap = wallTextures[texId].getMipmap(mipLvl);
@@ -197,7 +206,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       const { floorTexturesMap } = drawParams;
       for (let y = bottom + 1; y < height; y++) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
-        const dist = height / (2.0 * (y) - height);
+        const dist = viewerHeight / (y - midY);
         let weight = dist / wallDistance;
         // assert(weight >= 0);
         // assert(weight <= 1);

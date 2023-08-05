@@ -493,6 +493,7 @@ class Raycaster {
       midY,
       minWallTop: this.MinWallTop,
       maxWallBottom: this.MaxWallBottom,
+      viewerHeight: this.wallHeight / 2,
     };
 
     drawSceneVert(drawSceneVParams);
