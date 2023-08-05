@@ -4,8 +4,11 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from './texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 
+const CEIL_COLOR = 0xffbbbbbb;
+const FLOOR_COLOR = 0xff777777;
+
 class DrawParams {
-  public framePtr: number;
+  public startFrameViewPtr: number;
 
   constructor(
     public frameBuf32: Uint32Array,
@@ -18,7 +21,7 @@ class DrawParams {
     public floorTexturesMap: Texture[],
     public frameColorRGBAWasm: FrameColorRGBAWasm,
   ) {
-    this.framePtr = viewStartY * frameStride + viewStartX;
+    this.startFrameViewPtr = viewStartY * frameStride + viewStartX;
   }
 }
 
@@ -97,7 +100,7 @@ function drawBorders(borderColor: number) {
   }
 }
 
-type DrawSceneVParams = {
+type DrawSceneParams = {
   wallSlices: WallSlice[];
   colStart: number;
   colEnd: number;
@@ -111,14 +114,12 @@ type DrawSceneVParams = {
   viewerHeight: number;
 };
 
-function drawSceneVert(drawVertParams: DrawSceneVParams) {
-  assert(drawParams !== undefined);
-
+function drawSceneVert(drawSceneParams: DrawSceneParams) {
   const {
     frameColorRGBAWasm,
     frameBuf32,
     frameStride,
-    framePtr,
+    startFrameViewPtr,
     // wallTextures,
     viewWidth: width,
     viewHeight: height,
@@ -135,23 +136,13 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
     midY,
     minWallTop,
     maxWallBottom,
-  } = drawVertParams;
+  } = drawSceneParams;
 
   for (let x = colStart; x < colEnd; x++) {
-    const { Hit: hit, Top: top, Bottom: bottom } = wallSlices[x];
-
-    const colPtr = framePtr + x;
-    let dstPtr = colPtr;
-
-    // draw ceil
-    for (let y = 0; y < top; y++) {
-      frameBuf32[dstPtr] = 0xffbbbbbb;
-      dstPtr += frameStride;
-    }
-
-    // assert(dstPtr === colPtr + top * stride);
-
     let {
+      Hit: hit,
+      Top: top,
+      Bottom: bottom,
       Side: side,
       // TexId: texId,
       // MipLvl: mipLvl,
@@ -164,25 +155,40 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       FloorWallY: floorWallY,
     } = wallSlices[x];
 
+    const colPtr = startFrameViewPtr + x;
+    let dstPtr = colPtr;
+
+    // draw ceil
+    for (let y = 0; y < top; y++) {
+      frameBuf32[dstPtr] = CEIL_COLOR;
+      dstPtr += frameStride;
+    }
+
+    // assert(dstPtr === colPtr + top * frameStride);
+
     if (hit) {
       // const mipmap = wallTextures[texId].getMipmap(mipLvl);
-      const { Width: texWidth, Height: texHeight, PitchLg2: pitchLg2 } = mipmap;
+      const {
+        Buf32: mipPixels,
+        // Width: texWidth,
+        // Height: texHeight,
+        PitchLg2: pitchLg2,
+      } = mipmap;
 
       // rem mipmap is rotated 90ccw
       // const mipStride = 1 << pitchLg2;
-      const mipColOffs = texX << pitchLg2;
-      const { Buf32: mipPixels } = mipmap;
+      const mipRowOffs = texX << pitchLg2;
 
       // textured wall
       for (let y = top; y <= bottom; y++) {
-        const texY = texPosY | 0;
-        texPosY += texStepY;
-        let color = mipPixels[mipColOffs + texY];
+        const texColOffs = texPosY | 0;
+        let color = mipPixels[mipRowOffs + texColOffs];
         // const color = mipmap.Buf32[texY * texWidth + texX];
         // color = frameColorRGBAWasm.lightColorABGR(color, 255);
         frameBuf32[dstPtr] = color;
         // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
         dstPtr += frameStride;
+        texPosY += texStepY;
       }
     } else {
       // no hit untextured wall
@@ -248,7 +254,7 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
       }
     } else {
       for (let y = bottom + 1; y < height; y++) {
-        frameBuf32[dstPtr] = 0xff777777;
+        frameBuf32[dstPtr] = FLOOR_COLOR;
         dstPtr += frameStride;
       }
     }
@@ -284,11 +290,125 @@ function drawSceneVert(drawVertParams: DrawSceneVParams) {
   // }
 }
 
+function drawSceneHorz(drawSceneParams: DrawSceneParams) {
+  const {
+    frameColorRGBAWasm,
+    frameBuf32,
+    frameStride,
+    startFrameViewPtr,
+    // wallTextures,
+    viewWidth: width,
+    viewHeight: height,
+  } = drawParams;
+
+  const {
+    wallSlices,
+    colStart,
+    colEnd,
+    posX,
+    posY,
+    mapWidth,
+    viewerHeight,
+    midY,
+    minWallTop,
+    maxWallBottom,
+  } = drawSceneParams;
+
+  // draw ceiling above walls
+  let framePtr = startFrameViewPtr + colStart;
+  for (let y = 0; y < minWallTop; y++) {
+    for (let x = colStart; x < colEnd; x++) {
+      frameBuf32[framePtr++] = CEIL_COLOR;
+    }
+    framePtr += frameStride - width;
+  }
+
+  let saveFramePtr = framePtr;
+
+  // draw walls
+  for (let x = colStart; x < colEnd; x++) {
+    let {
+      Hit: hit,
+      Top: top,
+      Bottom: bottom,
+      TexX: texX,
+      TexStepY: texStepY,
+      TexPosY: texPosY,
+      CachedMipmap: mipmap,
+    } = wallSlices[x];
+
+    framePtr = startFrameViewPtr + top * frameStride + x;
+
+    if (hit) {
+      const {
+        Buf32: mipPixels,
+        // Width: texWidth,
+        // Height: texHeight,
+        PitchLg2: pitchLg2,
+      } = mipmap;
+
+      const mipRowOffs = texX << pitchLg2;
+
+      // textured wall
+      for (let y = top; y <= bottom; y++) {
+        const texColOffs = texPosY | 0;
+        const color = mipPixels[mipRowOffs + texColOffs];
+        frameBuf32[framePtr] = color;
+        texPosY += texStepY;
+        framePtr += frameStride;
+      }
+    } else {
+      for (let y = top; y <= bottom; y++) {
+        frameBuf32[framePtr] = 0xff0000ff;
+        framePtr += frameStride;
+      }
+    }
+  }
+
+  // draw ceil/floor between walls
+  framePtr = startFrameViewPtr + minWallTop * frameStride;
+
+  for (let y = minWallTop; y < midY; y++) {
+    for (let x = colStart; x < colEnd; x++) {
+      const wallSlice = wallSlices[x];
+      if (!(y >= wallSlice.Top && y <= wallSlice.Bottom)) {
+        // const mipRowOffs = wallSlice.TexX << wallSlice.CachedMipmap.PitchLg2;
+        // const texColOffs = wallSlice.TexPosY | 0;
+        // wallSlices[x].TexPosY = wallSlice.TexPosY + wallSlice.TexStepY;
+        // color = wallSlice.CachedMipmap.Buf32[mipRowOffs | texColOffs];
+        // color = mipmap.Buf32[(texX << mipmap.PitchLg2) | (texPosY | 0)];
+        frameBuf32[framePtr + x] = CEIL_COLOR;
+      }
+    }
+    framePtr += frameStride;
+  }
+
+  for (let y = midY + 1; y <= maxWallBottom; y++) {
+    for (let x = colStart; x < colEnd; x++) {
+      const wallSlice = wallSlices[x];
+      if (!(y >= wallSlice.Top && y <= wallSlice.Bottom)) {
+        frameBuf32[framePtr + x] = FLOOR_COLOR;
+      }
+    }
+    framePtr += frameStride;
+  }
+
+  // draw floor below walls
+  framePtr = startFrameViewPtr + (maxWallBottom + 1) * frameStride + colStart;
+  for (let y = maxWallBottom + 1; y < height; y++) {
+    for (let x = colStart; x < colEnd; x++) {
+      frameBuf32[framePtr++] = FLOOR_COLOR;
+    }
+    framePtr += frameStride - width;
+  }
+}
+
 export {
   DrawParams,
   initDrawParams,
   drawBackground,
   drawBorders,
-  DrawSceneVParams,
+  DrawSceneParams,
   drawSceneVert,
+  drawSceneHorz,
 };

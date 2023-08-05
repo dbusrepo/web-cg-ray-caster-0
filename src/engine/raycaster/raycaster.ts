@@ -15,10 +15,11 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
-  DrawSceneVParams,
+  DrawSceneParams,
   initDrawParams,
   drawBackground,
   drawSceneVert,
+  drawSceneHorz,
 } from './draw';
 
 import { ascImportImages } from '../../../assets/build/images';
@@ -283,8 +284,8 @@ class Raycaster {
 
     const midY = vpHeight >> 1;
 
-    this.MinWallTop = midY;
-    this.MaxWallBottom = midY;
+    let minWallTop = midY;
+    let maxWallBottom = midY;
 
     for (let x = colStart; x < colEnd; x++) {
       // const cameraX = (2 * x) / vpWidth - 1;
@@ -295,7 +296,7 @@ class Raycaster {
       const deltaDistY = 1 / Math.abs(rayDirY);
 
       let sideDistX, sideDistY; // distances to next x/y grid line
-      let stepX, stepY; // +1 or -1, step in map 
+      let stepX, stepY; // +1 or -1, step in map
       let stepYoff; // offset for ygrid step
       let xChkIdx, yChkOff, yChkIdx; // check offsets in xgrid/ygrid
 
@@ -397,8 +398,6 @@ class Raycaster {
       }
 
       // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
-      // assert(wallTop >= 0, `invalid top ${wallTop}`);
-      // assert(wallBottom <= vpHeight, `invalid bottom ${wallBottom}`);
 
       const wallSlice = this.wallSlices[x];
       wallSlice.Distance = perpWallDist;
@@ -406,12 +405,12 @@ class Raycaster {
       wallSlice.Bottom = wallBottom;
       wallSlice.Side = side;
 
-      if (wallTop < this.MinWallTop) {
-        this.MinWallTop = wallTop;
+      if (wallTop < minWallTop) {
+        minWallTop = wallTop;
       }
 
-      if (wallBottom > this.MaxWallBottom) {
-        this.MaxWallBottom = wallBottom;
+      if (wallBottom > maxWallBottom) {
+        maxWallBottom = wallBottom;
       }
 
       let wallGrid;
@@ -482,7 +481,10 @@ class Raycaster {
       wallSlice.CachedMipmap = mipmap;
     } // end col loop
 
-    const drawSceneVParams: DrawSceneVParams = {
+    this.MinWallTop = minWallTop;
+    this.MaxWallBottom = maxWallBottom;
+
+    const drawSceneVParams: DrawSceneParams = {
       wallSlices: this.wallSlices,
       colStart,
       colEnd,
@@ -496,7 +498,13 @@ class Raycaster {
       viewerHeight: this.wallHeight / 2,
     };
 
-    drawSceneVert(drawSceneVParams);
+    const DRAW_VERT = false;
+
+    if (DRAW_VERT) {
+      drawSceneVert(drawSceneVParams);
+    } else {
+      drawSceneHorz(drawSceneVParams);
+    }
   }
 
   private get MinWallTop(): number {
