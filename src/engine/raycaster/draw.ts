@@ -11,6 +11,7 @@ const FLOOR_COLOR = 0xff777777;
 class DrawParams {
   public startFrameViewPtr: number;
   public hspans: Uint32Array;
+  public inithspans: Uint32Array;
   public lhspans: Uint32Array;
   public rhspans: Uint32Array;
   public stepXhspans: Float32Array;
@@ -33,6 +34,7 @@ class DrawParams {
     this.startFrameViewPtr = viewportStartY * frameStride + viewportStartX;
     const viewHeight = viewportHeight;
     this.hspans = new Uint32Array(viewHeight).fill(0);
+    this.inithspans = new Uint32Array(viewHeight).fill(0);
     this.lhspans = new Uint32Array(viewHeight);
     this.rhspans = new Uint32Array(viewHeight);
     this.stepXhspans = new Float32Array(viewHeight);
@@ -239,6 +241,8 @@ function drawSceneVert(drawSceneParams: DrawSceneParams) {
       //   dstPtr += frameStride;
       // }
       const { floorTexturesMap } = drawParams;
+      let prevFloorTexMapIdx = -1;
+      let floorTex;
       for (let y = bottom + 1; y < viewportHeight; y++) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
         const dist = posZ / (y - viewMidY);
@@ -264,14 +268,22 @@ function drawSceneVert(drawSceneParams: DrawSceneParams) {
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
         const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
-        if (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length) {
-          const tex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+        const sameFloorTexMapIdx = floorTexMapIdx === prevFloorTexMapIdx;
+        if (
+          sameFloorTexMapIdx ||
+          (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length)
+        ) {
+          if (!sameFloorTexMapIdx) {
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+            prevFloorTexMapIdx = floorTexMapIdx;
+          }
+          const tex = floorTex!;
           const u = floorX - floorXidx;
           const v = floorY - floorYidx;
           // assert(floorX >= 0 && floorX < 1);
           // assert(floorY >= 0 && floorY < 1);
-          const floorTexX = (u * tex.Width) | 0;
-          const floorTexY = (v * tex.Height) | 0;
+          const floorTexX = u * tex.Width;
+          const floorTexY = v * tex.Height;
           const colorOffset = (floorTexX << tex.PitchLg2) | floorTexY;
           // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
           const color = tex.Buf32[colorOffset];
@@ -330,6 +342,7 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
     viewportHeight: viewHeight,
     floorTexturesMap,
     hspans,
+    inithspans,
     lhspans,
     rhspans,
     stepXhspans,
@@ -354,7 +367,7 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
     minWallTop,
     maxWallBottom,
     mapWidth,
-    // mapHeight,
+    mapHeight,
   } = drawSceneParams;
 
   // let framePtr;
@@ -365,24 +378,7 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
   const rayDirRightX = dirX + planeX;
   const rayDirRightY = dirY + planeY;
 
-  // // reset hspans
-  // hspans.fill(0);
-
-  for (let y = 0; y <= viewMidY; ++y) {
-    hspans[y] = 0;
-  }
-
-  //
-  for (let y = viewMidY + 1; y < viewHeight; y++) {
-    hspans[y] = 0;
-    // check if we already have a horizontal span
-    const yd = y - viewMidY;
-    const sDist = posZ / yd;
-    lfloorXhspans[y] = posX + sDist * rayDirLeftX;
-    lfloorYhspans[y] = posY + sDist * rayDirLeftY;
-    stepXhspans[y] = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
-    stepYhspans[y] = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
-  }
+  hspans.set(inithspans);
 
   const drawCeilHSpan = (y: number, x1: number, x2: number) => {
     let frameRowPtr = startFrameViewPtr + frameRowPtrs[y] + x1;
@@ -406,21 +402,33 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
       const stepY = stepYhspans[y];
       let floorX = lfloorXhspans[y] + x1 * stepX;
       let floorY = lfloorYhspans[y] + x1 * stepY;
+      let prevFloorTexMapIdx = -1;
+      let floorTex;
       let spanLen = x2 - x1 + 1;
       while (spanLen--) {
         const floorXidx = floorX | 0;
         const floorYidx = floorY | 0;
         const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
-        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length,
-        //   `floorTexMapIdx: ${floorTexMapIdx} floorXidx: ${floorXidx} floorYidx: ${floorYidx} mapWidth: ${mapWidth}`);
-        if (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length) {
-          const tex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+        // assert(
+        //   floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length,
+        //   `floorTexMapIdx: ${floorTexMapIdx} floorXidx: ${floorXidx} floorYidx: ${floorYidx} mapWidth: ${mapWidth} mapHeight: ${mapHeight}`,
+        // );
+        const sameFloorTexMapIdx = floorTexMapIdx === prevFloorTexMapIdx;
+        if (
+          sameFloorTexMapIdx ||
+          (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length)
+        ) {
+          if (!sameFloorTexMapIdx) {
+            prevFloorTexMapIdx = floorTexMapIdx;
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+          }
+          const tex = floorTex!;
           const u = floorX - floorXidx;
           const v = floorY - floorYidx;
-          // assert(floorX >= 0 && floorX < 1);
-          // assert(floorY >= 0 && floorY < 1);
-          const floorTexX = (u * tex.Width) | 0;
-          const floorTexY = (v * tex.Height) | 0;
+          // assert(u >= 0 && u < 1);
+          // assert(v >= 0 && v < 1);
+          const floorTexX = u * tex.Width;
+          const floorTexY = v * tex.Height;
           const colorOffset = (floorTexX << tex.PitchLg2) | floorTexY;
           // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
           const color = tex.Buf32[colorOffset];
@@ -438,8 +446,10 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
   let hasCeilSpans = false;
   let hasFloorSpans = false;
 
+  let frameColPtr = startFrameViewPtr + colStart;
+
   // draw walls vertically
-  for (let x = colStart; x < colEnd; x++) {
+  for (let x = colStart; x < colEnd; x++, frameColPtr++) {
     let {
       Hit: hit,
       Top: top,
@@ -450,7 +460,7 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
       CachedMipmap: mipmap,
     } = wallSlices[x];
 
-    let framePtr = startFrameViewPtr + frameRowPtrs[top] + x;
+    let framePtr = frameColPtr + frameRowPtrs[top];
 
     if (hit) {
       const {
@@ -498,6 +508,12 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
         hasFloorSpans = true;
         hspans[y] = 1;
         lhspans[y] = rhspans[y] = x;
+        const yd = y - viewMidY;
+        const sDist = posZ / yd;
+        lfloorXhspans[y] = posX + sDist * rayDirLeftX;
+        lfloorYhspans[y] = posY + sDist * rayDirLeftY;
+        stepXhspans[y] = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
+        stepYhspans[y] = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
       } else if (x === rhspans[y] + 1) {
         // check if we can extend the horizontal span
         rhspans[y] = x;
@@ -534,6 +550,12 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
 
   // draw floor below walls
   for (let y = maxWallBottom + 1; y < viewHeight; y++) {
+    const yd = y - viewMidY;
+    const sDist = posZ / yd;
+    lfloorXhspans[y] = posX + sDist * rayDirLeftX;
+    lfloorYhspans[y] = posY + sDist * rayDirLeftY;
+    stepXhspans[y] = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
+    stepYhspans[y] = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
     drawFloorHSpan(y, colStart, colEnd);
   }
 
