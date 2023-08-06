@@ -52,8 +52,9 @@ class Raycaster {
   private wallTextures: Texture[][];
   private floorTextures: Texture[];
 
-  private floorTexturesMap: Texture[];
   // private ceilingMap: Uint8Array;
+  // private floorMap: Uint8Array;
+  private floorTexturesMap: Texture[];
 
   private xGrid: Uint8Array;
   private yGrid: Uint8Array;
@@ -282,14 +283,15 @@ class Raycaster {
     const colStart = 0;
     const colEnd = vpWidth;
 
-    const midY = vpHeight >> 1;
+    const viewMidY = vpHeight >> 1;
 
-    let minWallTop = midY;
-    let maxWallBottom = midY;
+    let minWallTop = viewMidY;
+    let maxWallBottom = viewMidY;
 
     for (let x = colStart; x < colEnd; x++) {
-      // const cameraX = (2 * x) / vpWidth - 1;
-      const cameraX = (2 * x) / (vpWidth - 1) - 1; // TODO:
+      const cameraX = (2 * x) / vpWidth - 1;
+      // TODO: horz floor casting gives out bounds with rayDirX 
+      // const cameraX = (2 * x) / (vpWidth - 1) - 1;
       const rayDirX = dirX + planeX * cameraX;
       const rayDirY = dirY + planeY * cameraX;
       const deltaDistX = 1 / Math.abs(rayDirX);
@@ -380,7 +382,7 @@ class Raycaster {
 
       const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
-      const projWallBottom = midY + (wallSliceHeight >> 1);
+      const projWallBottom = viewMidY + (wallSliceHeight >> 1);
       const projWallTop = projWallBottom - wallSliceHeight + 1;
 
       // const projWallTop = midY - (wallSliceHeight >> 1);
@@ -485,17 +487,21 @@ class Raycaster {
     this.MaxWallBottom = maxWallBottom;
 
     const drawSceneVParams: DrawSceneParams = {
+      posX,
+      posY,
+      dirX,
+      dirY,
+      planeX,
+      planeY,
       wallSlices: this.wallSlices,
       colStart,
       colEnd,
-      posX,
-      posY,
       mapWidth,
       mapHeight,
-      midY,
+      viewMidY,
       minWallTop: this.MinWallTop,
       maxWallBottom: this.MaxWallBottom,
-      viewerHeight: this.wallHeight / 2,
+      posZ: this.wallHeight / 2,
     };
 
     const DRAW_VERT = false;
