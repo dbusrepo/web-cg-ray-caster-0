@@ -394,7 +394,7 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
 
   const drawFloorHSpan = (y: number, x1: number, x2: number) => {
     let frameRowPtr = startFrameViewPtr + frameRowPtrs[y] + x1;
-    const TEXTURED_FLOOR = false;
+    const TEXTURED_FLOOR = true;
     if (!TEXTURED_FLOOR) {
       let spanLen = x2 - x1 + 1;
       while (spanLen--) {
