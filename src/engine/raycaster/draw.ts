@@ -377,6 +377,8 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
   const rayDirLeftY = dirY - planeY;
   const rayDirRightX = dirX + planeX;
   const rayDirRightY = dirY + planeY;
+  const rayStepX = (rayDirRightX - rayDirLeftX) * invWidth;
+  const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
 
   hspans.set(inithspans);
 
@@ -411,7 +413,8 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
         const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
         // assert(
         //   floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length,
-        //   `floorTexMapIdx: ${floorTexMapIdx} floorXidx: ${floorXidx} floorYidx: ${floorYidx} mapWidth: ${mapWidth} mapHeight: ${mapHeight}`,
+        //   `floorTexMapIdx: ${floorTexMapIdx} floorXidx: ${floorXidx} floorYidx: ${floorYidx}
+        //    flooorX: ${floorX} floorY: ${floorY}`,
         // );
         const sameFloorTexMapIdx = floorTexMapIdx === prevFloorTexMapIdx;
         if (
@@ -512,8 +515,8 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
         const sDist = posZ / yd;
         lfloorXhspans[y] = posX + sDist * rayDirLeftX;
         lfloorYhspans[y] = posY + sDist * rayDirLeftY;
-        stepXhspans[y] = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
-        stepYhspans[y] = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
+        stepXhspans[y] = sDist * rayStepX;
+        stepYhspans[y] = sDist * rayStepY;
       } else if (x === rhspans[y] + 1) {
         // check if we can extend the horizontal span
         rhspans[y] = x;
@@ -554,8 +557,8 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
     const sDist = posZ / yd;
     lfloorXhspans[y] = posX + sDist * rayDirLeftX;
     lfloorYhspans[y] = posY + sDist * rayDirLeftY;
-    stepXhspans[y] = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
-    stepYhspans[y] = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
+    stepXhspans[y] = sDist * rayStepX;
+    stepYhspans[y] = sDist * rayStepY;
     drawFloorHSpan(y, colStart, colEnd);
   }
 
