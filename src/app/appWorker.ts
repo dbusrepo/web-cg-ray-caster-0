@@ -165,10 +165,16 @@ class AppWorker {
     );
     player.PosX = 0.5;
     player.PosY = 0.5;
+    // rotated east
     player.DirX = 1;
     player.DirY = 0;
     player.PlaneX = 0;
     player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
+    // rotated north
+    // player.DirX = 0;
+    // player.DirY = -1;
+    // player.PlaneX = 0.66;
+    // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
     player.Pitch = 0;
     player.PosZ = 0.0;
   }

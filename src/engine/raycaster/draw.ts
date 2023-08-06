@@ -365,10 +365,16 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
   const rayDirRightX = dirX + planeX;
   const rayDirRightY = dirY + planeY;
 
-  // reset hspans
-  hspans.fill(0);
+  // // reset hspans
+  // hspans.fill(0);
 
+  for (let y = 0; y <= viewMidY; ++y) {
+    hspans[y] = 0;
+  }
+
+  //
   for (let y = viewMidY + 1; y < viewHeight; y++) {
+    hspans[y] = 0;
     // check if we already have a horizontal span
     const yd = y - viewMidY;
     const sDist = posZ / yd;
@@ -388,7 +394,7 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
 
   const drawFloorHSpan = (y: number, x1: number, x2: number) => {
     let frameRowPtr = startFrameViewPtr + frameRowPtrs[y] + x1;
-    const TEXTURED_FLOOR = true;
+    const TEXTURED_FLOOR = false;
     if (!TEXTURED_FLOOR) {
       let spanLen = x2 - x1 + 1;
       while (spanLen--) {
@@ -470,12 +476,6 @@ function drawSceneHorz(drawSceneParams: DrawSceneParams) {
         framePtr += frameStride;
       }
     }
-
-    // draw floor below walls
-    // for (let y = bottom + 1; y < viewHeight; y++) {
-    //   frameBuf32[framePtr] = FLOOR_COLOR;
-    //   framePtr += frameStride;
-    // }
 
     for (let y = minWallTop; y < top; y++) {
       if (!hspans[y]) {
