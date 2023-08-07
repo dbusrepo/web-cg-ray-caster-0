@@ -142,7 +142,7 @@ type DrawViewParams = {
   wallSlices: WallSlice[];
   mapWidth: number;
   mapHeight: number;
-  viewMidY: number;
+  projYcenter: number;
   minWallTop: number;
   maxWallTop: number;
   minWallBottom: number;
@@ -166,7 +166,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
     posZ,
     wallSlices,
     mapWidth,
-    viewMidY,
+    projYcenter,
     // minWallTop,
     // maxWallBottom,
   } = drawViewParams;
@@ -247,7 +247,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       let floorTex;
       for (let y = bottom + 1; y < vpHeight; y++) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
-        const dist = posZ / (y - viewMidY);
+        const dist = posZ / (y - projYcenter);
         let weight = dist / wallDistance;
         // assert(weight >= 0);
         // assert(weight <= 1);
@@ -362,7 +362,7 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
     planeX,
     planeY,
     wallSlices,
-    viewMidY,
+    projYcenter,
     mapWidth,
     mapHeight,
     minWallTop,
@@ -445,7 +445,7 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
   const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
 
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
-    const yd = y - viewMidY;
+    const yd = y - projYcenter;
     const sDist = posZ / yd;
     lfloorXhspans[y] = posX + sDist * rayDirLeftX;
     lfloorYhspans[y] = posY + sDist * rayDirLeftY;
@@ -658,7 +658,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
     planeX,
     planeY,
     wallSlices,
-    viewMidY,
+    projYcenter,
     mapWidth,
     mapHeight,
     minWallTop,
@@ -737,7 +737,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
   const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
 
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
-    const yd = y - viewMidY;
+    const yd = y - projYcenter;
     const sDist = posZ / yd;
     lfloorXhspans[y] = posX + sDist * rayDirLeftX;
     lfloorYhspans[y] = posY + sDist * rayDirLeftY;

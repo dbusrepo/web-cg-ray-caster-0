@@ -60,8 +60,10 @@ class Raycaster {
   private xGrid: Uint8Array;
   private yGrid: Uint8Array;
 
-  private zBuffer: Float32Array;
   private wallSlices: WallSlice[];
+
+  private zBuffer: Float32Array;
+  private projYCenterPtr: number;
   private minWallTopPtr: number;
   private maxWallTopPtr: number;
   private minWallBottomPtr: number;
@@ -94,6 +96,11 @@ class Raycaster {
     this.initZBufferView();
     this.initWallSlices();
 
+    this.projYCenterPtr = this.wasmEngineModule.getProjYCenterPtr(
+      this.wasmRaycasterPtr,
+    );
+    this.ProjYCenter = this.viewport.Height / 2;
+
     this.minWallTopPtr = this.wasmEngineModule.getMinWallTopPtr(
       this.wasmRaycasterPtr,
     );
@@ -109,6 +116,7 @@ class Raycaster {
 
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
+    this.player.PosZ = this.wallHeight / 2;
 
     // console.log('raycaster starting...');
 
@@ -267,6 +275,7 @@ class Raycaster {
     const {
       PosX: posX,
       PosY: posY,
+      PosZ: posZ,
       DirX: dirX,
       DirY: dirY,
       PlaneX: planeX,
@@ -290,12 +299,14 @@ class Raycaster {
     // const gridHeight = mapHeight + 1;
     // const srcMapIdx = mapY * gridWidth + mapX;
 
-    const viewMidY = vpHeight >> 1;
+    const projYcenter = this.ProjYCenter;
 
-    let minWallTop = viewMidY;
+    let minWallTop = projYcenter;
     let maxWallTop = -1;
     let minWallBottom = vpHeight;
-    let maxWallBottom = viewMidY;
+    let maxWallBottom = projYcenter;
+
+    const { wallSlices } = this;
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
@@ -391,7 +402,7 @@ class Raycaster {
 
       const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
 
-      const projWallBottom = viewMidY + (wallSliceHeight >> 1);
+      const projWallBottom = projYcenter + (wallSliceHeight >> 1);
       const projWallTop = projWallBottom - wallSliceHeight + 1;
 
       // const projWallTop = midY - (wallSliceHeight >> 1);
@@ -410,7 +421,7 @@ class Raycaster {
 
       // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
-      const wallSlice = this.wallSlices[x];
+      const wallSlice = wallSlices[x];
       wallSlice.Distance = perpWallDist;
       wallSlice.Top = wallTop;
       wallSlice.Bottom = wallBottom;
@@ -504,24 +515,32 @@ class Raycaster {
     const drawViewParams: DrawViewParams = {
       posX,
       posY,
-      posZ: this.wallHeight / 2,
+      posZ,
       dirX,
       dirY,
       planeX,
       planeY,
-      wallSlices: this.wallSlices,
+      wallSlices,
       mapWidth,
       mapHeight,
-      viewMidY,
-      minWallTop: this.MinWallTop,
-      maxWallTop: this.MaxWallTop,
-      minWallBottom: this.MinWallBottom,
-      maxWallBottom: this.MaxWallBottom,
+      projYcenter,
+      minWallTop,
+      maxWallTop,
+      minWallBottom,
+      maxWallBottom,
     };
 
     // drawViewVert(drawViewParams);
     drawViewVertHorz(drawViewParams);
     // drawViewHorz(drawViewParams);
+  }
+
+  private get ProjYCenter(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.projYCenterPtr, true);
+  }
+
+  private set ProjYCenter(val: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.projYCenterPtr, val, true);
   }
 
   private get MinWallTop(): number {

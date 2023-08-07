@@ -11,6 +11,7 @@ import { WallSlice, newWallSlice } from './wallslice';
 @final @unmanaged class Raycaster {
   private borderColor: u32;
   private viewport: Viewport;
+  private projYCenter: f32;
   private player: Player;
   private map: Map;
   private zBuffer: SArray<f32>;
@@ -43,6 +44,14 @@ import { WallSlice, newWallSlice } from './wallslice';
 
   set Viewport(viewport: Viewport) {
     this.viewport = viewport;
+  }
+
+  get ProjYCenter(): f32 {
+    return this.projYCenter;
+  }
+
+  set ProjYCenter(projYCenter: f32) {
+    this.projYCenter = projYCenter;
   }
 
   get Player(): Player {
@@ -137,6 +146,10 @@ function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.ZBuffer.DataPtr;
 }
 
+function getProjYCenterPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("projYCenter");
+}
+
 function getWallSlicesPtr(raycasterPtr: PTR_T): PTR_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.WallSlices.DataPtr;
@@ -178,10 +191,21 @@ function getMaxWallBottomPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("maxWallBottom");
 }
 
+function getViewportPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.ViewportPtr;
+}
+
+function getPlayerPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.PlayerPtr;
+}
+
 export {
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
+  getProjYCenterPtr,
   getZBufferPtr,
   getXGridPtr,
   getYGridPtr,
@@ -192,4 +216,6 @@ export {
   getMaxWallTopPtr,
   getMinWallBottomPtr,
   getMaxWallBottomPtr,
+  getViewportPtr,
+  getPlayerPtr,
 };

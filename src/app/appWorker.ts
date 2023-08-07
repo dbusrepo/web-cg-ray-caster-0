@@ -68,7 +68,6 @@ class AppWorker {
 
   private wasmBorderColorPtr: number;
 
-
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
     this.initGfx();
