@@ -15,11 +15,12 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
-  DrawSceneParams,
+  DrawViewParams,
   initDrawParams,
   drawBackground,
-  drawSceneVert,
-  drawSceneHorz,
+  drawViewVert,
+  drawViewVertHorz,
+  drawViewHorz,
 } from './draw';
 
 import { ascImportImages } from '../../../assets/build/images';
@@ -62,6 +63,8 @@ class Raycaster {
   private zBuffer: Float32Array;
   private wallSlices: WallSlice[];
   private minWallTopPtr: number;
+  private maxWallTopPtr: number;
+  private minWallBottomPtr: number;
   private maxWallBottomPtr: number;
 
   private wallHeight: number;
@@ -90,7 +93,14 @@ class Raycaster {
 
     this.initZBufferView();
     this.initWallSlices();
+
     this.minWallTopPtr = this.wasmEngineModule.getMinWallTopPtr(
+      this.wasmRaycasterPtr,
+    );
+    this.maxWallTopPtr = this.wasmEngineModule.getMaxWallTopPtr(
+      this.wasmRaycasterPtr,
+    );
+    this.minWallBottomPtr = this.wasmEngineModule.getMinWallBottomPtr(
       this.wasmRaycasterPtr,
     );
     this.maxWallBottomPtr = this.wasmEngineModule.getMaxWallBottomPtr(
@@ -280,15 +290,14 @@ class Raycaster {
     // const gridHeight = mapHeight + 1;
     // const srcMapIdx = mapY * gridWidth + mapX;
 
-    const colStart = 0;
-    const colEnd = vpWidth;
-
     const viewMidY = vpHeight >> 1;
 
     let minWallTop = viewMidY;
+    let maxWallTop = -1;
+    let minWallBottom = vpHeight;
     let maxWallBottom = viewMidY;
 
-    for (let x = colStart; x < colEnd; x++) {
+    for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
       // TODO: horz floor casting gives out bounds with rayDirX 
       // const cameraX = (2 * x) / (vpWidth - 1) - 1;
@@ -409,10 +418,14 @@ class Raycaster {
 
       if (wallTop < minWallTop) {
         minWallTop = wallTop;
+      } else if (wallTop > maxWallTop) {
+        maxWallTop = wallTop;
       }
 
       if (wallBottom > maxWallBottom) {
         maxWallBottom = wallBottom;
+      } else if (wallBottom < minWallBottom) {
+        minWallBottom = wallBottom;
       }
 
       let wallGrid;
@@ -484,33 +497,31 @@ class Raycaster {
     } // end col loop
 
     this.MinWallTop = minWallTop;
+    this.MaxWallTop = maxWallTop;
+    this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    const drawSceneVParams: DrawSceneParams = {
+    const drawViewParams: DrawViewParams = {
       posX,
       posY,
+      posZ: this.wallHeight / 2,
       dirX,
       dirY,
       planeX,
       planeY,
       wallSlices: this.wallSlices,
-      colStart,
-      colEnd,
       mapWidth,
       mapHeight,
       viewMidY,
       minWallTop: this.MinWallTop,
+      maxWallTop: this.MaxWallTop,
+      minWallBottom: this.MinWallBottom,
       maxWallBottom: this.MaxWallBottom,
-      posZ: this.wallHeight / 2,
     };
 
-    const DRAW_VERT = false;
-
-    if (DRAW_VERT) {
-      drawSceneVert(drawSceneVParams);
-    } else {
-      drawSceneHorz(drawSceneVParams);
-    }
+    // drawViewVert(drawViewParams);
+    drawViewVertHorz(drawViewParams);
+    // drawViewHorz(drawViewParams);
   }
 
   private get MinWallTop(): number {
@@ -519,6 +530,22 @@ class Raycaster {
 
   private set MinWallTop(val: number) {
     this.wasmRun.WasmViews.view.setUint32(this.minWallTopPtr, val, true);
+  }
+
+  private get MaxWallTop(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.maxWallTopPtr, true);
+  }
+
+  private set MaxWallTop(val: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.maxWallTopPtr, val, true);
+  }
+
+  private get MinWallBottom(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.minWallBottomPtr, true);
+  }
+
+  private set MinWallBottom(val: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.minWallBottomPtr, val, true);
   }
 
   private get MaxWallBottom(): number {

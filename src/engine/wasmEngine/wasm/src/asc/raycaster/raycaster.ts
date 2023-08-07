@@ -16,6 +16,8 @@ import { WallSlice, newWallSlice } from './wallslice';
   private zBuffer: SArray<f32>;
   private wallSlices: SArray<WallSlice>;
   private minWallTop: u32;
+  private maxWallTop: u32;
+  private minWallBottom: u32;
   private maxWallBottom: u32;
 
   allocBuffers(): void {
@@ -90,7 +92,19 @@ import { WallSlice, newWallSlice } from './wallslice';
   set MinWallTop(minWallTop: u32) {
     this.minWallTop = minWallTop;
   }
+
+  get MaxWallTop(): u32 {
+    return this.maxWallTop;
+  }
   
+  set MaxWallTop(maxWallTop: u32) {
+    this.maxWallTop = maxWallTop;
+  }
+
+  get MinWallBottom(): u32 {
+    return this.minWallBottom;
+  }
+
   get MaxWallBottom(): u32 {
     return this.maxWallBottom;
   }
@@ -152,6 +166,14 @@ function getMinWallTopPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("minWallTop");
 }
 
+function getMaxWallTopPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("maxWallTop");
+}
+
+function getMinWallBottomPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("minWallBottom");
+}
+
 function getMaxWallBottomPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("maxWallBottom");
 }
@@ -167,5 +189,7 @@ export {
   allocBuffers,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
+  getMaxWallTopPtr,
+  getMinWallBottomPtr,
   getMaxWallBottomPtr,
 };

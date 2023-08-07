@@ -56,6 +56,8 @@ import {
   allocBuffers,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
+  getMaxWallTopPtr,
+  getMinWallBottomPtr,
   getMaxWallBottomPtr,
 } from './raycaster/raycaster';
 import { 
@@ -380,6 +382,8 @@ export {
   allocBuffers,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
+  getMaxWallTopPtr,
+  getMinWallBottomPtr,
   getMaxWallBottomPtr,
 
   getViewportPtr,
