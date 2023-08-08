@@ -87,7 +87,7 @@ try {
       process.exit(1);
     }
     imgsKeys[imgKey] = 1;
-    objImagesBodyStr += `${first ? '':'\n'}  ${imgKey}: '${imgFile}',`;
+    objImagesBodyStr += `${first ? '':'\n'}  ${imgKey}: '${imgKey}',`; // ${imgFile}',
     const importStmt = ` import('../images/${imgFile}'),`;
     getImagesUrlsBodyStr += `${first ? '':'\n'}   ${importStmt}`;
     ascIndicesObjBodyStr += `${first ? '':'\n'}  ${imgKey}: ${ascIdx},`;
