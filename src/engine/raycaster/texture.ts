@@ -5,7 +5,10 @@ import { gWasmView, gWasmViews } from '../wasmEngine/wasmRun';
 import { wasmTexFieldSizes } from '../wasmEngine/wasmMemInitImages';
 
 class Texture {
-  constructor(private mipmaps: BitImageRGBA[]) {}
+  constructor(
+    private texId: number,
+    private mipmaps: BitImageRGBA[],
+  ) {}
 
   getMipmap(lvl: number): BitImageRGBA {
     // assert(lvl >= 0 && lvl < this.mipmaps.length);
@@ -18,6 +21,14 @@ class Texture {
 
   get NumMipmaps(): number {
     return this.mipmaps.length;
+  }
+
+  get TexId(): number {
+    return this.texId;
+  }
+
+  set TexId(texId: number) {
+    this.texId = texId;
   }
 }
 
@@ -94,7 +105,8 @@ const initTexture = (texId: number, makeDarker = false): Texture => {
     mipmapDescOffs += wasmTexFieldSizes.MIP_DESC_SIZE;
   }
 
-  const texture = new Texture(mipmaps);
+  const texture = new Texture(texId, mipmaps);
+
   return texture;
 };
 

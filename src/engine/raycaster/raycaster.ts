@@ -234,8 +234,6 @@ class Raycaster {
   private initWallTextures() {
     this.wallTextures = [];
 
-    // const wallTexNames = [ 
-
     this.wallTextures[0] = initTexturePair(
       ascImportImages.GREYSTONE,
       ascImportImages.GREYSTONE_D,
@@ -419,7 +417,6 @@ class Raycaster {
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
-      let texId = 0;
       let wallX = 0;
       let flipTexX = false;
       let outOfGrid = false;
@@ -535,16 +532,16 @@ class Raycaster {
 
       wallSlice.Hit = 1;
 
-      texId = wallGrid[checkGridIdx] - 1;
+      const wallTexIdx = wallGrid[checkGridIdx] - 1;
 
       // assert(
       //   texId >= 0 && texId < this.wallTextures.length,
       //   `invalid texture id ${texId}`,
       // );
 
-      texId = 2;
+      const texture = this.wallTextures[wallTexIdx][side];
       const mipLevel = 0;
-      const mipmap = this.wallTextures[texId][side].getMipmap(mipLevel);
+      const mipmap = texture.getMipmap(mipLevel);
       const { Width: texWidth, Height: texHeight } = mipmap;
 
       // wallX -= Math.floor(wallX);
@@ -560,7 +557,7 @@ class Raycaster {
       const texStepY = texHeight / wallSliceHeight;
       const texY = (wallTop - projWallTop) * texStepY;
 
-      wallSlice.TexId = texId;
+      wallSlice.TexId = texture.TexId;
       wallSlice.MipLvl = mipLevel;
       wallSlice.TexX = texX;
       wallSlice.TexStepY = texStepY;
