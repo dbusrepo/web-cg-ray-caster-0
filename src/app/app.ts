@@ -219,7 +219,7 @@ class App {
       title: StatsNameEnum.UFPS,
       fg: '#f50',
       bg: '#110',
-      graphHeight: 200,
+      graphHeight: 300,
     });
     // const unlockedFpsPanel = new StatsPanel(StatsNames.FPSU, '#f50', '#110');
     // const wasmHeapMem = new StatsPanel(StatsNames.WASM_HEAP, '#0b0', '#030');

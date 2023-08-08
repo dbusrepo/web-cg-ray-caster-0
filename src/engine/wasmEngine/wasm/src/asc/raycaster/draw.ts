@@ -88,23 +88,34 @@ function drawViewVert(raycaster: Raycaster): void {
     }
 
     if (hit) {
-      logi(wallSlice.TexId);
       const tex = textures.at(wallSlice.TexId);
       const mipmap = tex.getMipmap(wallSlice.MipLvl); // TODO: assert
 
-      const texX = wallSlice.TexX;
+      const texX = wallSlice.TexX as usize;
       const mipmapRowOffs = texX << mipmap.PitchLg2;
       const mipmapPtr = mipmap.Ptr + mipmapRowOffs * BPP_RGBA;
       
-      const texStepY = wallSlice.TexStepY;
-      let texY = wallSlice.TexY;
+      // const texStepY = wallSlice.TexStepY;
+      // let texY = wallSlice.TexY;
+      //
+      // for (let y = top; y <= bottom; y++) {
+      //   const texColOffs = texY as u32;
+      //   const texCol = load<u32>(mipmapPtr + texColOffs * BPP_RGBA);
+      //   store<u32>(framePtr, texCol);
+      //   framePtr += FRAME_STRIDE;
+      //   texY += texStepY;
+      // }
+
+      // fixed version
+      const texStepY_fix = wallSlice.TexStepY * 65536.0 as u32;
+      let texY_fix = wallSlice.TexY * 65536.0 as u32;
 
       for (let y = top; y <= bottom; y++) {
-        const texColOffs = texY as u32;
+        const texColOffs = texY_fix >> 16;
         const texCol = load<u32>(mipmapPtr + texColOffs * BPP_RGBA);
         store<u32>(framePtr, texCol);
         framePtr += FRAME_STRIDE;
-        texY += texStepY;
+        texY_fix += texStepY_fix;
       }
     } else {
       // draw wall
