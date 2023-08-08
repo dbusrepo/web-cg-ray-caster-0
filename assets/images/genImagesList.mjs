@@ -51,7 +51,7 @@ const getImagesUrlsSuffix = `  ];
   return (await Promise.all(paths)).map((imp) => imp.default);
 };\n`;
 
-const imagesArrayName = 'images';
+const imagesArrayName = 'imageKeys';
 const imagesObjPrefix = `const ${imagesArrayName} = {`;
 const imagesObjSuffix = `};\n`;
 
