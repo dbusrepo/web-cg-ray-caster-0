@@ -54,7 +54,6 @@ import {
   getXGridPtr,
   getYGridPtr,
   getWallSlicesPtr,
-  allocBuffers,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
   getMaxWallTopPtr,
@@ -155,18 +154,12 @@ function getRaycasterPtr(): PTR_T {
   return changetype<PTR_T>(raycaster);
 }
 
-// function drawQuad(x: i32, y: i32, w: i32, h: i32, colorARGB: u32): void {
-//   for (let i = 0; i < h; ++i) {
-//     const rowPtr = rgbaSurface0ptr + (y + i) * rgbaSurface0width * BPP_RGBA
-//     for (let j = 0; j < w; ++j) {
-//       const screenPtr = rowPtr + (x + j) * BPP_RGBA;
-//       store<u32>(screenPtr, colorARGB);
-//     }
-//   }
-// }
+function initRaycaster(): void {
+  raycaster.allocBuffers();
+}
 
 function render(): void {
-
+  drawViewVert(raycaster);
 }
 
 function run(): void {
@@ -192,6 +185,8 @@ export {
 
   allocMap,
 
+  initRaycaster,
+
   getRaycasterPtr,
   getBorderColorPtr,
   getProjYCenterPtr,
@@ -199,7 +194,6 @@ export {
   getWallSlicesPtr,
   getXGridPtr,
   getYGridPtr,
-  allocBuffers,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
   getMaxWallTopPtr,

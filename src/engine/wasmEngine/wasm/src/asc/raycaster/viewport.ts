@@ -4,36 +4,36 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
 @final @unmanaged class Viewport {
-  private startX: u16;
-  private startY: u16;
-  private width: u16;
-  private height: u16;
+  private startX: u32;
+  private startY: u32;
+  private width: u32;
+  private height: u32;
 
-  get StartX(): u16 {
+  get StartX(): u32 {
     return this.startX;
   }
   
-  set StartX(startX: u16) {
+  set StartX(startX: u32) {
     this.startX = startX;
   }
 
-  get StartY(): u16 {
+  get StartY(): u32 {
     return this.startY;
   }
 
-  set StartY(startY: u16) {
+  set StartY(startY: u32) {
     this.startY = startY;
   }
 
-  get Width(): u16 {
+  get Width(): u32 {
     return this.width;
   }
 
-  set Width(width: u16) {
+  set Width(width: u32) {
     this.width = width;
   }
 
-  get Height(): u16 {
+  get Height(): u32 {
     return this.height;
   }
 }

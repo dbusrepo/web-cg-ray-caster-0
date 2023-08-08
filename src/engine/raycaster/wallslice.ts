@@ -58,27 +58,27 @@ class WallSlice {
   }
 
   get Top(): number {
-    return gWasmView.getUint16(this.topPtr, true);
+    return gWasmView.getUint32(this.topPtr, true);
   }
 
   set Top(top: number) {
-    gWasmView.setUint16(this.topPtr, top, true);
+    gWasmView.setUint32(this.topPtr, top, true);
   }
 
   get Bottom(): number {
-    return gWasmView.getUint16(this.bottomPtr, true);
+    return gWasmView.getUint32(this.bottomPtr, true);
   }
 
   set Bottom(bottom: number) {
-    gWasmView.setUint16(this.bottomPtr, bottom, true);
+    gWasmView.setUint32(this.bottomPtr, bottom, true);
   }
 
   get TexX(): number {
-    return gWasmView.getUint16(this.texXPtr, true);
+    return gWasmView.getUint32(this.texXPtr, true);
   }
 
   set TexX(texX: number) {
-    gWasmView.setUint16(this.texXPtr, texX, true);
+    gWasmView.setUint32(this.texXPtr, texX, true);
   }
 
   get TexStepY(): number {
@@ -98,11 +98,11 @@ class WallSlice {
   }
 
   get TexId(): number {
-    return gWasmView.getUint16(this.texIdPtr, true);
+    return gWasmView.getUint32(this.texIdPtr, true);
   }
 
   set TexId(texId: number) {
-    gWasmView.setUint16(this.texIdPtr, texId, true);
+    gWasmView.setUint32(this.texIdPtr, texId, true);
   }
 
   get MipLvl(): number {

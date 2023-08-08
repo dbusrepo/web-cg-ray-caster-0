@@ -15,35 +15,35 @@ class Viewport {
   }
 
   get StartX(): number {
-    return gWasmView.getUint16(this.startXPtr, true);
+    return gWasmView.getUint32(this.startXPtr, true);
   }
 
   set StartX(value: number) {
-    gWasmView.setUint16(this.startXPtr, value, true);
+    gWasmView.setUint32(this.startXPtr, value, true);
   }
 
   get StartY(): number {
-    return gWasmView.getUint16(this.startYPtr, true);
+    return gWasmView.getUint32(this.startYPtr, true);
   }
 
   set StartY(value: number) {
-    gWasmView.setUint16(this.startYPtr, value, true);
+    gWasmView.setUint32(this.startYPtr, value, true);
   }
 
   get Width(): number {
-    return gWasmView.getUint16(this.widthPtr, true);
+    return gWasmView.getUint32(this.widthPtr, true);
   }
 
   set Width(value: number) {
-    gWasmView.setUint16(this.widthPtr, value, true);
+    gWasmView.setUint32(this.widthPtr, value, true);
   }
 
   get Height(): number {
-    return gWasmView.getUint16(this.heightPtr, true);
+    return gWasmView.getUint32(this.heightPtr, true);
   }
 
   set Height(value: number) {
-    gWasmView.setUint16(this.heightPtr, value, true);
+    gWasmView.setUint32(this.heightPtr, value, true);
   }
 }
 

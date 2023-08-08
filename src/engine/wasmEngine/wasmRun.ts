@@ -3,6 +3,7 @@ import * as WasmUtils from './wasmMemUtils';
 import type { WasmViews } from './wasmViews';
 import type { WasmModules, WasmImports } from './wasmLoader';
 import { loadWasmModules } from './wasmLoader';
+import { BPP_RGBA } from '../assets/images/bitImageRGBA';
 // import { randColor, sleep } from '../utils';
 // import { BitImageRGBA } from './assets/images/bitImageRGBA';
 // import { PngDecoderRGBA } from './assets/images/vivaxy-png/PngDecoderRGBA';
@@ -120,6 +121,18 @@ class WasmRun {
   private async loadWasmModules(): Promise<void> {
     const wasmImports = this.buildWasmImports();
     this.wasmModules = await loadWasmModules(wasmImports);
+  }
+
+  get FrameWidth(): number {
+    return this.params.surface0sizes[0];
+  }
+
+  get FrameHeight(): number {
+    return this.params.surface0sizes[1];
+  }
+
+  get FrameStride(): number {
+    return this.FrameWidth * BPP_RGBA;
   }
 
   get WasmViews(): WasmViews {

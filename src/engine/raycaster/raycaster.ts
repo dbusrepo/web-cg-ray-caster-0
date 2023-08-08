@@ -1,20 +1,21 @@
 import assert from 'assert';
-import { mainConfig } from '../../config/mainConfig';
-import type { InputEvent } from '../../app/events';
-import { AssetManager } from '../assets/assetManager';
-import { BitImageRGBA } from '../assets/images/bitImageRGBA';
-import { InputManager, keys, keyOffsets } from '../../input/inputManager';
-import { sleep } from '../utils';
+// import { mainConfig } from '../../config/mainConfig';
+// import type { InputEvent } from '../../app/events';
+// import { AssetManager } from '../assets/assetManager';
+// import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+// import { InputManager, keys, keyOffsets } from '../../input/inputManager';
+// import { sleep } from '../utils';
 
-import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
-import { WasmEngine } from '../wasmEngine/wasmEngine';
-import type { WasmViews } from '../wasmEngine/wasmViews';
+// import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
+// import { WasmEngine } from '../wasmEngine/wasmEngine';
+// import type { WasmViews } from '../wasmEngine/wasmViews';
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { WasmRun } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
+  drawBorders,
   DrawViewParams,
   initDrawParams,
   drawBackground,
@@ -32,7 +33,6 @@ import {
 
 type RaycasterParams = {
   wasmRun: WasmRun;
-  frameStride: number;
 };
 
 class Raycaster {
@@ -71,6 +71,8 @@ class Raycaster {
 
   private wallHeight: number;
 
+  private borderColorPtr: number;
+
   private backgroundColor: number;
 
   public async init(params: RaycasterParams) {
@@ -81,19 +83,18 @@ class Raycaster {
     this.initTextures();
 
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
+
     this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
+
     this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
 
-    this.player = getWasmPlayerView(
-      this.wasmEngineModule,
-      this.wasmRaycasterPtr,
-    );
-    this.viewport = getWasmViewportView(
-      this.wasmEngineModule,
-      this.wasmRaycasterPtr,
-    );
+    this.initViewport();
+    this.initPlayer();
+    this.initBorderColor();
 
-    this.initZBufferView();
+    this.wasmEngineModule.initRaycaster();
+
+    this.initZBuffer();
     this.initWallSlices();
 
     this.projYCenterPtr = this.wasmEngineModule.getProjYCenterPtr(
@@ -114,6 +115,7 @@ class Raycaster {
       this.wasmRaycasterPtr,
     );
 
+    // TODO:
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
     this.player.PosZ = this.wallHeight / 2;
@@ -130,6 +132,8 @@ class Raycaster {
     this.initFloorMap();
 
     this.initFrameBuf();
+
+    drawBorders(this.BorderColor);
   }
 
   private initFrameBuf() {
@@ -141,7 +145,7 @@ class Raycaster {
       frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
     );
 
-    const { frameStride } = this.params;
+    const frameStride = this.params.wasmRun.FrameStride;
 
     assert(this.wallTextures, 'wall textures not initialized');
 
@@ -158,7 +162,51 @@ class Raycaster {
     );
   }
 
-  private initZBufferView() {
+  private initViewport() {
+    const viewport = getWasmViewportView(
+      this.wasmEngineModule,
+      this.wasmRaycasterPtr,
+    );
+    const frameWidth = this.wasmRun.FrameWidth;
+    const frameHeight = this.wasmRun.FrameHeight;
+    const VIEWPORT_BORDER = 0; // TODO: move to config
+    viewport.StartX = VIEWPORT_BORDER;
+    viewport.StartY = VIEWPORT_BORDER;
+    viewport.Width = frameWidth - VIEWPORT_BORDER * 2;
+    viewport.Height = frameHeight - VIEWPORT_BORDER * 2;
+    this.viewport = viewport;
+  }
+
+  private initPlayer() {
+    const player = getWasmPlayerView(
+      this.wasmEngineModule,
+      this.wasmRaycasterPtr,
+    );
+    player.PosX = 0.5;
+    player.PosY = 0.5;
+    // rotated east
+    player.DirX = 1;
+    player.DirY = 0;
+    player.PlaneX = 0;
+    player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
+    // rotated north
+    // player.DirX = 0;
+    // player.DirY = -1;
+    // player.PlaneX = 0.66;
+    // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
+    player.Pitch = 0;
+    player.PosZ = 0.0;
+    this.player = player;
+  }
+
+  private initBorderColor() {
+    this.borderColorPtr = this.wasmEngineModule.getBorderColorPtr(
+      this.wasmRaycasterPtr,
+    );
+    this.BorderColor = FrameColorRGBAWasm.colorRGBAtoABGR(0xffff00ff);
+  }
+
+  private initZBuffer() {
     const zBufferPtr = this.wasmEngineModule.getZBufferPtr(
       this.wasmRaycasterPtr,
     );
@@ -529,10 +577,11 @@ class Raycaster {
       minWallBottom,
       maxWallBottom,
     };
-
-    // drawViewVert(drawViewParams);
-    drawViewVertHorz(drawViewParams);
+    drawViewVert(drawViewParams);
+    // drawViewVertHorz(drawViewParams);
     // drawViewHorz(drawViewParams);
+
+    // this.wasmEngineModule.render();
   }
 
   private get ProjYCenter(): number {
@@ -573,6 +622,14 @@ class Raycaster {
 
   private set MaxWallBottom(val: number) {
     this.wasmRun.WasmViews.view.setUint32(this.maxWallBottomPtr, val, true);
+  }
+
+  private get BorderColor(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.borderColorPtr, true);
+  }
+
+  private set BorderColor(value: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
   }
 
   get Viewport() {

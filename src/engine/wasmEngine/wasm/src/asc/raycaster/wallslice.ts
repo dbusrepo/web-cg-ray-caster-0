@@ -8,18 +8,17 @@ import { logi } from '../importVars';
   private distance: f64;
 
   private hit: u8;
-
   private side: u8;
 
-  private top: u16;
-  private bottom: u16;
+  private top: u32;
+  private bottom: u32;
 
-  private texX: u16;
+  private texX: u32;
 
   private texStepY: f64;
   private texPosY: f64;
 
-  private texId: u16;
+  private texId: u32;
   private mipLvl: u8;
 
   private floorWallX: f64;
@@ -49,27 +48,27 @@ import { logi } from '../importVars';
     this.side = side;
   }
 
-  get Top(): u16 {
+  get Top(): u32 {
     return this.top;
   }
 
-  set Top(top: u16) {
+  set Top(top: u32) {
     this.top = top;
   }
   
-  get Bottom(): u16 {
+  get Bottom(): u32 {
     return this.bottom;
   }
 
-  set Bottom(bottom: u16) {
+  set Bottom(bottom: u32) {
     this.bottom = bottom;
   }
 
-  get TexX(): u16 {
+  get TexX(): u32 {
     return this.texX;
   }
 
-  set TexX(texX: u16) {
+  set TexX(texX: u32) {
     this.texX = texX;
   }
 
@@ -89,11 +88,11 @@ import { logi } from '../importVars';
     this.texPosY = texPosY;
   }
 
-  get TexId(): u16 {
+  get TexId(): u32 {
     return this.texId;
   }
 
-  set TexId(texId: u16) {
+  set TexId(texId: u32) {
     this.texId = texId;
   }
 

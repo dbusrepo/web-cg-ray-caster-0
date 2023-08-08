@@ -16,7 +16,6 @@ const enum AuxWorkerCommandEnum {
 type AuxWorkerParams = {
   workerIndex: number;
   numWorkers: number;
-  frameStride: number;
   wasmRunParams: WasmRunParams;
 };
 
@@ -25,38 +24,20 @@ class AuxWorker {
   private wasmRun: WasmRun;
   private wasmEngineModule: WasmEngineModule;
 
-  private player: Player;
-  private viewport: Viewport;
   private raycaster: Raycaster;
-
-  private wasmRaycasterPtr: number;
 
   async init(params: AuxWorkerParams): Promise<void> {
     console.log(`Aux worker ${params.workerIndex} initializing...`);
+
     this.params = params;
 
     await this.initWasmRun();
 
-    this.player = getWasmPlayerView(
-      this.wasmEngineModule,
-      this.wasmRaycasterPtr,
-    );
-    this.viewport = getWasmViewportView(
-      this.wasmEngineModule,
-      this.wasmRaycasterPtr,
-    );
-
     this.raycaster = new Raycaster();
     const raycasterParams: RaycasterParams = {
       wasmRun: this.wasmRun,
-      frameStride: this.params.frameStride,
     };
     await this.raycaster.init(raycasterParams);
-
-    // console.log('worker viewport.startX', this.viewport.StartX);
-    // console.log('worker viewport.startY', this.viewport.StartY);
-    // console.log('worker player.posX', this.player.PosX);
-    // console.log('worker player.posY', this.player.PosY);
   }
 
   private async initWasmRun() {
@@ -69,7 +50,6 @@ class AuxWorker {
     );
     await this.wasmRun.init(wasmRunParams, wasmViews);
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
-    this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
   }
 
   async run() {

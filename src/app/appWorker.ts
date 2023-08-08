@@ -29,7 +29,6 @@ import type { AuxWorkerParams } from '../engine/auxWorker';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 import { Viewport, getWasmViewportView } from '../engine/raycaster/viewport';
 import { Player, getWasmPlayerView } from '../engine/raycaster/player';
-import { drawBorders } from '../engine/raycaster/draw';
 import { FrameColorRGBAWasm } from '../engine/wasmEngine/frameColorRGBAWasm';
 
 type AppWorkerParams = {
@@ -66,8 +65,6 @@ class AppWorker {
 
   private raycaster: Raycaster;
 
-  private wasmBorderColorPtr: number;
-
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
     this.initGfx();
@@ -75,16 +72,8 @@ class AppWorker {
     await this.initAssetManager();
     await this.initWasmEngine();
     await this.initRaycaster();
-    drawBorders(this.BorderColor);
     // this.raycaster.drawView();
     await this.runAuxWorkers();
-  }
-
-  private async initWasmRaycaster() {
-    this.initViewport();
-    this.initPlayer();
-    this.initBorder();
-    this.wasmEngineModule.allocBuffers(this.wasmRaycasterPtr);
   }
 
   private initInputManager() {
@@ -138,53 +127,10 @@ class AppWorker {
     return ctx;
   }
 
-  private initBorder() {
-    this.wasmBorderColorPtr = this.wasmEngineModule.getBorderColorPtr(
-      this.wasmRaycasterPtr,
-    );
-    this.BorderColor = FrameColorRGBAWasm.colorRGBAtoABGR(0xffff00ff);
-  }
-
-  private initViewport() {
-    const viewport = getWasmViewportView(
-      this.wasmEngineModule,
-      this.wasmRaycasterPtr,
-    );
-    const VIEWPORT_BORDER = 0;
-    viewport.StartX = VIEWPORT_BORDER;
-    viewport.StartY = VIEWPORT_BORDER;
-    viewport.Width = this.params.engineCanvas.width - VIEWPORT_BORDER * 2;
-    viewport.Height = this.params.engineCanvas.height - VIEWPORT_BORDER * 2;
-  }
-
-  private initPlayer() {
-    const player = getWasmPlayerView(
-      this.wasmEngineModule,
-      this.wasmRaycasterPtr,
-    );
-    player.PosX = 0.5;
-    player.PosY = 0.5;
-    // rotated east
-    player.DirX = 1;
-    player.DirY = 0;
-    player.PlaneX = 0;
-    player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
-    // rotated north
-    // player.DirX = 0;
-    // player.DirY = -1;
-    // player.PlaneX = 0.66;
-    // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
-    player.Pitch = 0;
-    player.PosZ = 0.0;
-  }
-
   private async initRaycaster() {
-    this.initWasmRaycaster();
-
     this.raycaster = new Raycaster();
     const raycasterParams: RaycasterParams = {
       wasmRun: this.wasmRun,
-      frameStride: this.imageData.width,
     };
     await this.raycaster.init(raycasterParams);
   }
@@ -230,7 +176,6 @@ class AppWorker {
           const workerParams: AuxWorkerParams = {
             workerIndex,
             numWorkers: numAuxWorkers,
-            frameStride: this.imageData.width,
             wasmRunParams: {
               ...this.wasmEngine.WasmRunParams,
               workerIdx: workerIndex,
@@ -435,14 +380,6 @@ class AppWorker {
     this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
-  private get BorderColor(): number {
-    return this.wasmRun.WasmViews.view.getUint32(this.wasmBorderColorPtr, true);
-  }
-
-  private set BorderColor(value: number) {
-    this.wasmRun.WasmViews.view.setUint32(this.wasmBorderColorPtr, value, true);
-  }
-
   updateState(step: number, time: number) {}
 
   updatePlayer(time: number) {
@@ -464,6 +401,7 @@ class AppWorker {
     }
   }
 
+  // TODO:
   private rotate(moveSpeed: number) {
     const player = this.raycaster.Player;
     const oldDirX = player.DirX;

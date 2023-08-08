@@ -9,6 +9,7 @@ import { Map, newMap } from './map';
 import { WallSlice, newWallSlice } from './wallslice';
 
 @final @unmanaged class Raycaster {
+  private startFramePtr: PTR_T;
   private borderColor: u32;
   private viewport: Viewport;
   private projYCenter: f32;
@@ -165,11 +166,6 @@ function getYGridPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.Map.yGridPtr.DataPtr;
 }
 
-function allocBuffers(raycasterPtr: PTR_T): void {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
-  raycaster.allocBuffers();
-}
-
 function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.WallSliceObjSizeLg2;
@@ -210,7 +206,6 @@ export {
   getXGridPtr,
   getYGridPtr,
   getWallSlicesPtr,
-  allocBuffers,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
   getMaxWallTopPtr,

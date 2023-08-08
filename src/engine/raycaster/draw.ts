@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { WallSlice } from './wallslice';
-import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from './texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 
@@ -79,7 +79,7 @@ function initDrawParams(
 ) {
   drawParams = new DrawParams(
     frameBuf32,
-    frameStride,
+    frameStride / BPP_RGBA,
     vpStartX,
     vpStartY,
     vpWidth,
