@@ -5,7 +5,7 @@ import { Texture } from './texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 
 const CEIL_COLOR = 0xffbbbbbb;
-const FLOOR_COLOR = 0xff777777;
+const FLOOR_COLOR = 0xff555555;
 
 class DrawParams {
   public startFramePtr: number;
@@ -181,7 +181,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       // MipLvl: mipLvl,
       TexX: texX,
       TexStepY: texStepY,
-      TexPosY: texPosY,
+      TexY: texPosY,
       CachedMipmap: mipmap,
       Distance: wallDistance,
       FloorWallX: floorWallX,
@@ -234,7 +234,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
 
     // assert(dstPtr === colPtr + (bottom + 1) * frameStride);
 
-    const SOLID_FLOOR = false;
+    const SOLID_FLOOR = true;
 
     if (!SOLID_FLOOR) {
       // draw textured floor
@@ -468,7 +468,7 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
       Bottom: bottom,
       TexX: texX,
       TexStepY: texStepY,
-      TexPosY: texPosY,
+      TexY: texPosY,
       CachedMipmap: mipmap,
     } = wallSlices[x];
 
@@ -756,7 +756,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
     bottoms[x] = wallSlice.Bottom;
     texXs[x] = wallSlice.TexX;
     texStepYs[x] = wallSlice.TexStepY;
-    texPosYs[x] = wallSlice.TexPosY;
+    texPosYs[x] = wallSlice.TexY;
   }
 
   let rowFramePtr = startFramePtr + frameRowPtrs[minWallTop];

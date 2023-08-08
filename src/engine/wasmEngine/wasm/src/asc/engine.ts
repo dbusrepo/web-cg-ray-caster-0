@@ -72,7 +72,7 @@ import {
   getWallSliceBottomPtr,
   getWallSliceTexXPtr,
   getWallSliceTexStepYPtr,
-  getWallSliceTexPosYPtr,
+  getWallSliceTexYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
   getWallSliceFloorWallXPtr,
@@ -92,6 +92,7 @@ import {
   getBlueFogTablePtr,
 } from './frameColorRGBA';
 import {
+  initRaycasterDraw,
   drawViewVert,
 } from './raycaster/draw';
 
@@ -132,6 +133,7 @@ function initData(): void {
   }
 
   textures = initTextures();
+  initRaycasterDraw(frameColorRGBA, raycaster.Viewport, textures);
 }
 
 function init(): void {
@@ -155,7 +157,7 @@ function getRaycasterPtr(): PTR_T {
 }
 
 function initRaycaster(): void {
-  raycaster.allocBuffers();
+  raycaster.init();
 }
 
 function render(): void {
@@ -223,7 +225,7 @@ export {
   getWallSliceBottomPtr,
   getWallSliceTexXPtr,
   getWallSliceTexStepYPtr,
-  getWallSliceTexPosYPtr,
+  getWallSliceTexYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
   getWallSliceFloorWallXPtr,

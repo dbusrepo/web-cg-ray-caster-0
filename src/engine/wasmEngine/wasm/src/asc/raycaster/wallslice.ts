@@ -16,7 +16,7 @@ import { logi } from '../importVars';
   private texX: u32;
 
   private texStepY: f64;
-  private texPosY: f64;
+  private texY: f64;
 
   private texId: u32;
   private mipLvl: u8;
@@ -80,12 +80,12 @@ import { logi } from '../importVars';
     this.texStepY = texStepY;
   }
 
-  get TexPosY(): f64 {
-    return this.texPosY;
+  get TexY(): f64 {
+    return this.texY;
   }
 
-  set TexPosY(texPosY: f64) {
-    this.texPosY = texPosY;
+  set TexY(texY: f64) {
+    this.texY = texY;
   }
 
   get TexId(): u32 {
@@ -163,8 +163,8 @@ function getWallSliceTexStepYPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('texStepY');
 }
 
-function getWallSliceTexPosYPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('texPosY');
+function getWallSliceTexYPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('texY');
 }
 
 function getWallSliceTexIdPtr(wallSlicePtr: PTR_T): PTR_T {
@@ -193,7 +193,7 @@ export {
   getWallSliceBottomPtr,
   getWallSliceTexXPtr,
   getWallSliceTexStepYPtr,
-  getWallSliceTexPosYPtr,
+  getWallSliceTexYPtr,
   getWallSliceTexIdPtr,
   getWallSliceMipLvlPtr,
   getWallSliceFloorWallXPtr,

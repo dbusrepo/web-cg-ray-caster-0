@@ -227,20 +227,32 @@ class Raycaster {
   }
 
   private initTextures() {
+    this.initWallTextures();
+    this.initFloorTextures();
+  }
+
+  private initWallTextures() {
     this.wallTextures = [];
+
+    // const wallTexNames = [ 
+
     this.wallTextures[0] = initTexturePair(
       ascImportImages.GREYSTONE,
       ascImportImages.GREYSTONE_D,
     );
+
     this.wallTextures[1] = initTexturePair(
       ascImportImages.BLUESTONE,
       ascImportImages.BLUESTONE_D,
     );
+
     this.wallTextures[2] = initTexturePair(
       ascImportImages.REDBRICK,
       ascImportImages.REDBRICK_D,
     );
+  }
 
+  private initFloorTextures() {
     this.floorTextures = [];
     this.floorTextures[0] = initTexture(ascImportImages.GREYSTONE);
     this.floorTextures[1] = initTexture(ascImportImages.BLUESTONE);
@@ -530,6 +542,7 @@ class Raycaster {
       //   `invalid texture id ${texId}`,
       // );
 
+      texId = 2;
       const mipLevel = 0;
       const mipmap = this.wallTextures[texId][side].getMipmap(mipLevel);
       const { Width: texWidth, Height: texHeight } = mipmap;
@@ -545,13 +558,13 @@ class Raycaster {
       // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
       const texStepY = texHeight / wallSliceHeight;
-      const texPosY = (wallTop - projWallTop) * texStepY;
+      const texY = (wallTop - projWallTop) * texStepY;
 
       wallSlice.TexId = texId;
+      wallSlice.MipLvl = mipLevel;
       wallSlice.TexX = texX;
       wallSlice.TexStepY = texStepY;
-      wallSlice.TexPosY = texPosY;
-      wallSlice.MipLvl = mipLevel;
+      wallSlice.TexY = texY;
       wallSlice.CachedMipmap = mipmap;
     } // end col loop
 
@@ -577,11 +590,11 @@ class Raycaster {
       minWallBottom,
       maxWallBottom,
     };
-    drawViewVert(drawViewParams);
+    // drawViewVert(drawViewParams);
     // drawViewVertHorz(drawViewParams);
     // drawViewHorz(drawViewParams);
 
-    // this.wasmEngineModule.render();
+    this.wasmEngineModule.render();
   }
 
   private get ProjYCenter(): number {

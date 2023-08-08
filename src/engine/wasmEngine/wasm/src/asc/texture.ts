@@ -48,7 +48,7 @@ import { logi } from './importVars';
   }
 
   getMipmap(i: SIZE_T): BitImageRGBA {
-    myAssert(i >= 0 && i < this.mipmaps.Length);
+    // myAssert(i >= 0 && i < this.mipmaps.Length);
     return this.mipmaps.at(i);
   }
 

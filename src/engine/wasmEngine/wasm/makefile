@@ -6,7 +6,9 @@
 TARGET_DEBUG := debug
 TARGET_SPEED := release_speed
 TARGET_SIZE := release_size
-TARGET ?= $(TARGET_DEBUG)
+# TARGET ?= $(TARGET_DEBUG)
+TARGET ?= $(TARGET_SPEED)
+# TARGET ?= $(TARGET_SIZE)
 
 ASC := asc
 

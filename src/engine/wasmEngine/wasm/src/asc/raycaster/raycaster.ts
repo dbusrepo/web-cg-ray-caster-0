@@ -1,5 +1,4 @@
 import { myAssert } from '../myAssert';
-import { logi } from '../importVars';
 import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
 import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { SArray, newSArray } from '../sarray';
@@ -7,9 +6,38 @@ import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
 import { Map, newMap } from './map';
 import { WallSlice, newWallSlice } from './wallslice';
+import {
+  sharedHeapPtr,
+  numWorkers,
+  mainWorkerIdx,
+  workerIdx,
+  logi,
+  logf,
+  rgbaSurface0ptr,
+  rgbaSurface0width,
+  rgbaSurface0height,
+  syncArrayPtr,
+  sleepArrayPtr,
+  inputKeysPtr,
+  hrTimerPtr,
+  raycasterPtr,
+  frameColorRGBAPtr,
+} from '../importVars';
+import {
+  FrameColorRGBA, 
+  newFrameColorRGBA,
+  // deleteFrameColorRGBA, 
+  MAX_LIGHT_LEVELS,
+  BPP_RGBA,
+  getRedLightTablePtr,
+  getGreenLightTablePtr,
+  getBlueLightTablePtr,
+  getRedFogTablePtr,
+  getGreenFogTablePtr,
+  getBlueFogTablePtr,
+} from '../frameColorRGBA';
 
 @final @unmanaged class Raycaster {
-  private startFramePtr: PTR_T;
   private borderColor: u32;
   private viewport: Viewport;
   private projYCenter: f32;
@@ -22,7 +50,11 @@ import { WallSlice, newWallSlice } from './wallslice';
   private minWallBottom: u32;
   private maxWallBottom: u32;
 
-  allocBuffers(): void {
+  init(): void {
+    this.initBuffers();
+  }
+
+  initBuffers(): void {
     this.allocZBuffer();
     this.allocWallSlices();
   }

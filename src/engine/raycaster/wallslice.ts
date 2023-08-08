@@ -14,7 +14,7 @@ class WallSlice {
     private bottomPtr: number,
     private texXPtr: number,
     private texStepYPtr: number,
-    private texPosYPtr: number,
+    private texY: number,
     private texIdPtr: number,
     private mipLvlPtr: number,
     private floorWallX: number,
@@ -89,12 +89,12 @@ class WallSlice {
     gWasmView.setFloat64(this.texStepYPtr, texStepY, true);
   }
 
-  get TexPosY(): number {
-    return gWasmView.getFloat64(this.texPosYPtr, true);
+  get TexY(): number {
+    return gWasmView.getFloat64(this.texY, true);
   }
 
-  set TexPosY(texPosY: number) {
-    gWasmView.setFloat64(this.texPosYPtr, texPosY, true);
+  set TexY(texY: number) {
+    gWasmView.setFloat64(this.texY, texY, true);
   }
 
   get TexId(): number {
@@ -150,7 +150,7 @@ function getWasmWallSlicesView(
       wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexXPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexStepYPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceTexPosYPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceTexYPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexIdPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceMipLvlPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceFloorWallXPtr(wallSlicePtr),

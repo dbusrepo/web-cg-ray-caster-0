@@ -42,7 +42,7 @@ class AppWorker {
   private static readonly UPDATE_TIME_MAX = AppWorker.UPDATE_PERIOD_MS * 8;
 
   private static readonly STATS_ARR_LEN = 10; // fps, rps, ups
-  private static readonly FRAME_TIMES_ARR_LEN = 1; // used for ufps
+  private static readonly FRAME_TIMES_ARR_LEN = 10; // used for ufps
   private static readonly TIMES_SINCE_LAST_FRAME_ARR_LEN = 5; // update, render
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;
@@ -72,7 +72,7 @@ class AppWorker {
     await this.initAssetManager();
     await this.initWasmEngine();
     await this.initRaycaster();
-    // this.raycaster.drawView();
+    this.raycaster.drawView();
     await this.runAuxWorkers();
   }
 
@@ -321,7 +321,7 @@ class AppWorker {
     const render = () => {
       this.wasmEngine.syncWorkers(this.auxWorkers);
       // this.wasmEngineModule.render();
-      this.raycaster.drawView();
+      // this.raycaster.drawView();
       this.wasmEngine.waitWorkers(this.auxWorkers);
       this.drawWasmFrame();
       saveFrameTime();

@@ -1,5 +1,55 @@
 import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
+import { SArray, newSArray } from '../sarray';
+import { Texture } from '../texture';
+import {
+  sharedHeapPtr,
+  numWorkers,
+  mainWorkerIdx,
+  workerIdx,
+  logi,
+  logf,
+  rgbaSurface0ptr,
+  rgbaSurface0width,
+  rgbaSurface0height,
+  syncArrayPtr,
+  sleepArrayPtr,
+  inputKeysPtr,
+  hrTimerPtr,
+  raycasterPtr,
+  frameColorRGBAPtr,
+} from '../importVars';
+import {
+  FrameColorRGBA, 
+  newFrameColorRGBA,
+  // deleteFrameColorRGBA, 
+  MAX_LIGHT_LEVELS,
+  BPP_RGBA,
+  getRedLightTablePtr,
+  getGreenLightTablePtr,
+  getBlueLightTablePtr,
+  getRedFogTablePtr,
+  getGreenFogTablePtr,
+  getBlueFogTablePtr,
+} from '../frameColorRGBA';
+import { Viewport } from './viewport';
 import { Raycaster } from './raycaster';
+
+let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
+let textures = changetype<SArray<Texture>>(NULL_PTR);
+
+const FRAME_STRIDE = rgbaSurface0width * BPP_RGBA;
+let startFramePtr: PTR_T = NULL_PTR;
+
+function initRaycasterDraw(infColorRGBA: FrameColorRGBA, inViewport: Viewport, inTextures: SArray<Texture>): void {
+  frameColorRGBA = infColorRGBA;
+  startFramePtr = rgbaSurface0ptr + inViewport.StartY * FRAME_STRIDE + inViewport.StartX * BPP_RGBA;
+  textures = inTextures;
+}
+
+const WALL_COLOR_SIDE_0 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0xff);
+const WALL_COLOR_SIDE_1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0x88);
+const CEIL_COLOR = FrameColorRGBA.colorABGR(0xff, 0xbb, 0xbb, 0xbb);
+const FLOOR_COLOR = FrameColorRGBA.colorABGR(0xff, 0x55, 0x55, 0x55);
 
 function drawViewVert(raycaster: Raycaster): void {
   const viewport = raycaster.Viewport;
@@ -21,8 +71,59 @@ function drawViewVert(raycaster: Raycaster): void {
   const minWallBottom = raycaster.MinWallBottom;
   const maxWallBottom = raycaster.MaxWallBottom;
 
-  // for (let x: u32 = 0; x < viewport.Width; x++) {
-  // }
+  let frameColPtr = startFramePtr;
+
+  for (let x: u32 = 0; x < viewport.Width; x++, frameColPtr += BPP_RGBA) {
+    let framePtr = frameColPtr;
+    const wallSlice = wallSlices.at(x);
+    const top = wallSlice.Top;
+    const bottom = wallSlice.Bottom;
+    const hit = wallSlice.Hit;
+    const side = wallSlice.Side;
+
+    // draw ceil
+    for (let y = 0 as u32; y < top; y++) {
+      store<u32>(framePtr, CEIL_COLOR);
+      framePtr += FRAME_STRIDE;
+    }
+
+    if (hit) {
+      logi(wallSlice.TexId);
+      const tex = textures.at(wallSlice.TexId);
+      const mipmap = tex.getMipmap(wallSlice.MipLvl); // TODO: assert
+
+      const texX = wallSlice.TexX;
+      const mipmapRowOffs = texX << mipmap.PitchLg2;
+      const mipmapPtr = mipmap.Ptr + mipmapRowOffs * BPP_RGBA;
+      
+      const texStepY = wallSlice.TexStepY;
+      let texY = wallSlice.TexY;
+
+      for (let y = top; y <= bottom; y++) {
+        const texColOffs = texY as u32;
+        const texCol = load<u32>(mipmapPtr + texColOffs * BPP_RGBA);
+        store<u32>(framePtr, texCol);
+        framePtr += FRAME_STRIDE;
+        texY += texStepY;
+      }
+    } else {
+      // draw wall
+      const color = side == 0 ? WALL_COLOR_SIDE_0 : WALL_COLOR_SIDE_1;
+      for (let y = top; y <= bottom; y++) {
+        store<u32>(framePtr, color);
+        framePtr += FRAME_STRIDE;
+      }
+    }
+
+    // draw floor
+    for (let y = bottom + 1 as u32; y < viewport.Height; y++) {
+      store<u32>(framePtr, FLOOR_COLOR);
+      framePtr += FRAME_STRIDE;
+    }
+  }
 }
 
-export { drawViewVert };
+export { 
+  initRaycasterDraw,
+  drawViewVert
+};

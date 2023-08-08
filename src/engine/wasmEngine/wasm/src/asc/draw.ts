@@ -1,13 +1,13 @@
 import { myAssert } from './myAssert';
 import { rgbaSurface0ptr, rgbaSurface0width, rgbaSurface0height } from './importVars';
+import { BPP_RGBA } from './frameColorRGBA';
 // import { rgbaSurface1ptr, rgbaSurface1width, rgbaSurface1height } from './importVars';
 import { logi, logf } from './importVars';
 import { FONT_X_SIZE, FONT_Y_SIZE, FONT_SPACING } from './importVars';
 import { stringsDataPtr, fontCharsPtr } from './importVars';
 
-const PIX_OFFS = 4;
-const FRAME_ROW_LEN = rgbaSurface0width * PIX_OFFS;
-const LIMIT = rgbaSurface0ptr + rgbaSurface0height * FRAME_ROW_LEN;
+const FRAME_STRIDE = rgbaSurface0width * BPP_RGBA;
+const LIMIT = rgbaSurface0ptr + rgbaSurface0height * FRAME_STRIDE;
 
 function clearBg(
   start: usize,
@@ -15,8 +15,8 @@ function clearBg(
   color: u32,
 ): void {
 
-  const startOff: usize = rgbaSurface0ptr + start * FRAME_ROW_LEN;
-  const endOff: usize = rgbaSurface0ptr + end * FRAME_ROW_LEN;
+  const startOff: usize = rgbaSurface0ptr + start * FRAME_STRIDE;
+  const endOff: usize = rgbaSurface0ptr + end * FRAME_STRIDE;
 
   // const startOff1: usize = rgbaSurface1ptr + start * FRAME_ROW_LEN;
   // const endOff1: usize = rgbaSurface1ptr + end * FRAME_ROW_LEN;
@@ -31,7 +31,7 @@ function clearBg(
   // TODO handle remainder elements here ?
 
   // let ptr1 = startOff1;
-  for (let ptr = startOff; ptr < endOff; ptr += PIX_OFFS) {
+  for (let ptr = startOff; ptr < endOff; ptr += BPP_RGBA) {
     store<u32>(ptr, color);
     // store<u32>(ptr1, 0xff_00_ff_00);
     // ptr1 += PIX_OFFS;
@@ -60,8 +60,8 @@ function drawText(textOffs: usize, x: u32, y: u32, scale: f32, color: u32): void
   myAssert(y >= 0 && y < rgbaSurface0height);
   myAssert(scale > 0);
   myAssert(FONT_X_SIZE == 8);
-  let rowPtr: usize = rgbaSurface0ptr + x * PIX_OFFS + y * FRAME_ROW_LEN;
-  let startNextRow: usize = rgbaSurface0ptr + (y + 1) * FRAME_ROW_LEN;
+  let rowPtr: usize = rgbaSurface0ptr + x * BPP_RGBA + y * FRAME_STRIDE;
+  let startNextRow: usize = rgbaSurface0ptr + (y + 1) * FRAME_STRIDE;
   const step_y = f32(1) / scale;
   let inc_y = f32(0);
   for (let font_y = usize(0); font_y < FONT_Y_SIZE && rowPtr < LIMIT; ) {
@@ -78,19 +78,19 @@ function drawText(textOffs: usize, x: u32, y: u32, scale: f32, color: u32): void
       for (let font_x = usize(0), curBit: u8 = 0x80; font_x < FONT_X_SIZE; ) {
         // if we go over the rightmost col skip FONT_Y_SIZE rows
         if (pixPtr >= nextRow) {
-          const yDelta = FONT_Y_SIZE * FRAME_ROW_LEN;
+          const yDelta = FONT_Y_SIZE * FRAME_STRIDE;
           pixPtr = nextRow + yDelta;
           if (pixPtr >= LIMIT) {
             skipRow = true;
             break;
           }
-          nextRow += yDelta + FRAME_ROW_LEN; 
+          nextRow += yDelta + FRAME_STRIDE; 
         }
         if (chBmpRowY & curBit) {
           myAssert(pixPtr < LIMIT);
           store<u32>(pixPtr, color);
         }
-        pixPtr += PIX_OFFS;
+        pixPtr += BPP_RGBA;
         inc_x += step_x;
         while (inc_x >= 1) {
           inc_x -= 1;
@@ -101,10 +101,10 @@ function drawText(textOffs: usize, x: u32, y: u32, scale: f32, color: u32): void
       if (skipRow) {
         break;
       }
-      pixPtr += FONT_SPACING * PIX_OFFS;
+      pixPtr += FONT_SPACING * BPP_RGBA;
     }
-    rowPtr += FRAME_ROW_LEN;
-    startNextRow += FRAME_ROW_LEN;
+    rowPtr += FRAME_STRIDE;
+    startNextRow += FRAME_STRIDE;
     inc_y += step_y;
     while (inc_y >= 1) {
       inc_y -= 1;
