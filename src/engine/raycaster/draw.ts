@@ -212,16 +212,37 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << pitchLg2;
 
-      // textured wall
-      for (let y = top; y <= bottom; y++) {
-        const texColOffs = texPosY | 0;
-        let color = mipPixels[mipRowOffs + texColOffs];
-        // const color = mipmap.Buf32[texY * texWidth + texX];
-        // color = frameColorRGBAWasm.lightColorABGR(color, 255);
-        frameBuf32[framePtr] = color;
-        // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        framePtr += frameStride;
-        texPosY += texStepY;
+      let numPixels = bottom - top + 1;
+
+      if (numPixels <= 64) {
+        // textured wall
+        for (let y = top; y <= bottom; y++) {
+          const texColOffs = texPosY | 0;
+          let color = mipPixels[mipRowOffs + texColOffs];
+          // const color = mipmap.Buf32[texY * texWidth + texX];
+          // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+          frameBuf32[framePtr] = color;
+          // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+          framePtr += frameStride;
+          texPosY += texStepY;
+        }
+      } else {
+        // bresenham like textured wall
+        const limit = numPixels;
+        const frac = 64;
+        let counter = 0;
+        let colIdx = mipRowOffs;
+        let color = mipPixels[colIdx];
+        while (numPixels--) {
+          frameBuf32[framePtr] = color;
+          framePtr += frameStride;
+          counter += frac;
+          if (counter >= limit) {
+            counter -= limit;
+            colIdx++;
+            color = mipPixels[colIdx];
+          }
+        }
       }
     } else {
       // no hit untextured wall
