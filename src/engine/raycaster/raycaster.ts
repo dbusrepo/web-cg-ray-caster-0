@@ -544,7 +544,7 @@ class Raycaster {
       // );
 
       const tex = this.wallTextures[texIdx][side];
-      const mipLevel = 0; // TODO:
+      const mipLevel = 3; // TODO:
       const mipmap = tex.getMipmap(mipLevel);
       const { Width: texWidth, Height: texHeight } = mipmap;
 
@@ -594,11 +594,11 @@ class Raycaster {
       minWallBottom,
       maxWallBottom,
     };
-    drawViewVert(drawViewParams);
+    // drawViewVert(drawViewParams);
     // drawViewVertHorz(drawViewParams);
     // drawViewHorz(drawViewParams);
 
-    // this.wasmEngineModule.render();
+    this.wasmEngineModule.render();
   }
 
   private get ProjYCenter(): number {

@@ -176,8 +176,8 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       // TexId: texId,
       // MipLvl: mipLvl,
       TexX: texX,
+      TexY: texY,
       TexStepY: texStepY,
-      TexY: texPosY,
       Distance: wallDistance,
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
@@ -205,58 +205,86 @@ function drawViewVert(drawViewParams: DrawViewParams) {
         PitchLg2: pitchLg2,
       } = mipmap;
 
-      // rem mipmap is rotated 90ccw
+      // mipmap is rotated 90ccw
       // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << pitchLg2;
 
       let numPixels = bottom - top + 1;
 
-      // if (projHeight <= texWidth) {
+      // wall alg1: bres
+      // const frac = texWidth;
+      // let counter = -projHeight + clipTop * frac;
+      // let colIdx = mipRowOffs;
+      // let color = mipPixels[colIdx];
+      // while (numPixels--) {
+      //   while (counter >= 0) {
+      //     counter -= projHeight;
+      //     colIdx++;
+      //     color = mipPixels[colIdx];
+      //   }
+      //   frameBuf32[framePtr] = color;
+      //   counter += frac;
+      //   framePtr += frameStride;
+      // }
+
+      // // wall alg2: dda
       for (let y = top; y <= bottom; y++) {
-        const texColOffs = texPosY | 0;
+        const texColOffs = texY | 0;
         let color = mipPixels[mipRowOffs + texColOffs];
         // const color = mipmap.Buf32[texY * texWidth + texX];
         // color = frameColorRGBAWasm.lightColorABGR(color, 255);
         frameBuf32[framePtr] = color;
         // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        texPosY += texStepY;
+        texY += texStepY;
         framePtr += frameStride;
       }
+
+      // wall alg3: dda fixed
+      // const texStepY_fix = wallSlice.TexStepY * 65536.0 as u32;
+      // let texY_fix = wallSlice.TexY * 65536.0 as u32;
+
+      // wall alg4: dda when min, bres when mag
+      // if (projHeight <= texWidth) {
+      //   for (let y = top; y <= bottom; y++) {
+      //     const texColOffs = texY | 0;
+      //     let color = mipPixels[mipRowOffs + texColOffs];
+      //     // const color = mipmap.Buf32[texY * texWidth + texX];
+      //     // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+      //     frameBuf32[framePtr] = color;
+      //     // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+      //     texY += texStepY;
+      //     framePtr += frameStride;
+      //   }
       // } else {
-
-        // TODO:
-        // const limit = projHeight;
-        // const frac = texWidth;
-        // let counter = -limit + clipTop * frac;
-        // let colIdx = mipRowOffs;
-        // let color = mipPixels[colIdx];
-        // while (numPixels--) {
-        //   while (counter >= 0) {
-        //     counter -= limit;
-        //     colIdx++;
-        //     color = mipPixels[colIdx];
-        //   }
-        //   frameBuf32[framePtr] = color;
-        //   counter += frac;
-        //   framePtr += frameStride;
-        // }
-
-        // const limit = projHeight;
-        // const frac = texWidth;
-        // let counter = (clipTop * frac) % limit;
-        // let colIdx = mipRowOffs + (texPosY | 0);
-        // let color = mipPixels[colIdx];
-        // while (numPixels--) {
-        //   frameBuf32[framePtr] = color;
-        //   counter += frac;
-        //   while (counter >= limit) {
-        //     counter -= limit;
-        //     colIdx++;
-        //     color = mipPixels[colIdx];
-        //   }
-        //   framePtr += frameStride;
-        // }
-
+      //   const frac = texWidth;
+      //   let counter = -projHeight + clipTop * frac;
+      //   let colIdx = mipRowOffs;
+      //   let color = mipPixels[colIdx];
+      //   while (numPixels--) {
+      //     while (counter >= 0) {
+      //       counter -= projHeight;
+      //       colIdx++;
+      //       color = mipPixels[colIdx];
+      //     }
+      //     frameBuf32[framePtr] = color;
+      //     counter += frac;
+      //     framePtr += frameStride;
+      //   }
+      //   // // prev version:
+      //   // // const frac = texWidth;
+      //   // // let counter = (clipTop * frac) % projHeight;
+      //   // // let colIdx = mipRowOffs + (texY | 0);
+      //   // // let color = mipPixels[colIdx];
+      //   // // while (numPixels--) {
+      //   // //   frameBuf32[framePtr] = color;
+      //   // //   counter += frac;
+      //   // //   while (counter >= projHeight) {
+      //   // //     counter -= projHeight;
+      //   // //     colIdx++;
+      //   // //     color = mipPixels[colIdx];
+      //   // //   }
+      //   // //   framePtr += frameStride;
+      //   // // }
       // }
     } else {
       // no hit untextured wall
