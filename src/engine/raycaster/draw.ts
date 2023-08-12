@@ -34,7 +34,6 @@ class DrawParams {
     public vpStartY: number,
     public vpWidth: number,
     public vpHeight: number,
-    public wallTextures: Texture[][],
     public floorTexturesMap: Texture[],
     public frameColorRGBAWasm: FrameColorRGBAWasm,
   ) {
@@ -73,7 +72,6 @@ function initDrawParams(
   vpStartY: number,
   vpWidth: number,
   vpHeight: number,
-  wallTextures: Texture[][],
   floorTexturesMap: Texture[],
   frameColorRGBAWasm: FrameColorRGBAWasm,
 ) {
@@ -84,7 +82,6 @@ function initDrawParams(
     vpStartY,
     vpWidth,
     vpHeight,
-    wallTextures,
     floorTexturesMap,
     frameColorRGBAWasm,
   );
@@ -156,7 +153,6 @@ function drawViewVert(drawViewParams: DrawViewParams) {
     startFramePtr,
     vpWidth,
     vpHeight,
-    // wallTextures,
     // frameColorRGBAWasm,
   } = drawParams;
 
@@ -182,10 +178,10 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       TexX: texX,
       TexStepY: texStepY,
       TexY: texPosY,
-      CachedMipmap: mipmap,
       Distance: wallDistance,
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
+      Mipmap: mipmap,
       clipTop,
       projHeight,
     } = wallSlices[x];
@@ -202,7 +198,6 @@ function drawViewVert(drawViewParams: DrawViewParams) {
     // assert(dstPtr === colPtr + top * frameStride);
 
     if (hit) {
-      // const mipmap = wallTextures[texId].getMipmap(mipLvl);
       const {
         Buf32: mipPixels,
         Width: texWidth,
@@ -217,32 +212,34 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       let numPixels = bottom - top + 1;
 
       // if (projHeight <= texWidth) {
-      //   for (let y = top; y <= bottom; y++) {
-      //     const texColOffs = texPosY | 0;
-      //     let color = mipPixels[mipRowOffs + texColOffs];
-      //     // const color = mipmap.Buf32[texY * texWidth + texX];
-      //     // color = frameColorRGBAWasm.lightColorABGR(color, 255);
-      //     frameBuf32[framePtr] = color;
-      //     // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-      //     texPosY += texStepY;
-      //     framePtr += frameStride;
-      //   }
+      for (let y = top; y <= bottom; y++) {
+        const texColOffs = texPosY | 0;
+        let color = mipPixels[mipRowOffs + texColOffs];
+        // const color = mipmap.Buf32[texY * texWidth + texX];
+        // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+        frameBuf32[framePtr] = color;
+        // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+        texPosY += texStepY;
+        framePtr += frameStride;
+      }
       // } else {
-        const limit = projHeight;
-        const frac = texWidth;
-        let counter = -limit + clipTop * frac;
-        let colIdx = mipRowOffs;
-        let color = mipPixels[colIdx];
-        while (numPixels--) {
-          while (counter >= 0) {
-            counter -= limit;
-            colIdx++;
-            color = mipPixels[colIdx];
-          }
-          frameBuf32[framePtr] = color;
-          counter += frac;
-          framePtr += frameStride;
-        }
+
+        // TODO:
+        // const limit = projHeight;
+        // const frac = texWidth;
+        // let counter = -limit + clipTop * frac;
+        // let colIdx = mipRowOffs;
+        // let color = mipPixels[colIdx];
+        // while (numPixels--) {
+        //   while (counter >= 0) {
+        //     counter -= limit;
+        //     colIdx++;
+        //     color = mipPixels[colIdx];
+        //   }
+        //   frameBuf32[framePtr] = color;
+        //   counter += frac;
+        //   framePtr += frameStride;
+        // }
 
         // const limit = projHeight;
         // const frac = texWidth;
@@ -507,7 +504,7 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
       TexX: texX,
       TexStepY: texStepY,
       TexY: texPosY,
-      CachedMipmap: mipmap,
+      Mipmap: mipmap,
     } = wallSlices[x];
 
     let framePtr = frameColPtr + frameRowPtrs[minWallTop];
@@ -806,7 +803,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
       if (y < tops[x]) {
         frameBuf32[framePtr] = CEIL_COLOR;
       } else {
-        const mipmap = wallSlices[x].CachedMipmap;
+        const mipmap = wallSlices[x].Mipmap;
         const colorOffset = (texXs[x] << mipmap.PitchLg2) | texPosYs[x];
         frameBuf32[framePtr] = mipmap.Buf32[colorOffset];
         texPosYs[x] += texStepYs[x];
@@ -822,7 +819,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
   ) {
     let framePtr = rowFramePtr;
     for (let x = 0; x < vpWidth; ++x) {
-      const mipmap = wallSlices[x].CachedMipmap;
+      const mipmap = wallSlices[x].Mipmap;
       const colorOffset = (texXs[x] << mipmap.PitchLg2) | texPosYs[x];
       frameBuf32[framePtr++] = mipmap.Buf32[colorOffset];
       texPosYs[x] += texStepYs[x];
@@ -872,7 +869,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
           frameBuf32[framePtr] = color;
         }
       } else {
-        const mipmap = wallSlices[x].CachedMipmap;
+        const mipmap = wallSlices[x].Mipmap;
         const colorOffset = (texXs[x] << mipmap.PitchLg2) | texPosYs[x];
         frameBuf32[framePtr] = mipmap.Buf32[colorOffset];
         texPosYs[x] += texStepYs[x];

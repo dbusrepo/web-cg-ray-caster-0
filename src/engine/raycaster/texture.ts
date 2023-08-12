@@ -30,6 +30,12 @@ class Texture {
   set TexId(texId: number) {
     this.texId = texId;
   }
+
+  makeDarker() {
+    this.mipmaps.forEach((mipmap) => {
+      mipmap.makeDarker();
+    });
+  }
 }
 
 function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
@@ -68,17 +74,17 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
   return mipmap;
 }
 
-const initTexturePair = (
+const initTexLightDarkPair = (
   texId: number,
-  darkerTexId: number,
+  darkTexId: number,
 ): [Texture, Texture] => {
-  const texture = initTexture(texId);
-  const darkerTexture = initTexture(darkerTexId, true);
+  const tex = initTexture(texId);
+  const darkTex = initTexture(darkTexId);
 
-  return [texture, darkerTexture];
+  return [tex, darkTex];
 };
 
-const initTexture = (texId: number, makeDarker = false): Texture => {
+const initTexture = (texId: number): Texture => {
   assert(texId >= 0 && texId < Object.keys(ascImportImages).length);
 
   const texDescOffs =
@@ -99,9 +105,6 @@ const initTexture = (texId: number, makeDarker = false): Texture => {
 
   for (let i = 0; i < numMipmaps; i++) {
     mipmaps[i] = wasmMipmap2BitImageRGBAView(mipmapDescOffs);
-    if (makeDarker) {
-      mipmaps[i].makeDarker();
-    }
     mipmapDescOffs += wasmTexFieldSizes.MIP_DESC_SIZE;
   }
 
@@ -110,4 +113,4 @@ const initTexture = (texId: number, makeDarker = false): Texture => {
   return texture;
 };
 
-export { Texture, initTexture, initTexturePair };
+export { Texture, initTexture, initTexLightDarkPair };

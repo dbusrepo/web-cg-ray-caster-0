@@ -5,21 +5,19 @@ import { logi } from '../importVars';
 
 @final @unmanaged class WallSlice {
 
-  private distance: f32;
-
-  private hit: u8;
-  private side: u8;
-
   private top: u32;
   private bottom: u32;
 
-  private texX: u32;
+  private hit: u8;
+  private side: u8;
+  private mipLvl: u8;
 
-  private texStepY: f32;
-  private texY: f32;
+  private distance: f32;
 
   private texId: u32;
-  private mipLvl: u8;
+  private texX: u32;
+  private texStepY: f32;
+  private texY: f32;
 
   private floorWallX: f32;
   private floorWallY: f32;

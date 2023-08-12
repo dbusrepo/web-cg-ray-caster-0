@@ -3,7 +3,7 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class WallSlice {
-  private cachedMipmap: BitImageRGBA;
+  private mipmap: BitImageRGBA;
   public projHeight: number;
   public clipTop: number;
 
@@ -23,12 +23,12 @@ class WallSlice {
     private floorWallY: number,
   ) {}
 
-  get CachedMipmap(): BitImageRGBA {
-    return this.cachedMipmap;
+  get Mipmap(): BitImageRGBA {
+    return this.mipmap;
   }
 
-  set CachedMipmap(cachedMipmap: BitImageRGBA) {
-    this.cachedMipmap = cachedMipmap;
+  set Mipmap(mipmap: BitImageRGBA) {
+    this.mipmap = mipmap;
   }
 
   // get WallSlicePtr(): number {
