@@ -4,6 +4,8 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class WallSlice {
   private cachedMipmap: BitImageRGBA;
+  public projHeight: number;
+  public clipTop: number;
 
   constructor(
     // private wallSlicePtr: number,

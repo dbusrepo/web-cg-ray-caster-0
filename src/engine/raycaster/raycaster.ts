@@ -467,7 +467,9 @@ class Raycaster {
       // const sliceHeight = projWallBottom - projWallTop + 1;
 
       let wallTop = projWallTop;
+      let clipTop = 0;
       if (projWallTop < 0) {
+        clipTop = -projWallTop;
         wallTop = 0;
       }
 
@@ -556,6 +558,9 @@ class Raycaster {
 
       const texStepY = texHeight / wallSliceHeight;
       const texY = (wallTop - projWallTop) * texStepY;
+
+      wallSlice.projHeight = wallSliceHeight;
+      wallSlice.clipTop = clipTop;
 
       wallSlice.TexId = texture.TexId;
       wallSlice.MipLvl = mipLevel;

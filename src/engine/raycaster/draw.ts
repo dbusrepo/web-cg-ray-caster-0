@@ -186,6 +186,8 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       Distance: wallDistance,
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
+      clipTop,
+      projHeight,
     } = wallSlices[x];
 
     const colPtr = startFramePtr + x;
@@ -203,7 +205,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       // const mipmap = wallTextures[texId].getMipmap(mipLvl);
       const {
         Buf32: mipPixels,
-        // Width: texWidth,
+        Width: texWidth,
         // Height: texHeight,
         PitchLg2: pitchLg2,
       } = mipmap;
@@ -214,36 +216,51 @@ function drawViewVert(drawViewParams: DrawViewParams) {
 
       let numPixels = bottom - top + 1;
 
-      if (numPixels <= 64) {
-        // textured wall
-        for (let y = top; y <= bottom; y++) {
-          const texColOffs = texPosY | 0;
-          let color = mipPixels[mipRowOffs + texColOffs];
-          // const color = mipmap.Buf32[texY * texWidth + texX];
-          // color = frameColorRGBAWasm.lightColorABGR(color, 255);
-          frameBuf32[framePtr] = color;
-          // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-          framePtr += frameStride;
-          texPosY += texStepY;
-        }
-      } else {
-        // bresenham like textured wall
-        const limit = numPixels;
-        const frac = 64;
-        let counter = 0;
+      // if (projHeight <= texWidth) {
+      //   for (let y = top; y <= bottom; y++) {
+      //     const texColOffs = texPosY | 0;
+      //     let color = mipPixels[mipRowOffs + texColOffs];
+      //     // const color = mipmap.Buf32[texY * texWidth + texX];
+      //     // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+      //     frameBuf32[framePtr] = color;
+      //     // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+      //     texPosY += texStepY;
+      //     framePtr += frameStride;
+      //   }
+      // } else {
+        const limit = projHeight;
+        const frac = texWidth;
+        let counter = -limit + clipTop * frac;
         let colIdx = mipRowOffs;
         let color = mipPixels[colIdx];
         while (numPixels--) {
-          frameBuf32[framePtr] = color;
-          framePtr += frameStride;
-          counter += frac;
-          if (counter >= limit) {
+          while (counter >= 0) {
             counter -= limit;
             colIdx++;
             color = mipPixels[colIdx];
           }
+          frameBuf32[framePtr] = color;
+          counter += frac;
+          framePtr += frameStride;
         }
-      }
+
+        // const limit = projHeight;
+        // const frac = texWidth;
+        // let counter = (clipTop * frac) % limit;
+        // let colIdx = mipRowOffs + (texPosY | 0);
+        // let color = mipPixels[colIdx];
+        // while (numPixels--) {
+        //   frameBuf32[framePtr] = color;
+        //   counter += frac;
+        //   while (counter >= limit) {
+        //     counter -= limit;
+        //     colIdx++;
+        //     color = mipPixels[colIdx];
+        //   }
+        //   framePtr += frameStride;
+        // }
+
+      // }
     } else {
       // no hit untextured wall
       const color = side === 0 ? 0xff0000ff : 0xff00ff00;
