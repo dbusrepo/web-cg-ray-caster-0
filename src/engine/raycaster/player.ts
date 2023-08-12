@@ -19,67 +19,67 @@ class Player {
   }
 
   get PosX(): number {
-    return gWasmView.getFloat64(this.posXPtr, true);
+    return gWasmView.getFloat32(this.posXPtr, true);
   }
 
   set PosX(value: number) {
-    gWasmView.setFloat64(this.posXPtr, value, true);
+    gWasmView.setFloat32(this.posXPtr, value, true);
   }
 
   get PosY(): number {
-    return gWasmView.getFloat64(this.posYPtr, true);
+    return gWasmView.getFloat32(this.posYPtr, true);
   }
 
   set PosY(value: number) {
-    gWasmView.setFloat64(this.posYPtr, value, true);
+    gWasmView.setFloat32(this.posYPtr, value, true);
   }
 
   get PosZ(): number {
-    return gWasmView.getFloat64(this.posZPtr, true);
+    return gWasmView.getFloat32(this.posZPtr, true);
   }
 
   set PosZ(value: number) {
-    gWasmView.setFloat64(this.posZPtr, value, true);
+    gWasmView.setFloat32(this.posZPtr, value, true);
   }
 
   get DirX(): number {
-    return gWasmView.getFloat64(this.dirXPtr, true);
+    return gWasmView.getFloat32(this.dirXPtr, true);
   }
 
   set DirX(value: number) {
-    gWasmView.setFloat64(this.dirXPtr, value, true);
+    gWasmView.setFloat32(this.dirXPtr, value, true);
   }
 
   get DirY(): number {
-    return gWasmView.getFloat64(this.dirYPtr, true);
+    return gWasmView.getFloat32(this.dirYPtr, true);
   }
 
   set DirY(value: number) {
-    gWasmView.setFloat64(this.dirYPtr, value, true);
+    gWasmView.setFloat32(this.dirYPtr, value, true);
   }
 
   get PlaneX(): number {
-    return gWasmView.getFloat64(this.planeXPtr, true);
+    return gWasmView.getFloat32(this.planeXPtr, true);
   }
 
   set PlaneX(value: number) {
-    gWasmView.setFloat64(this.planeXPtr, value, true);
+    gWasmView.setFloat32(this.planeXPtr, value, true);
   }
 
   get PlaneY(): number {
-    return gWasmView.getFloat64(this.planeYPtr, true);
+    return gWasmView.getFloat32(this.planeYPtr, true);
   }
 
   set PlaneY(value: number) {
-    gWasmView.setFloat64(this.planeYPtr, value, true);
+    gWasmView.setFloat32(this.planeYPtr, value, true);
   }
 
   get Pitch(): number {
-    return gWasmView.getFloat64(this.pitchPtr, true);
+    return gWasmView.getFloat32(this.pitchPtr, true);
   }
 
   set Pitch(value: number) {
-    gWasmView.setFloat64(this.pitchPtr, value, true);
+    gWasmView.setFloat32(this.pitchPtr, value, true);
   }
 }
 

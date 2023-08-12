@@ -118,7 +118,7 @@ function drawViewVert(raycaster: Raycaster): void {
         texY_fix += texStepY_fix;
       }
     } else {
-      // draw wall
+      // draw 'empty' wall
       const color = side == 0 ? WALL_COLOR_SIDE_0 : WALL_COLOR_SIDE_1;
       for (let y = top; y <= bottom; y++) {
         store<u32>(framePtr, color);

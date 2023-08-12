@@ -5,7 +5,7 @@ import { logi } from '../importVars';
 
 @final @unmanaged class WallSlice {
 
-  private distance: f64;
+  private distance: f32;
 
   private hit: u8;
   private side: u8;
@@ -15,20 +15,20 @@ import { logi } from '../importVars';
 
   private texX: u32;
 
-  private texStepY: f64;
-  private texY: f64;
+  private texStepY: f32;
+  private texY: f32;
 
   private texId: u32;
   private mipLvl: u8;
 
-  private floorWallX: f64;
-  private floorWallY: f64;
+  private floorWallX: f32;
+  private floorWallY: f32;
 
-  get Distance(): f64 {
+  get Distance(): f32 {
     return this.distance;
   }
 
-  set Distance(distance: f64) {
+  set Distance(distance: f32) {
     this.distance = distance;
   }
 
@@ -72,19 +72,19 @@ import { logi } from '../importVars';
     this.texX = texX;
   }
 
-  get TexStepY(): f64 {
+  get TexStepY(): f32 {
     return this.texStepY;
   }
 
-  set TexStepY(texStepY: f64) {
+  set TexStepY(texStepY: f32) {
     this.texStepY = texStepY;
   }
 
-  get TexY(): f64 {
+  get TexY(): f32 {
     return this.texY;
   }
 
-  set TexY(texY: f64) {
+  set TexY(texY: f32) {
     this.texY = texY;
   }
 
@@ -104,19 +104,19 @@ import { logi } from '../importVars';
     this.mipLvl = mipLvl;
   }
 
-  get FloorWallX(): f64 {
+  get FloorWallX(): f32 {
     return this.floorWallX;
   }
 
-  set FloorWallX(floorWallX: f64) {
+  set FloorWallX(floorWallX: f32) {
     this.floorWallX = floorWallX;
   }
 
-  get FloorWallY(): f64 {
+  get FloorWallY(): f32 {
     return this.floorWallY;
   }
 
-  set FloorWallY(floorWallY: f64) {
+  set FloorWallY(floorWallY: f32) {
     this.floorWallY = floorWallY;
   }
 }

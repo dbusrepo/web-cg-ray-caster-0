@@ -161,7 +161,7 @@ const MAX_LIGHT_LEVELS = 255;
     store<u32>(pColor, colorABGRtarget);
   }
 
-  static mixColorsABGR(c1: u32, c2: u32, ratio: f64): u32 {
+  static mixColorsABGR(c1: u32, c2: u32, ratio: f32): u32 {
     const rs1 = (c1 >> ABGR_RED_SHIFT) & 0xff;
     const rs2 = (c2 >> ABGR_RED_SHIFT) & 0xff;
     const gs1 = (c1 >> ABGR_GREEN_SHIFT) & 0xff;

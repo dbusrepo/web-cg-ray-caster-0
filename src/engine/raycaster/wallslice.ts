@@ -36,11 +36,11 @@ class WallSlice {
   // }
 
   get Distance(): number {
-    return gWasmView.getFloat64(this.distancePtr, true);
+    return gWasmView.getFloat32(this.distancePtr, true);
   }
 
   set Distance(distance: number) {
-    gWasmView.setFloat64(this.distancePtr, distance, true);
+    gWasmView.setFloat32(this.distancePtr, distance, true);
   }
 
   get Hit(): number {
@@ -84,19 +84,19 @@ class WallSlice {
   }
 
   get TexStepY(): number {
-    return gWasmView.getFloat64(this.texStepYPtr, true);
+    return gWasmView.getFloat32(this.texStepYPtr, true);
   }
 
   set TexStepY(texStepY: number) {
-    gWasmView.setFloat64(this.texStepYPtr, texStepY, true);
+    gWasmView.setFloat32(this.texStepYPtr, texStepY, true);
   }
 
   get TexY(): number {
-    return gWasmView.getFloat64(this.texY, true);
+    return gWasmView.getFloat32(this.texY, true);
   }
 
   set TexY(texY: number) {
-    gWasmView.setFloat64(this.texY, texY, true);
+    gWasmView.setFloat32(this.texY, texY, true);
   }
 
   get TexId(): number {
@@ -116,19 +116,19 @@ class WallSlice {
   }
 
   get FloorWallX(): number {
-    return gWasmView.getFloat64(this.floorWallX, true);
+    return gWasmView.getFloat32(this.floorWallX, true);
   }
 
   set FloorWallX(floorWallX: number) {
-    gWasmView.setFloat64(this.floorWallX, floorWallX, true);
+    gWasmView.setFloat32(this.floorWallX, floorWallX, true);
   }
 
   get FloorWallY(): number {
-    return gWasmView.getFloat64(this.floorWallY, true);
+    return gWasmView.getFloat32(this.floorWallY, true);
   }
 
   set FloorWallY(floorWallY: number) {
-    gWasmView.setFloat64(this.floorWallY, floorWallY, true);
+    gWasmView.setFloat32(this.floorWallY, floorWallY, true);
   }
 }
 
