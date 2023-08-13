@@ -28,6 +28,7 @@
     "clean": "rimraf dist/ && (cd ./assets/ && make clean) && (cd src/engine/wasmEngine/wasm && make clean)",
     "cleandist": "rimraf dist/",
     "ascv": "asc --version",
+    "tscv": "tsc --version",
     "build": "npm run build_proj",
     "start": "run-p --race launch onchange:wasm onchange:assets",
     "build_i": "npm run install-dependencies && npm run build_proj",
