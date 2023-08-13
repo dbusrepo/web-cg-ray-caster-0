@@ -92,7 +92,7 @@ function drawViewVert(raycaster: Raycaster, mipmaps: SArray<BitImageRGBA>): void
       // TODO:
       // const tex = textures.at(wallSlice.TexId);
       // const mipmap = tex.getMipmap(wallSlice.MipLvl); // TODO: assert
-      const mipmap = mipmaps.at(0);
+      const mipmap = mipmaps.at(wallSlice.MipMapIdx);
 
       const texX = wallSlice.TexX as usize;
       const mipmapRowOffs = texX << mipmap.PitchLg2;

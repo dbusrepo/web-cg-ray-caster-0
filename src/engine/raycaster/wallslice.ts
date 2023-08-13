@@ -31,11 +31,11 @@ class WallSlice {
   }
 
   get MipMapIdx(): number {
-    return gWasmView.getUint32(this.mipMapIdxPtr);
+    return gWasmView.getUint32(this.mipMapIdxPtr, true);
   }
 
   set MipMapIdx(mipMapIdx: number) {
-    gWasmView.setUint32(this.mipMapIdxPtr, mipMapIdx);
+    gWasmView.setUint32(this.mipMapIdxPtr, mipMapIdx, true);
   }
 
   // get WallSlicePtr(): number {
