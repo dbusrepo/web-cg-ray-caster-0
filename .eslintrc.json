@@ -57,6 +57,7 @@
     "no-restricted-syntax": [0, "ForOfStatement"],
     "no-underscore-dangle": "off",
     "no-empty": "off",
+    "no-empty-function": "off",
     "no-loop-func": "off",
     "no-prototype-builtins": "off",
     "class-methods-use-this": "off",

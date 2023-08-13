@@ -31,33 +31,38 @@ import { logi } from './importVars';
 // @ts-ignore: decorator
 @final @unmanaged class Texture {
 
-  private mipmaps: SArray<BitImageRGBA>;
+  private mipMapDescOffs: SIZE_T; // offset to the first mip map descriptor
+  private numMipMaps: SIZE_T;
+  private mipMapsOffs: SIZE_T; // index of the first mipmap in global mipmaps array
 
   init(texIdx: SIZE_T): void {
     myAssert(texIdx >= 0 && texIdx < numTextures);
-    const numMipmaps = load<u32>(texturesIndexPtr + texIdx * TEX_DESC_SIZE);
-    myAssert(numMipmaps > 0);
+    const numMipMaps = load<u32>(texturesIndexPtr + texIdx * TEX_DESC_SIZE);
+    myAssert(numMipMaps > 0);
     const mipMapDescOffs = load<u32>(texturesIndexPtr + texIdx * TEX_DESC_SIZE + NUM_MIPS_FIELD_SIZE);
-    let nextMipDescPtr = texturesIndexPtr + mipMapDescOffs; // next mip map descriptor ptr
-    this.mipmaps = newSArray<BitImageRGBA>(numMipmaps);
-    for (let i: u32 = 0; i < numMipmaps; i++) {
-      const bitImageRgba = this.mipmaps.at(i);
-      bitImageRgba.init(nextMipDescPtr);
-      nextMipDescPtr += MIP_DESC_SIZE;
+    this.mipMapDescOffs = texturesIndexPtr + mipMapDescOffs;
+    this.numMipMaps = numMipMaps;
+  }
+
+  initMipMaps(startOffset: SIZE_T, mipmaps: SArray<BitImageRGBA>): void {
+    this.mipMapsOffs = startOffset;
+    for (let i: SIZE_T = 0; i < this.numMipMaps; i++) {
+      const bitImageRgba = mipmaps.at(this.mipMapsOffs + i);
+      bitImageRgba.init(this.mipMapDescOffs + i * MIP_DESC_SIZE);
     }
   }
 
-  getMipmap(i: SIZE_T): BitImageRGBA {
-    // myAssert(i >= 0 && i < this.mipmaps.Length);
-    return this.mipmaps.at(i);
+  @inline mipmapIdx(mipIdx: SIZE_T): SIZE_T {
+    // myAssert(mipIdx >= 0 && mipIdx < this.numMipMaps);
+    return this.mipMapsOffs + mipIdx;
   }
 
-  get Mipmaps(): SArray<BitImageRGBA> {
-    return this.mipmaps;
+  @inline get NumMipMaps(): SIZE_T {
+    return this.numMipMaps;
   }
 
-  get NumMipmaps(): SIZE_T {
-    return this.mipmaps.Length;
+  @inline get MipMapsOffs(): SIZE_T {
+    return this.mipMapsOffs;
   }
 }
 
@@ -72,7 +77,6 @@ function newTexture(texIdx: usize): Texture {
     initTextureAllocator();
   }
   const tex = textureAllocator.new();
-  tex.init(texIdx);
   return tex;
 }
 
@@ -80,4 +84,24 @@ function deleteTexture(tex: Texture): void {
   textureAllocator.delete(changetype<Texture>(tex));
 }
 
-export { Texture, newTexture, deleteTexture };
+let textures = changetype<SArray<Texture>>(NULL_PTR);
+let mipmaps = changetype<SArray<BitImageRGBA>>(NULL_PTR);
+
+function initTextures(): void {
+  textures = newSArray<Texture>(numTextures);
+  let numMips = 0 as SIZE_T;
+  for (let i: SIZE_T = 0; i < numTextures; i++) {
+    const tex = textures.at(i);
+    tex.init(i);
+    numMips += tex.NumMipMaps;
+  }
+  mipmaps = newSArray<BitImageRGBA>(numMips);
+  numMips = 0 as SIZE_T;
+  for (let i: SIZE_T = 0; i < numTextures; i++) {
+    const tex = textures.at(i);
+    tex.initMipMaps(numMips, mipmaps);
+    numMips += tex.NumMipMaps;
+  }
+}
+
+export { Texture, initTextures, textures, mipmaps };

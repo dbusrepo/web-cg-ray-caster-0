@@ -3,7 +3,7 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class WallSlice {
-  private mipmap: BitImageRGBA;
+  private mipmap: BitImageRGBA; // ts cached fields
   public projHeight: number;
   public clipTop: number;
 
@@ -14,13 +14,12 @@ class WallSlice {
     private sidePtr: number,
     private topPtr: number,
     private bottomPtr: number,
+    private mipMapIdxPtr: number,
     private texXPtr: number,
     private texStepYPtr: number,
-    private texY: number,
-    private texIdPtr: number,
-    private mipLvlPtr: number,
-    private floorWallX: number,
-    private floorWallY: number,
+    private texYPtr: number,
+    private floorWallXPtr: number,
+    private floorWallYPtr: number,
   ) {}
 
   get Mipmap(): BitImageRGBA {
@@ -29,6 +28,14 @@ class WallSlice {
 
   set Mipmap(mipmap: BitImageRGBA) {
     this.mipmap = mipmap;
+  }
+
+  get MipMapIdx(): number {
+    return gWasmView.getUint32(this.mipMapIdxPtr);
+  }
+
+  set MipMapIdx(mipMapIdx: number) {
+    gWasmView.setUint32(this.mipMapIdxPtr, mipMapIdx);
   }
 
   // get WallSlicePtr(): number {
@@ -92,44 +99,30 @@ class WallSlice {
   }
 
   get TexY(): number {
-    return gWasmView.getFloat32(this.texY, true);
+    return gWasmView.getFloat32(this.texYPtr, true);
   }
 
   set TexY(texY: number) {
-    gWasmView.setFloat32(this.texY, texY, true);
-  }
-
-  get TexId(): number {
-    return gWasmView.getUint32(this.texIdPtr, true);
-  }
-
-  set TexId(texId: number) {
-    gWasmView.setUint32(this.texIdPtr, texId, true);
-  }
-
-  get MipLvl(): number {
-    return gWasmView.getUint8(this.mipLvlPtr);
-  }
-
-  set MipLvl(mipLvl: number) {
-    gWasmView.setUint8(this.mipLvlPtr, mipLvl);
+    gWasmView.setFloat32(this.texYPtr, texY, true);
   }
 
   get FloorWallX(): number {
-    return gWasmView.getFloat32(this.floorWallX, true);
+    return gWasmView.getFloat32(this.floorWallXPtr, true);
   }
 
   set FloorWallX(floorWallX: number) {
-    gWasmView.setFloat32(this.floorWallX, floorWallX, true);
+    gWasmView.setFloat32(this.floorWallXPtr, floorWallX, true);
   }
 
   get FloorWallY(): number {
-    return gWasmView.getFloat32(this.floorWallY, true);
+    return gWasmView.getFloat32(this.floorWallYPtr, true);
   }
 
   set FloorWallY(floorWallY: number) {
-    gWasmView.setFloat32(this.floorWallY, floorWallY, true);
+    gWasmView.setFloat32(this.floorWallYPtr, floorWallY, true);
   }
+
+
 }
 
 function getWasmWallSlicesView(
@@ -150,11 +143,10 @@ function getWasmWallSlicesView(
       wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceMipMapIdxPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexXPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexStepYPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTexYPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceTexIdPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceMipLvlPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceFloorWallXPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceFloorWallYPtr(wallSlicePtr),
     );

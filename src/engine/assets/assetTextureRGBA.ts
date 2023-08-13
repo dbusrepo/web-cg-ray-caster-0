@@ -62,33 +62,29 @@ class AssetTextureRGBA {
   private levels: BitImageRGBA[];
 
   constructor(image: BitImageRGBA, params: AssetTextureRGBAParams) {
-    this.levels = [];
-    this.levels.push(image);
+    this.levels = [image];
     if (params.generateMipmaps) {
       this.generateMipmaps();
     }
     if (params.rotate) {
       this.levels.forEach(AssetTextureRGBA.rotate90ccw);
     }
+    this.levels.forEach((level) => level.resizePitchPow2());
   }
 
   private static rotate90ccw(mipmap: BitImageRGBA) {
-    const curImage = mipmap;
-    const { Width, Height } = curImage;
-    const buf = new Uint8Array(Width * Height * BPP_RGBA);
+    const { Width, Height } = mipmap;
+    const dstBuf = new Uint8Array(Width * Height * BPP_RGBA);
     for (let y = 0; y < Height; ++y) {
       let srcOffset = y * Width * BPP_RGBA;
       for (let x = 0; x < Width; ++x) {
-        const srcPixel = curImage.Buf8.subarray(
-          srcOffset,
-          srcOffset + BPP_RGBA,
-        );
+        const srcPixel = mipmap.Buf8.subarray(srcOffset, srcOffset + BPP_RGBA);
         const dstOffset = ((Width - x - 1) * Height + y) * BPP_RGBA;
-        buf.set(srcPixel, dstOffset);
+        dstBuf.set(srcPixel, dstOffset);
         srcOffset += BPP_RGBA;
       }
     }
-    mipmap.init(Height, Width, buf);
+    mipmap.init(Height, Width, dstBuf);
   }
 
   get PixelsDataSize(): number {

@@ -1,6 +1,7 @@
 import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
 import { SArray, newSArray } from '../sarray';
 import { Texture } from '../texture';
+import { BitImageRGBA } from '../bitImageRGBA';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -51,7 +52,7 @@ const WALL_COLOR_SIDE_1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0x88);
 const CEIL_COLOR = FrameColorRGBA.colorABGR(0xff, 0xbb, 0xbb, 0xbb);
 const FLOOR_COLOR = FrameColorRGBA.colorABGR(0xff, 0x55, 0x55, 0x55);
 
-function drawViewVert(raycaster: Raycaster): void {
+function drawViewVert(raycaster: Raycaster, mipmaps: SArray<BitImageRGBA>): void {
   const viewport = raycaster.Viewport;
   const player = raycaster.Player;
   const wallSlices = raycaster.WallSlices;
@@ -88,8 +89,10 @@ function drawViewVert(raycaster: Raycaster): void {
     }
 
     if (hit) {
-      const tex = textures.at(wallSlice.TexId);
-      const mipmap = tex.getMipmap(wallSlice.MipLvl); // TODO: assert
+      // TODO:
+      // const tex = textures.at(wallSlice.TexId);
+      // const mipmap = tex.getMipmap(wallSlice.MipLvl); // TODO: assert
+      const mipmap = mipmaps.at(0);
 
       const texX = wallSlice.TexX as usize;
       const mipmapRowOffs = texX << mipmap.PitchLg2;

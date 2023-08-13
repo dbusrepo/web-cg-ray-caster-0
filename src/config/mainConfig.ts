@@ -20,7 +20,7 @@ const mainConfig = {
   // TODO case != 0 not supported for now
   wasmSharedHeapSize: 0,
 
-  targetRPS: 60,
+  // targetRPS: 60,
   targetUPS: 80,
 
   multiplier: 1,

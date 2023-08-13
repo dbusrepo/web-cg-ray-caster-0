@@ -10,11 +10,10 @@ import { logi } from '../importVars';
 
   private hit: u8;
   private side: u8;
-  private mipLvl: u8;
 
   private distance: f32;
 
-  private texId: u32;
+  private mipMapIdx: u32;
   private texX: u32;
   private texStepY: f32;
   private texY: f32;
@@ -28,6 +27,14 @@ import { logi } from '../importVars';
 
   set Distance(distance: f32) {
     this.distance = distance;
+  }
+
+  get MipMapIdx(): u32 {
+    return this.mipMapIdx;
+  }
+
+  set MipMapIdx(mipMapIdx: u32) {
+    this.mipMapIdx = mipMapIdx;
   }
 
   get Hit(): u8 {
@@ -84,22 +91,6 @@ import { logi } from '../importVars';
 
   set TexY(texY: f32) {
     this.texY = texY;
-  }
-
-  get TexId(): u32 {
-    return this.texId;
-  }
-
-  set TexId(texId: u32) {
-    this.texId = texId;
-  }
-
-  get MipLvl(): u8 {
-    return this.mipLvl;
-  }
-
-  set MipLvl(mipLvl: u8) {
-    this.mipLvl = mipLvl;
   }
 
   get FloorWallX(): f32 {
@@ -165,20 +156,16 @@ function getWallSliceTexYPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('texY');
 }
 
-function getWallSliceTexIdPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('texId');
-}
-
-function getWallSliceMipLvlPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('mipLvl');
-}
-
 function getWallSliceFloorWallXPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('floorWallX');
 }
 
 function getWallSliceFloorWallYPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('floorWallY');
+}
+
+function getWallSliceMipMapIdxPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('mipMapIdx');
 }
 
 export {
@@ -192,9 +179,8 @@ export {
   getWallSliceTexXPtr,
   getWallSliceTexStepYPtr,
   getWallSliceTexYPtr,
-  getWallSliceTexIdPtr,
-  getWallSliceMipLvlPtr,
   getWallSliceFloorWallXPtr,
-  getWallSliceFloorWallYPtr
+  getWallSliceFloorWallYPtr,
+  getWallSliceMipMapIdxPtr,
 };
   

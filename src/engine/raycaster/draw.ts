@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { WallSlice } from './wallslice';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
-import { Texture } from './texture';
+import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 
 const CEIL_COLOR = 0xffbbbbbb;
@@ -339,7 +339,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
           (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length)
         ) {
           if (!sameFloorTexMapIdx) {
-            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0).Image;
             prevFloorTexMapIdx = floorTexMapIdx;
           }
           const tex = floorTex!;
@@ -474,7 +474,7 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
         ) {
           if (!sameFloorTexMapIdx) {
             prevFloorTexMapIdx = floorTexMapIdx;
-            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0).Image;
           }
           const tex = floorTex!;
           const u = floorX - floorXidx;
@@ -880,7 +880,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
         ) {
           if (!sameFloorTexMapIdx) {
             prevFloorTexMapIdx = floorTexMapIdx;
-            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0).Image;
           }
           const tex = floorTex!;
           const u = floorX - floorXidx;
@@ -944,7 +944,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
         ) {
           if (!sameFloorTexMapIdx) {
             prevFloorTexMapIdx = floorTexMapIdx;
-            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0).Image;
           }
           const tex = floorTex!;
           const u = floorX - floorXidx;

@@ -1,39 +1,54 @@
 import assert from 'assert';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { ascImportImages } from '../../../assets/build/images';
-import { gWasmView, gWasmViews } from '../wasmEngine/wasmRun';
-import { wasmTexFieldSizes } from '../wasmEngine/wasmMemInitImages';
+import { gWasmView, gWasmViews } from './wasmRun';
+import { wasmTexFieldSizes } from './wasmMemInitImages';
 
-class Texture {
+class Mipmap {
+  // eslint-disable-next-line no-useless-constructor
   constructor(
-    private texId: number,
-    private mipmaps: BitImageRGBA[],
+    private mipMapWasmIdx: number, // wasm index in mipmaps array
+    private image: BitImageRGBA,
   ) {}
 
-  getMipmap(lvl: number): BitImageRGBA {
-    // assert(lvl >= 0 && lvl < this.mipmaps.length);
-    return this.mipmaps[lvl];
+  get WasmIdx(): number {
+    return this.mipMapWasmIdx;
   }
 
-  get Mipmaps(): BitImageRGBA[] {
-    return this.mipmaps;
+  get Image(): BitImageRGBA {
+    return this.image;
+  }
+}
+
+// view to wasm texture/mipmaps
+class Texture {
+  // eslint-disable-next-line no-useless-constructor
+  constructor(
+    private texName: string,
+    private texIdx: number,
+    private mipmaps: Mipmap[],
+  ) {}
+
+  getMipmap(lvl: number): Mipmap {
+    // assert(lvl >= 0 && lvl < this.mipmaps.length);
+    return this.mipmaps[lvl];
   }
 
   get NumMipmaps(): number {
     return this.mipmaps.length;
   }
 
-  get TexId(): number {
-    return this.texId;
+  get WasmIdx(): number {
+    return this.texIdx;
   }
 
-  set TexId(texId: number) {
-    this.texId = texId;
+  get Name(): string {
+    return this.texName;
   }
 
   makeDarker() {
     this.mipmaps.forEach((mipmap) => {
-      mipmap.makeDarker();
+      mipmap.Image.makeDarker();
     });
   }
 }
@@ -74,22 +89,16 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
   return mipmap;
 }
 
-const initTexLightDarkPair = (
-  texId: number,
-  darkTexId: number,
-): [Texture, Texture] => {
-  const tex = initTexture(texId);
-  const darkTex = initTexture(darkTexId);
-
-  return [tex, darkTex];
-};
-
-const initTexture = (texId: number): Texture => {
-  assert(texId >= 0 && texId < Object.keys(ascImportImages).length);
+const initTextureWasm = (
+  texName: string,
+  texIdx: number,
+  mipMapBaseIdx: number,
+): Texture => {
+  assert(texIdx >= 0 && texIdx < Object.keys(ascImportImages).length);
 
   const texDescOffs =
     gWasmViews.texturesIndex.byteOffset +
-    texId * wasmTexFieldSizes.TEX_DESC_SIZE;
+    texIdx * wasmTexFieldSizes.TEX_DESC_SIZE;
 
   const numMipmaps = gWasmView.getUint32(texDescOffs, true);
 
@@ -101,16 +110,17 @@ const initTexture = (texId: number): Texture => {
   let mipmapDescOffs =
     gWasmViews.texturesIndex.byteOffset + firstMipmapDescOffRelIdx;
 
-  const mipmaps: BitImageRGBA[] = new Array(numMipmaps);
+  const mipmaps: Mipmap[] = new Array(numMipmaps);
 
   for (let i = 0; i < numMipmaps; i++) {
-    mipmaps[i] = wasmMipmap2BitImageRGBAView(mipmapDescOffs);
+    const image = wasmMipmap2BitImageRGBAView(mipmapDescOffs);
+    mipmaps[i] = new Mipmap(mipMapBaseIdx + i, image);
     mipmapDescOffs += wasmTexFieldSizes.MIP_DESC_SIZE;
   }
 
-  const texture = new Texture(texId, mipmaps);
+  const texture = new Texture(texName, texIdx, mipmaps);
 
   return texture;
 };
 
-export { Texture, initTexture, initTexLightDarkPair };
+export { Texture, Mipmap, initTextureWasm };

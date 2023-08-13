@@ -27,8 +27,8 @@ import { arrAvg, sleep } from '../engine/utils';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
 import type { AuxWorkerParams } from '../engine/auxWorker';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
-import { Viewport, getWasmViewportView } from '../engine/raycaster/viewport';
-import { Player, getWasmPlayerView } from '../engine/raycaster/player';
+// import { Viewport, getWasmViewportView } from '../engine/raycaster/viewport';
+// import { Player, getWasmPlayerView } from '../engine/raycaster/player';
 import { FrameColorRGBAWasm } from '../engine/wasmEngine/frameColorRGBAWasm';
 
 type AppWorkerParams = {

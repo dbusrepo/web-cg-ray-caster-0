@@ -24,8 +24,8 @@ import {
   drawViewHorz,
 } from './draw';
 
-import { ascImportImages } from '../../../assets/build/images';
-import { Texture, initTexture } from './texture';
+import { ascImportImages, imageKeys } from '../../../assets/build/images';
+import { Texture, initTextureWasm } from '../wasmEngine/texture';
 import {
   FrameColorRGBAWasm,
   getFrameColorRGBAWasmView,
@@ -50,6 +50,7 @@ class Raycaster {
   private mapWidth: number;
   private mapHeight: number;
 
+  private textures: Texture[];
   private wallTextures: Texture[][];
   private floorTextures: Texture[];
 
@@ -225,27 +226,50 @@ class Raycaster {
     );
   }
 
+  // TODO:
+  private initTexturesViews() {
+    const wasmTexturesImport = Object.entries(ascImportImages);
+    let mipMapBaseIdx = 0;
+    this.textures = [];
+    wasmTexturesImport.forEach(([texName, texIdx]) => {
+      const texture = initTextureWasm(texName, texIdx, mipMapBaseIdx);
+      this.textures.push(texture);
+      mipMapBaseIdx += texture.NumMipmaps;
+    });
+  }
+
   private initTextures() {
+    this.initTexturesViews();
     this.initWallTextures();
     this.initFloorTextures();
   }
 
+  private findTex(texKeyName: string): Texture {
+    let texture: Texture | null = null;
+    for (let i = 0; i < this.textures.length; i++) {
+      if (this.textures[i].Name === texKeyName) {
+        texture = this.textures[i];
+      }
+    }
+    assert(texture);
+    return texture;
+  }
+
   private initWallTextures() {
-    // array with pairs of textures for each wall
-    const wallTexIds = [
-      ascImportImages.GREYSTONE,
-      ascImportImages.GREYSTONE_D,
-      ascImportImages.BLUESTONE,
-      ascImportImages.BLUESTONE_D,
-      ascImportImages.REDBRICK,
-      ascImportImages.REDBRICK_D,
+    const wallTexturesKeys = [
+      imageKeys.GREYSTONE,
+      imageKeys.GREYSTONE_D,
+      imageKeys.BLUESTONE,
+      imageKeys.BLUESTONE_D,
+      imageKeys.REDBRICK,
+      imageKeys.REDBRICK_D,
     ];
 
-    this.wallTextures = new Array<Texture[]>(wallTexIds.length / 2);
+    this.wallTextures = new Array<Texture[]>(wallTexturesKeys.length / 2);
     for (let i = 0; i < this.wallTextures.length; i++) {
       this.wallTextures[i] = new Array<Texture>(2);
-      const tex = initTexture(wallTexIds[i * 2]);
-      const darkTex = initTexture(wallTexIds[i * 2 + 1]);
+      const tex = this.findTex(wallTexturesKeys[i * 2]);
+      const darkTex = this.findTex(wallTexturesKeys[i * 2 + 1]);
       darkTex.makeDarker();
       this.wallTextures[i][0] = tex;
       this.wallTextures[i][1] = darkTex;
@@ -254,8 +278,8 @@ class Raycaster {
 
   private initFloorTextures() {
     this.floorTextures = [];
-    this.floorTextures[0] = initTexture(ascImportImages.GREYSTONE);
-    this.floorTextures[1] = initTexture(ascImportImages.BLUESTONE);
+    this.floorTextures[0] = this.findTex(imageKeys.GREYSTONE);
+    this.floorTextures[1] = this.findTex(imageKeys.BLUESTONE);
   }
 
   public initMap() {
@@ -546,7 +570,7 @@ class Raycaster {
       const tex = this.wallTextures[texIdx][side];
       const mipLevel = 0; // TODO:
       const mipmap = tex.getMipmap(mipLevel);
-      const { Width: texWidth, Height: texHeight } = mipmap;
+      const { Width: texWidth, Height: texHeight } = mipmap.Image;
 
       // wallX -= Math.floor(wallX);
       // wallX %= 1;
@@ -564,12 +588,11 @@ class Raycaster {
       wallSlice.projHeight = wallSliceHeight;
       wallSlice.clipTop = clipTop;
 
-      wallSlice.TexId = tex.TexId;
-      wallSlice.MipLvl = mipLevel;
+      wallSlice.MipMapIdx = mipmap.WasmIdx;
       wallSlice.TexX = texX;
       wallSlice.TexStepY = texStepY;
       wallSlice.TexY = texY;
-      wallSlice.Mipmap = mipmap;
+      wallSlice.Mipmap = mipmap.Image;
     } // end col loop
 
     this.MinWallTop = minWallTop;

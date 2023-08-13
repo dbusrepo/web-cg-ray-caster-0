@@ -209,6 +209,12 @@ class App {
       bg: '#022',
       graphHeight: 200,
     });
+    // const rpsPanel = new StatsPanel({
+    //   title: StatsNameEnum.RPS,
+    //   fg: '#f80',
+    //   bg: '#022',
+    //   graphHeight: 200,
+    // });
     const upsPanel = new StatsPanel({
       title: StatsNameEnum.UPS,
       fg: '#0f0',
@@ -225,6 +231,7 @@ class App {
     // const wasmHeapMem = new StatsPanel(StatsNames.WASM_HEAP, '#0b0', '#030');
     // this.mem_panel = new StatsPanel('MEM', '#ff0', '#330');
     stats.addPanel(fpsPanel);
+    // stats.addPanel(rpsPanel);
     stats.addPanel(upsPanel);
     stats.addPanel(ufpsPanel);
     // this._stats.addPanel(wasmHeapMem);

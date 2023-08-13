@@ -11,8 +11,7 @@ class BitImageRGBA extends BitImage {
     this.width = width;
     this.height = height;
     this.Buf8 = buf8;
-    this.resizePitchPow2();
-    assert(this.width <= 1 << this.PitchLg2);
+    // this.resizePitchPow2();
   }
 
   initPitchLg2(
@@ -28,27 +27,25 @@ class BitImageRGBA extends BitImage {
     assert(this.width <= 1 << this.PitchLg2);
   }
 
-  private resizePitchPow2() {
+  public resizePitchPow2() {
     let pitch = this.width;
     if (!utils.isPowerOf2(pitch)) {
       pitch = utils.nextPowerOf2(pitch);
       const dstBuf8 = new Uint8Array(this.height * pitch * BPP_RGBA);
       let srcOffset = 0;
       let dstOffset = 0;
-      const srcPitchBytes = this.width * BPP_RGBA;
-      const dstPitchBytes = pitch * BPP_RGBA;
+      const srcLineBytes = this.width * BPP_RGBA;
+      const dstLineBytes = pitch * BPP_RGBA;
       for (let y = 0; y < this.height; ++y) {
-        const srcRowY = this.buf8.subarray(
-          srcOffset,
-          srcOffset + srcPitchBytes,
-        );
+        const srcRowY = this.buf8.subarray(srcOffset, srcOffset + srcLineBytes);
         dstBuf8.set(srcRowY, dstOffset);
-        srcOffset += srcPitchBytes;
-        dstOffset += dstPitchBytes;
+        srcOffset += srcLineBytes;
+        dstOffset += dstLineBytes;
       }
       this.Buf8 = dstBuf8;
     }
     this.pitchLg2 = Math.log2(pitch);
+    assert(this.width <= 1 << this.PitchLg2);
   }
 
   get PitchLg2() {

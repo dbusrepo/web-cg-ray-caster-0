@@ -27,8 +27,7 @@ import {
   frameColorRGBAPtr,
 } from './importVars';
 import { GREYSTONE } from './gen_importImages';
-import { Texture } from './texture';
-import { initTextures } from './initTextures';
+import { Texture, initTextures, textures, mipmaps } from './texture';
 // import { DArray, newDArray, deleteDArray } from './darray';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
@@ -73,8 +72,7 @@ import {
   getWallSliceTexXPtr,
   getWallSliceTexStepYPtr,
   getWallSliceTexYPtr,
-  getWallSliceTexIdPtr,
-  getWallSliceMipLvlPtr,
+  getWallSliceMipMapIdxPtr,
   getWallSliceFloorWallXPtr,
   getWallSliceFloorWallYPtr,
 } from './raycaster/wallslice';
@@ -102,7 +100,7 @@ const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 const MAIN_THREAD_IDX = mainWorkerIdx;
 
 let raycaster = changetype<Raycaster>(NULL_PTR);
-let textures = changetype<SArray<Texture>>(NULL_PTR);
+
 let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
 
 function getFrameColorRGBAPtr(): PTR_T {
@@ -132,7 +130,7 @@ function initData(): void {
     raycaster = changetype<Raycaster>(raycasterPtr);
   }
 
-  textures = initTextures();
+  initTextures();
   initRaycasterDraw(frameColorRGBA, raycaster.Viewport, textures);
 }
 
@@ -161,7 +159,7 @@ function initRaycaster(): void {
 }
 
 function render(): void {
-  drawViewVert(raycaster);
+  drawViewVert(raycaster, mipmaps);
 }
 
 function run(): void {
@@ -226,10 +224,9 @@ export {
   getWallSliceTexXPtr,
   getWallSliceTexStepYPtr,
   getWallSliceTexYPtr,
-  getWallSliceTexIdPtr,
-  getWallSliceMipLvlPtr,
   getWallSliceFloorWallXPtr,
   getWallSliceFloorWallYPtr,
+  getWallSliceMipMapIdxPtr,
 
   getFrameColorRGBAPtr,
   getRedLightTablePtr,
