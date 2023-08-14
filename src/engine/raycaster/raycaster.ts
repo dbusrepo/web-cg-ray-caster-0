@@ -123,6 +123,8 @@ class Raycaster {
     // TODO:
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
+
+    // player height
     this.player.PosZ = this.wallHeight / 2;
 
     // console.log('raycaster starting...');
@@ -486,13 +488,10 @@ class Raycaster {
 
       this.zBuffer[x] = perpWallDist;
 
-      const wallSliceHeight = (this.wallHeight / perpWallDist) | 0;
-
-      const projWallBottom = projYcenter + (wallSliceHeight >> 1);
+      const ratio = 1 / perpWallDist;
+      const projWallBottom = (projYcenter + posZ * ratio) | 0;
+      const wallSliceHeight = (this.wallHeight * ratio) | 0;
       const projWallTop = projWallBottom - wallSliceHeight + 1;
-
-      // const projWallTop = midY - (wallSliceHeight >> 1);
-      // const projWallBottom = projWallTop + wallSliceHeight - 1;
       // const sliceHeight = projWallBottom - projWallTop + 1;
 
       let wallTop = projWallTop;
@@ -634,15 +633,13 @@ class Raycaster {
 
   private updateLookUp() {
     if (this.isKeyDown(keys.KEY_E)) {
-      const yCenter = this.ProjYCenter + 1;
+      const yCenter = this.ProjYCenter + 15;
       this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
-      console.log(this.ProjYCenter);
     }
 
     if (this.isKeyDown(keys.KEY_C)) {
-      const yCenter = this.ProjYCenter - 1;
+      const yCenter = this.ProjYCenter - 15;
       this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
-      console.log(this.ProjYCenter);
     }
   }
 
@@ -668,6 +665,24 @@ class Raycaster {
     if (this.isKeyDown(keys.KEY_D)) {
       this.rotatePlayer(rotSpeed);
     }
+    if (this.isKeyDown(keys.KEY_Q)) {
+      this.updatePlayerHeight(1);
+    }
+    if (this.isKeyDown(keys.KEY_Z)) {
+      this.updatePlayerHeight(-1);
+    }
+  }
+
+  private updatePlayerHeight(dir: number) {
+    let height = this.player.PosZ + dir * 10;
+    const LIMIT = 100;
+    if (height < LIMIT) {
+      height = LIMIT;
+    }
+    if (height > this.wallHeight - LIMIT) {
+      height = this.wallHeight - LIMIT;
+    }
+    this.player.PosZ = height;
   }
 
   private movePlayer(moveSpeed: number) {

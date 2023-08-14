@@ -209,7 +209,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << lg2Pitch;
 
-      let numPixels = bottom - top + 1;
+      // let numPixels = bottom - top + 1;
 
       // wall alg1: bres
       // const frac = texWidth;
