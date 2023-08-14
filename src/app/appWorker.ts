@@ -72,7 +72,7 @@ class AppWorker {
     await this.initAssetManager();
     await this.initWasmEngine();
     await this.initRaycaster();
-    // this.raycaster.drawView();
+    // this.raycaster.renderView();
     await this.runAuxWorkers();
   }
 
@@ -311,8 +311,8 @@ class AppWorker {
       while (updTimeAcc >= AppWorker.UPDATE_PERIOD_MS) {
         // TODO: see multiplier in update_period def
         // update state with UPDATE_PERIOD_MS
-        // updateState(STEP, t / MULTIPLIER);
-        this.updatePlayer(AppWorker.UPDATE_PERIOD_MS / 2);
+        // this.updateState(STEP, t / MULTIPLIER);
+        this.updateState(0, AppWorker.UPDATE_PERIOD_MS / 2);
         updTimeAcc -= AppWorker.UPDATE_PERIOD_MS;
         updateCnt++;
       }
@@ -321,7 +321,7 @@ class AppWorker {
     const render = () => {
       this.wasmEngine.syncWorkers(this.auxWorkers);
       // this.wasmEngineModule.render();
-      this.raycaster.drawView();
+      this.raycaster.renderView();
       this.wasmEngine.waitWorkers(this.auxWorkers);
       this.drawWasmFrame();
       saveFrameTime();
@@ -380,46 +380,8 @@ class AppWorker {
     this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
-  updateState(step: number, time: number) {}
-
-  updatePlayer(time: number) {
-    const { inputKeys } = this.wasmEngine.WasmViews;
-    const moveSpeed = time * 0.009;
-    const rotSpeed = time * 0.006;
-
-    if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
-      this.moveForward(moveSpeed, 1);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
-      this.moveForward(moveSpeed, -1);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
-      this.rotate(-rotSpeed);
-    }
-    if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
-      this.rotate(rotSpeed);
-    }
-  }
-
-  // TODO:
-  private rotate(moveSpeed: number) {
-    const player = this.raycaster.Player;
-    const oldDirX = player.DirX;
-    player.DirX =
-      player.DirX * Math.cos(moveSpeed) - player.DirY * Math.sin(moveSpeed);
-    player.DirY =
-      oldDirX * Math.sin(moveSpeed) + player.DirY * Math.cos(moveSpeed);
-    const oldPlaneX = player.PlaneX;
-    player.PlaneX =
-      player.PlaneX * Math.cos(moveSpeed) - player.PlaneY * Math.sin(moveSpeed);
-    player.PlaneY =
-      oldPlaneX * Math.sin(moveSpeed) + player.PlaneY * Math.cos(moveSpeed);
-  }
-
-  private moveForward(moveSpeed: number, dir: number) {
-    const player = this.raycaster.Player;
-    player.PosX += dir * player.DirX * moveSpeed;
-    player.PosY += dir * player.DirY * moveSpeed;
+  updateState(step: number, time: number) {
+    this.raycaster.updatePlayer(time);
   }
 
   onKeyDown(inputEvent: InputEvent) {

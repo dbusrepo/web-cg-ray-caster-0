@@ -23,7 +23,7 @@ import {
   drawViewVertHorz,
   drawViewHorz,
 } from './draw';
-
+import { keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
 import { Texture, initTextureWasm } from '../wasmEngine/texture';
 import {
@@ -347,7 +347,7 @@ class Raycaster {
     this.floorTexturesMap[4 * this.mapWidth + 4] = this.floorTextures[texId];
   }
 
-  drawView() {
+  renderView() {
     // this.wasmEngine.WasmRun.WasmModules.engine.render();
     // this.wasmEngineModule.render();
 
@@ -583,7 +583,7 @@ class Raycaster {
       // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
       const texStepY = texHeight / wallSliceHeight;
-      const texY = (wallTop - projWallTop) * texStepY;
+      const texY = clipTop * texStepY;
 
       wallSlice.projHeight = wallSliceHeight;
       wallSlice.clipTop = clipTop;
@@ -622,6 +622,43 @@ class Raycaster {
     // drawViewHorz(drawViewParams);
 
     this.wasmEngineModule.render();
+  }
+
+  updatePlayer(time: number) {
+    const { inputKeys } = this.wasmRun.WasmViews;
+    const moveSpeed = time * 0.009; // TODO:
+    const rotSpeed = time * 0.006;
+
+    if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
+      this.moveForward(moveSpeed, 1);
+    }
+    if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
+      this.moveForward(moveSpeed, -1);
+    }
+    if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
+      this.rotate(-rotSpeed);
+    }
+    if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
+      this.rotate(rotSpeed);
+    }
+  }
+
+  private moveForward(moveSpeed: number, dir: number) {
+    const { player } = this;
+    player.PosX += dir * player.DirX * moveSpeed;
+    player.PosY += dir * player.DirY * moveSpeed;
+  }
+
+  private rotate(moveSpeed: number) {
+    const { player } = this;
+    const cos = Math.cos(moveSpeed);
+    const sin = Math.sin(moveSpeed);
+    const oldDirX = player.DirX;
+    player.DirX = player.DirX * cos - player.DirY * sin;
+    player.DirY = oldDirX * sin + player.DirY * cos;
+    const oldPlaneX = player.PlaneX;
+    player.PlaneX = player.PlaneX * cos - player.PlaneY * sin;
+    player.PlaneY = oldPlaneX * sin + player.PlaneY * cos;
   }
 
   private get ProjYCenter(): number {
