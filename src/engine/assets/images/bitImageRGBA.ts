@@ -4,8 +4,8 @@ import { BPP_RGBA, FrameColorRGBA } from '../../frameColorRGBA';
 import * as utils from '../../utils';
 
 class BitImageRGBA extends BitImage {
-  private pitchLg2: number; // lg2 of pitch pixels u32
   private buf32: Uint32Array;
+  private lg2Pitch: number; // lg2 of pitch pixels u32
 
   init(width: number, height: number, buf8: Uint8Array) {
     this.width = width;
@@ -17,14 +17,14 @@ class BitImageRGBA extends BitImage {
   initPitchLg2(
     width: number,
     height: number,
-    pitchLg2: number,
+    lg2Pitch: number,
     buf8: Uint8Array,
   ) {
     this.width = width;
     this.height = height;
-    this.pitchLg2 = pitchLg2;
+    this.lg2Pitch = lg2Pitch;
     this.Buf8 = buf8;
-    assert(this.width <= 1 << this.PitchLg2);
+    assert(this.width <= 1 << this.lg2Pitch);
   }
 
   public resizePitchPow2() {
@@ -44,14 +44,15 @@ class BitImageRGBA extends BitImage {
       }
       this.Buf8 = dstBuf8;
     }
-    this.pitchLg2 = Math.log2(pitch);
-    assert(this.width <= 1 << this.PitchLg2);
+    this.lg2Pitch = Math.log2(pitch);
+    assert(this.width <= 1 << this.lg2Pitch);
   }
 
-  get PitchLg2() {
-    return this.pitchLg2;
+  get Lg2Pitch() {
+    return this.lg2Pitch;
   }
 
+  // required
   get Buf8() {
     return this.buf8;
   }

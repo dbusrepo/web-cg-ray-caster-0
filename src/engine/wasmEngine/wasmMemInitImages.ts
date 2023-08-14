@@ -21,12 +21,12 @@ const TEX_DESC_SIZE = NUM_MIPS_FIELD_SIZE + PTR_TO_FIRST_MIP_DESC_FIELD_SIZE;
 
 const WIDTH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const HEIGHT_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const PITCH_LG2_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const LG2_PITCH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const MIP_DESC_SIZE =
   WIDTH_FIELD_SIZE +
   HEIGHT_FIELD_SIZE +
-  PITCH_LG2_FIELD_SIZE +
+  LG2_PITCH_FIELD_SIZE +
   OFFSET_TO_MIP_DATA_FIELD_SIZE;
 
 const wasmTexFieldSizes = {
@@ -35,7 +35,7 @@ const wasmTexFieldSizes = {
   TEX_DESC_SIZE,
   WIDTH_FIELD_SIZE,
   HEIGHT_FIELD_SIZE,
-  PITCH_LG2_FIELD_SIZE,
+  LG2_PITCH_FIELD_SIZE,
   OFFSET_TO_MIP_DATA_FIELD_SIZE,
   MIP_DESC_SIZE,
 };
@@ -86,15 +86,15 @@ function copyTextures2WasmMem(
       const {
         Width: width,
         Height: height,
-        PitchLg2: pitchLg2,
+        Lg2Pitch: lg2Pitch,
         Buf8: buf8,
       } = level;
       mipDescView.setUint32(nextMipDescFieldOffset, width, true);
       nextMipDescFieldOffset += WIDTH_FIELD_SIZE;
       mipDescView.setUint32(nextMipDescFieldOffset, height, true);
       nextMipDescFieldOffset += HEIGHT_FIELD_SIZE;
-      mipDescView.setUint32(nextMipDescFieldOffset, pitchLg2, true);
-      nextMipDescFieldOffset += PITCH_LG2_FIELD_SIZE;
+      mipDescView.setUint32(nextMipDescFieldOffset, lg2Pitch, true);
+      nextMipDescFieldOffset += LG2_PITCH_FIELD_SIZE;
       mipDescView.setUint32(nextMipDescFieldOffset, nextMipPixelsOffs, true);
       texturesPixels.set(buf8, nextMipPixelsOffs);
       nextMipDescFieldOffset += OFFSET_TO_MIP_DATA_FIELD_SIZE;

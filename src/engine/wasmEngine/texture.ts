@@ -73,7 +73,7 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
     mipmapOffs +
       wasmTexFieldSizes.WIDTH_FIELD_SIZE +
       wasmTexFieldSizes.HEIGHT_FIELD_SIZE +
-      wasmTexFieldSizes.PITCH_LG2_FIELD_SIZE,
+      wasmTexFieldSizes.LG2_PITCH_FIELD_SIZE,
     true,
   );
 

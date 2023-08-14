@@ -11,7 +11,7 @@ import { logi } from './importVars';
 
 const WIDTH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const HEIGHT_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const PITCH_LG2_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
+const LG2_PITCH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 
 // @ts-ignore: decorator
@@ -24,7 +24,7 @@ const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
   }
 
   @inline get Ptr(): PTR_T {
-    return <PTR_T>(texturesPixelsPtr + load<u32>(this.descPtr + WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + PITCH_LG2_FIELD_SIZE));
+    return <PTR_T>(texturesPixelsPtr + load<u32>(this.descPtr + WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + LG2_PITCH_FIELD_SIZE));
   }
 
   @inline get PitchLg2(): SIZE_T {
