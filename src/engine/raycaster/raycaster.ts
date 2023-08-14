@@ -632,13 +632,14 @@ class Raycaster {
   }
 
   private updateLookUp() {
+    const OFFS = 15;
     if (this.isKeyDown(keys.KEY_E)) {
-      const yCenter = this.ProjYCenter + 15;
+      const yCenter = this.ProjYCenter + OFFS;
       this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
     }
 
     if (this.isKeyDown(keys.KEY_C)) {
-      const yCenter = this.ProjYCenter - 15;
+      const yCenter = this.ProjYCenter - OFFS;
       this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
     }
   }
