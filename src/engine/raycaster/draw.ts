@@ -202,12 +202,12 @@ function drawViewVert(drawViewParams: DrawViewParams) {
         Buf32: mipPixels,
         Width: texWidth,
         // Height: texHeight,
-        PitchLg2: pitchLg2,
+        Lg2Pitch: lg2Pitch,
       } = mipmap;
 
       // mipmap is rotated 90ccw
       // const mipStride = 1 << pitchLg2;
-      const mipRowOffs = texX << pitchLg2;
+      const mipRowOffs = texX << lg2Pitch;
 
       let numPixels = bottom - top + 1;
 
@@ -349,7 +349,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
           // assert(floorY >= 0 && floorY < 1);
           const floorTexX = u * tex.Width;
           const floorTexY = v * tex.Height;
-          const colorOffset = (floorTexX << tex.PitchLg2) | floorTexY;
+          const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
           // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
           const color = tex.Buf32[colorOffset];
           // console.log(colorOffset);
@@ -483,7 +483,7 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
           // assert(v >= 0 && v < 1);
           const floorTexX = u * tex.Width;
           const floorTexY = v * tex.Height;
-          const colorOffset = (floorTexX << tex.PitchLg2) | floorTexY;
+          const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
           // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
           const color = tex.Buf32[colorOffset];
           // console.log(colorOffset);
@@ -549,10 +549,10 @@ function drawViewVertHorz(drawViewParams: DrawViewParams) {
         Buf32: mipPixels,
         // Width: texWidth,
         // Height: texHeight,
-        PitchLg2: pitchLg2,
+        Lg2Pitch: lg2Pitch,
       } = mipmap;
 
-      const mipRowOffs = texX << pitchLg2;
+      const mipRowOffs = texX << lg2Pitch;
 
       // textured wall
       for (let y = top; y <= bottom; y++) {
@@ -832,7 +832,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
         frameBuf32[framePtr] = CEIL_COLOR;
       } else {
         const mipmap = wallSlices[x].Mipmap;
-        const colorOffset = (texXs[x] << mipmap.PitchLg2) | texPosYs[x];
+        const colorOffset = (texXs[x] << mipmap.Lg2Pitch) | texPosYs[x];
         frameBuf32[framePtr] = mipmap.Buf32[colorOffset];
         texPosYs[x] += texStepYs[x];
       }
@@ -848,7 +848,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
     let framePtr = rowFramePtr;
     for (let x = 0; x < vpWidth; ++x) {
       const mipmap = wallSlices[x].Mipmap;
-      const colorOffset = (texXs[x] << mipmap.PitchLg2) | texPosYs[x];
+      const colorOffset = (texXs[x] << mipmap.Lg2Pitch) | texPosYs[x];
       frameBuf32[framePtr++] = mipmap.Buf32[colorOffset];
       texPosYs[x] += texStepYs[x];
     }
@@ -889,7 +889,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
           // assert(v >= 0 && v < 1);
           const floorTexX = u * tex.Width;
           const floorTexY = v * tex.Height;
-          const colorOffset = (floorTexX << tex.PitchLg2) | floorTexY;
+          const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
           // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
           const color = tex.Buf32[colorOffset];
           // console.log(colorOffset);
@@ -898,7 +898,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
         }
       } else {
         const mipmap = wallSlices[x].Mipmap;
-        const colorOffset = (texXs[x] << mipmap.PitchLg2) | texPosYs[x];
+        const colorOffset = (texXs[x] << mipmap.Lg2Pitch) | texPosYs[x];
         frameBuf32[framePtr] = mipmap.Buf32[colorOffset];
         texPosYs[x] += texStepYs[x];
       }
@@ -953,7 +953,7 @@ function drawViewHorz(drawViewParams: DrawViewParams) {
           // assert(v >= 0 && v < 1);
           const floorTexX = u * tex.Width;
           const floorTexY = v * tex.Height;
-          const colorOffset = (floorTexX << tex.PitchLg2) | floorTexY;
+          const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
           // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
           const color = tex.Buf32[colorOffset];
           // console.log(colorOffset);
