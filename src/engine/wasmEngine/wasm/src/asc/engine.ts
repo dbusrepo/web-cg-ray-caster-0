@@ -38,10 +38,13 @@ import { Viewport, newViewport,
   getViewportWidthPtr, getViewportHeightPtr,
 } from './raycaster/viewport';
 import { Player, newPlayer,
-  getPlayerPosXPtr, getPlayerPosYPtr,
-  getPlayerDirXPtr, getPlayerDirYPtr,
-  getPlayerPlaneXPtr, getPlayerPlaneYPtr,
-  getPlayerPitchPtr, getPlayerPosZPtr,
+  getPlayerPosXPtr,
+  getPlayerPosYPtr,
+  getPlayerDirXPtr,
+  getPlayerDirYPtr,
+  getPlayerPlaneXPtr,
+  getPlayerPlaneYPtr,
+  getPlayerPosZPtr,
 } from './raycaster/player';
 import { Map, newMap } from './raycaster/map';
 import { 
@@ -214,7 +217,6 @@ export {
   getPlayerDirYPtr,
   getPlayerPlaneXPtr,
   getPlayerPlaneYPtr,
-  getPlayerPitchPtr,
 
   getWallSliceDistancePtr,
   getWallSliceHitPtr,

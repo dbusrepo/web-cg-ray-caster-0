@@ -11,7 +11,6 @@ class Player {
     private dirYPtr: number,
     private planeXPtr: number,
     private planeYPtr: number,
-    private pitchPtr: number,
   ) {}
 
   get WasmPtr(): number {
@@ -73,14 +72,6 @@ class Player {
   set PlaneY(value: number) {
     gWasmView.setFloat32(this.planeYPtr, value, true);
   }
-
-  get Pitch(): number {
-    return gWasmView.getFloat32(this.pitchPtr, true);
-  }
-
-  set Pitch(value: number) {
-    gWasmView.setFloat32(this.pitchPtr, value, true);
-  }
 }
 
 function getWasmPlayerView(
@@ -95,7 +86,6 @@ function getWasmPlayerView(
   const dirYPtr = wasmEngineModule.getPlayerDirYPtr(playerPtr);
   const planeXPtr = wasmEngineModule.getPlayerPlaneXPtr(playerPtr);
   const planeYPtr = wasmEngineModule.getPlayerPlaneYPtr(playerPtr);
-  const pitchPtr = wasmEngineModule.getPlayerPitchPtr(playerPtr);
   const player = new Player(
     playerPtr,
     posXPtr,
@@ -105,7 +95,6 @@ function getWasmPlayerView(
     dirYPtr,
     planeXPtr,
     planeYPtr,
-    pitchPtr,
   );
   return player;
 }

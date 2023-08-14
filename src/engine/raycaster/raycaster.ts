@@ -39,6 +39,7 @@ class Raycaster {
   private params: RaycasterParams;
   private wasmRun: WasmRun;
   private wasmViews: WasmViews;
+  private inputKeys: Uint8Array;
 
   private viewport: Viewport;
   private player: Player;
@@ -82,6 +83,7 @@ class Raycaster {
 
     this.wasmRun = params.wasmRun;
     this.wasmViews = this.wasmRun.WasmViews;
+    this.inputKeys = this.wasmViews.inputKeys;
 
     this.initTextures();
 
@@ -196,7 +198,6 @@ class Raycaster {
     // player.DirY = -1;
     // player.PlaneX = 0.66;
     // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
-    player.Pitch = 0;
     player.PosZ = 0.0;
     this.player = player;
   }
@@ -619,22 +620,37 @@ class Raycaster {
       minWallBottom,
       maxWallBottom,
     };
-    // drawViewVert(drawViewParams);
+    drawViewVert(drawViewParams);
     // drawViewVertHorz(drawViewParams);
     // drawViewHorz(drawViewParams);
 
-    this.wasmEngineModule.render();
+    // this.wasmEngineModule.render();
   }
 
   update(time: number) {
+    this.updateLookUp();
     this.updatePlayer(time);
   }
 
-  private isKeyDown(key: Key): boolean {
-    return this.wasmViews.inputKeys[keyOffsets[key]] !== 0;
+  private updateLookUp() {
+    if (this.isKeyDown(keys.KEY_E)) {
+      const yCenter = this.ProjYCenter + 1;
+      this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
+      console.log(this.ProjYCenter);
+    }
+
+    if (this.isKeyDown(keys.KEY_C)) {
+      const yCenter = this.ProjYCenter - 1;
+      this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
+      console.log(this.ProjYCenter);
+    }
   }
 
-  updatePlayer(time: number) {
+  private isKeyDown(key: Key): boolean {
+    return this.inputKeys[keyOffsets[key]] !== 0;
+  }
+
+  private updatePlayer(time: number) {
     const MOVE_SPEED = 0.009; // TODO:
     const ROT_SPEED = 0.006; // TODO:
     const moveSpeed = time * MOVE_SPEED;
@@ -673,11 +689,11 @@ class Raycaster {
   }
 
   private get ProjYCenter(): number {
-    return this.wasmRun.WasmViews.view.getUint32(this.projYCenterPtr, true);
+    return this.wasmRun.WasmViews.view.getInt32(this.projYCenterPtr, true);
   }
 
   private set ProjYCenter(val: number) {
-    this.wasmRun.WasmViews.view.setUint32(this.projYCenterPtr, val, true);
+    this.wasmRun.WasmViews.view.setInt32(this.projYCenterPtr, val, true);
   }
 
   private get MinWallTop(): number {

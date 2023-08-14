@@ -7,6 +7,7 @@ enum EnginePanelInputKeysEnum {
   KEY_E = 'KeyE',
   KEY_Z = 'KeyZ',
   KEY_X = 'KeyX',
+  KEY_C = 'KeyC',
 }
 
 type EnginePanelInputKey = `${EnginePanelInputKeysEnum}`;

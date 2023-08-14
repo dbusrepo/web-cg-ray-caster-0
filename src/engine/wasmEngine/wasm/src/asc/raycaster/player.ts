@@ -11,7 +11,6 @@ import { logi } from '../importVars';
   private dirY: f32;
   private planeX: f32;
   private planeY: f32;
-  private pitch: f32;
 
   get PosX(): f32 {
     return this.posX;
@@ -68,14 +67,6 @@ import { logi } from '../importVars';
   set PlaneY(planeY: f32) {
     this.planeY = planeY;
   }
-
-  get Pitch(): f32 {
-    return this.pitch;
-  }
-
-  set Pitch(pitch: f32) {
-    this.pitch = pitch;
-  }
 }
 
 let playerAllocator = changetype<ObjectAllocator<Player>>(NULL_PTR);
@@ -120,10 +111,6 @@ function getPlayerPlaneYPtr(playerPtr: PTR_T): PTR_T {
   return playerPtr + offsetof<Player>("planeY");
 }
 
-function getPlayerPitchPtr(playerPtr: PTR_T): PTR_T {
-  return playerPtr + offsetof<Player>("pitch");
-}
-
 export { 
   Player,
   newPlayer,
@@ -133,6 +120,5 @@ export {
   getPlayerDirYPtr,
   getPlayerPlaneXPtr,
   getPlayerPlaneYPtr,
-  getPlayerPitchPtr,
   getPlayerPosZPtr,
 };

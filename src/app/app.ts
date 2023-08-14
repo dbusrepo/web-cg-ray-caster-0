@@ -146,7 +146,7 @@ class App {
     );
   }
 
-  private initAppWorkerMsgHandlers() {
+  private initAppWorkerMsgHandlers(): Promise<void> {
     let app = this;
     let { enginePanel } = app;
 

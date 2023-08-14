@@ -40,7 +40,7 @@ import {
 @final @unmanaged class Raycaster {
   private borderColor: u32;
   private viewport: Viewport;
-  private projYCenter: f32;
+  private projYCenter: i32;
   private player: Player;
   private map: Map;
   private zBuffer: SArray<f32>;
@@ -79,11 +79,11 @@ import {
     this.viewport = viewport;
   }
 
-  get ProjYCenter(): f32 {
+  get ProjYCenter(): i32 {
     return this.projYCenter;
   }
 
-  set ProjYCenter(projYCenter: f32) {
+  set ProjYCenter(projYCenter: i32) {
     this.projYCenter = projYCenter;
   }
 
