@@ -8,7 +8,7 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 
 // import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 // import { WasmEngine } from '../wasmEngine/wasmEngine';
-// import type { WasmViews } from '../wasmEngine/wasmViews';
+import type { WasmViews } from '../wasmEngine/wasmViews';
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { WasmRun } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
@@ -23,7 +23,7 @@ import {
   drawViewVertHorz,
   drawViewHorz,
 } from './draw';
-import { keys, keyOffsets } from '../../input/inputManager';
+import { Key, keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
 import { Texture, initTextureWasm } from '../wasmEngine/texture';
 import {
@@ -38,6 +38,7 @@ type RaycasterParams = {
 class Raycaster {
   private params: RaycasterParams;
   private wasmRun: WasmRun;
+  private wasmViews: WasmViews;
 
   private viewport: Viewport;
   private player: Player;
@@ -80,6 +81,7 @@ class Raycaster {
     this.params = params;
 
     this.wasmRun = params.wasmRun;
+    this.wasmViews = this.wasmRun.WasmViews;
 
     this.initTextures();
 
@@ -624,35 +626,44 @@ class Raycaster {
     this.wasmEngineModule.render();
   }
 
+  update(time: number) {
+    this.updatePlayer(time);
+  }
+
+  private isKeyDown(key: Key): boolean {
+    return this.wasmViews.inputKeys[keyOffsets[key]] !== 0;
+  }
+
   updatePlayer(time: number) {
-    const { inputKeys } = this.wasmRun.WasmViews;
-    const moveSpeed = time * 0.009; // TODO:
-    const rotSpeed = time * 0.006;
+    const MOVE_SPEED = 0.009; // TODO:
+    const ROT_SPEED = 0.006; // TODO:
+    const moveSpeed = time * MOVE_SPEED;
+    const rotSpeed = time * ROT_SPEED;
 
-    if (inputKeys[keyOffsets[keys.KEY_W]] !== 0) {
-      this.moveForward(moveSpeed, 1);
+    if (this.isKeyDown(keys.KEY_W)) {
+      this.movePlayer(moveSpeed);
     }
-    if (inputKeys[keyOffsets[keys.KEY_S]] !== 0) {
-      this.moveForward(moveSpeed, -1);
+    if (this.isKeyDown(keys.KEY_S)) {
+      this.movePlayer(-moveSpeed);
     }
-    if (inputKeys[keyOffsets[keys.KEY_A]] !== 0) {
-      this.rotate(-rotSpeed);
+    if (this.isKeyDown(keys.KEY_A)) {
+      this.rotatePlayer(-rotSpeed);
     }
-    if (inputKeys[keyOffsets[keys.KEY_D]] !== 0) {
-      this.rotate(rotSpeed);
+    if (this.isKeyDown(keys.KEY_D)) {
+      this.rotatePlayer(rotSpeed);
     }
   }
 
-  private moveForward(moveSpeed: number, dir: number) {
+  private movePlayer(moveSpeed: number) {
     const { player } = this;
-    player.PosX += dir * player.DirX * moveSpeed;
-    player.PosY += dir * player.DirY * moveSpeed;
+    player.PosX += player.DirX * moveSpeed;
+    player.PosY += player.DirY * moveSpeed;
   }
 
-  private rotate(moveSpeed: number) {
+  private rotatePlayer(rotSpeed: number) {
     const { player } = this;
-    const cos = Math.cos(moveSpeed);
-    const sin = Math.sin(moveSpeed);
+    const cos = Math.cos(rotSpeed);
+    const sin = Math.sin(rotSpeed);
     const oldDirX = player.DirX;
     player.DirX = player.DirX * cos - player.DirY * sin;
     player.DirY = oldDirX * sin + player.DirY * cos;

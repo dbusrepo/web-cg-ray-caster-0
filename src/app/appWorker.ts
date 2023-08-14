@@ -27,9 +27,6 @@ import { arrAvg, sleep } from '../engine/utils';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
 import type { AuxWorkerParams } from '../engine/auxWorker';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
-// import { Viewport, getWasmViewportView } from '../engine/raycaster/viewport';
-// import { Player, getWasmPlayerView } from '../engine/raycaster/player';
-import { FrameColorRGBAWasm } from '../engine/wasmEngine/frameColorRGBAWasm';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -381,16 +378,18 @@ class AppWorker {
   }
 
   updateState(step: number, time: number) {
-    this.raycaster.updatePlayer(time);
+    this.raycaster.update(time);
   }
 
-  onKeyDown(inputEvent: InputEvent) {
-    this.inputManager.onKeyDown(inputEvent.code);
-  }
+  // not used
+  // onKeyDown(inputEvent: InputEvent) {
+  //   this.inputManager.onKeyDown(inputEvent.code);
+  // }
 
-  onKeyUp(inputEvent: InputEvent) {
-    this.inputManager.onKeyUp(inputEvent.code);
-  }
+  // not used
+  // onKeyUp(inputEvent: InputEvent) {
+  //   this.inputManager.onKeyUp(inputEvent.code);
+  // }
 
   // onMouseMove(inputEvent: InputEvent) {
   // }
@@ -430,12 +429,13 @@ const commands = {
   [AppWorkerCommandEnum.RUN]: () => {
     appWorker.run();
   },
-  [AppWorkerCommandEnum.KEY_DOWN]: (inputEvent: InputEvent) => {
-    appWorker.onKeyDown(inputEvent);
-  },
-  [AppWorkerCommandEnum.KEY_UP]: (inputEvent: InputEvent) => {
-    appWorker.onKeyUp(inputEvent);
-  },
+  // not used
+  // [AppWorkerCommandEnum.KEY_DOWN]: (inputEvent: InputEvent) => {
+  //   appWorker.onKeyDown(inputEvent);
+  // },
+  // [AppWorkerCommandEnum.KEY_UP]: (inputEvent: InputEvent) => {
+  //   appWorker.onKeyUp(inputEvent);
+  // },
   [AppWorkerCommandEnum.RESIZE_CANVAS_DISPLAY_SIZE]: (
     resizeEvent: CanvasDisplayResizeEvent,
   ) => {

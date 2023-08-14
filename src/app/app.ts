@@ -41,10 +41,10 @@ class App {
   }
 
   private addKeyListener(panel: Panel) {
-    const keyEvent2cmd = {
-      [KeyEventsEnum.KEY_DOWN]: AppWorkerCommandEnum.KEY_DOWN,
-      [KeyEventsEnum.KEY_UP]: AppWorkerCommandEnum.KEY_UP,
-    };
+    // const keyEvent2cmd = {
+    //   [KeyEventsEnum.KEY_DOWN]: AppWorkerCommandEnum.KEY_DOWN,
+    //   [KeyEventsEnum.KEY_UP]: AppWorkerCommandEnum.KEY_UP,
+    // };
 
     const addKeyListener = (keyEvent: KeyEvent) =>
       panel.InputElement.addEventListener(keyEvent, (event) => {
