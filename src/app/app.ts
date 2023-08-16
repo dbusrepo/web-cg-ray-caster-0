@@ -77,28 +77,21 @@ class App {
   }
 
   private initPointerLock(enginePanel: EnginePanel) {
-    const element = this.enginePanel.InputElement;
+    const element = this.enginePanel.Canvas;
 
-    // let pointerLockDeactivatedAt: number | null = null;
-    // let requestingPointerLock = false;
     let requestingPointerLock = false;
 
     element.addEventListener('click', async (event: MouseEvent) => {
       if (event.target !== element) {
         return;
       }
-      if (!document.pointerLockElement && !requestingPointerLock) {
-        // if (
-        //   !(
-        //     pointerLockDeactivatedAt === null ||
-        //     performance.now() - pointerLockDeactivatedAt > 1300
-        //   )
-        // ) {
-        //   console.log('too early...');
-        //   return;
-        // }
+      const canRequestPointerLock = !(
+        document.pointerLockElement ||
+        requestingPointerLock ||
+        this.enginePanel.isConsoleOpen
+      );
+      if (canRequestPointerLock) {
         // requestPointerLockWithUnadjustedMovement(element);
-        // console.log('requesting pointer lock', requestingPointerLock);
         requestingPointerLock = true;
         await requestPointerLock(element);
         requestingPointerLock = false;
@@ -113,7 +106,7 @@ class App {
       //     movementY: event.movementY,
       //   },
       // });
-      console.log('mouse move', event.movementX, event.movementY);
+      // console.log('mouse move', event.movementX, event.movementY);
     };
 
     const pointerLockChangeHandler = () => {

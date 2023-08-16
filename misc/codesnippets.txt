@@ -956,3 +956,13 @@ function render(): void {
   // const t1 = <u64>process.hrtime();
   // store<u64>(hrTimerPtr, t1 - t0);
 }
+
+// if (
+//   !(
+//     pointerLockDeactivatedAt === null ||
+//     performance.now() - pointerLockDeactivatedAt > 1300
+//   )
+// ) {
+//   console.log('too early...');
+//   return;
+// }

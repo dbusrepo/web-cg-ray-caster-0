@@ -400,6 +400,9 @@ abstract class Panel {
     // if (this.menuGui) {
     //   this.menuGui.hide();
     // }
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
   }
 
   protected onConsoleOpened(): void {}
@@ -877,8 +880,7 @@ abstract class Panel {
   }
 
   get InputElement(): HTMLElement {
-    // return this.CanvasContainer;
-    return this.canvas;
+    return this.CanvasContainer;
   }
 
   get Id() {
