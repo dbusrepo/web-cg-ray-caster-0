@@ -113,6 +113,7 @@
     "webpack-dev-server": "^4.15.1"
   },
   "dependencies": {
+    "@jsier/retrier": "^1.2.4",
     "@tweakpane/plugin-essentials": "^0.1.8",
     "circular-dependency-plugin": "^5.2.2",
     "dom-css": "^2.1.0",
@@ -123,9 +124,9 @@
     "is-string": "^1.0.7",
     "jquery": "^3.7.0",
     "jquery-ui": "^1.13.2",
-    "pkg.json": "^2.0.8",
     "pako": "^2.1.0",
     "param-case": "^3.0.4",
+    "pkg.json": "^2.0.8",
     "preact": "^10.16.0",
     "preact-fullscreen": "^0.1.2",
     "react": "^18.2.0",

@@ -5,6 +5,11 @@ import {
   ViewPanelConfig,
   mainConfig,
 } from '../config/mainConfig';
+import {
+  requestPointerLock,
+  // requestPointerLockWithoutUnadjustedMovement,
+  // requestPointerLockWithUnadjustedMovement,
+} from './pointerlock';
 import { statsConfig } from '../ui/stats/statsConfig';
 import type { AppWorkerParams } from './appWorker';
 import { AppWorkerCommandEnum } from './appWorker';
@@ -30,21 +35,22 @@ class App {
   async init() {
     this.stats = this.initStatsPanel();
     this.initPanels();
-    this.initKeyListeners();
+    this.initEventListeners();
     await this.initAppWorker();
     this.initObservers();
     this.enginePanel.showInit();
   }
 
-  private initKeyListeners() {
-    this.addKeyListener(this.enginePanel);
+  private initEventListeners() {
+    this.initKeyListeners(this.enginePanel);
+    this.initPointerLock(this.enginePanel);
   }
 
-  private addKeyListener(panel: Panel) {
-    // const keyEvent2cmd = {
-    //   [KeyEventsEnum.KEY_DOWN]: AppWorkerCommandEnum.KEY_DOWN,
-    //   [KeyEventsEnum.KEY_UP]: AppWorkerCommandEnum.KEY_UP,
-    // };
+  private initKeyListeners(panel: Panel) {
+    const keyEvent2cmd = {
+      [KeyEventsEnum.KEY_DOWN]: AppWorkerCommandEnum.KEY_DOWN,
+      [KeyEventsEnum.KEY_UP]: AppWorkerCommandEnum.KEY_UP,
+    };
 
     const addKeyListener = (keyEvent: KeyEvent) =>
       panel.InputElement.addEventListener(keyEvent, (event) => {
@@ -68,6 +74,77 @@ class App {
       });
 
     (Object.values(KeyEventsEnum) as KeyEventsEnum[]).forEach(addKeyListener);
+  }
+
+  private initPointerLock(enginePanel: EnginePanel) {
+    const element = this.enginePanel.InputElement;
+
+    // let pointerLockDeactivatedAt: number | null = null;
+    // let requestingPointerLock = false;
+    let requestingPointerLock = false;
+
+    element.addEventListener('click', async (event: MouseEvent) => {
+      if (event.target !== element) {
+        return;
+      }
+      if (!document.pointerLockElement && !requestingPointerLock) {
+        // if (
+        //   !(
+        //     pointerLockDeactivatedAt === null ||
+        //     performance.now() - pointerLockDeactivatedAt > 1300
+        //   )
+        // ) {
+        //   console.log('too early...');
+        //   return;
+        // }
+        // requestPointerLockWithUnadjustedMovement(element);
+        // console.log('requesting pointer lock', requestingPointerLock);
+        requestingPointerLock = true;
+        await requestPointerLock(element);
+        requestingPointerLock = false;
+      }
+    });
+
+    const mouseMoveHandler = (event: MouseEvent) => {
+      // this.appWorker.postMessage({
+      //   command: AppWorkerCommandEnum.MOUSE_MOVE,
+      //   params: {
+      //     movementX: event.movementX,
+      //     movementY: event.movementY,
+      //   },
+      // });
+      console.log('mouse move', event.movementX, event.movementY);
+    };
+
+    const pointerLockChangeHandler = () => {
+      if (document.pointerLockElement === element) {
+        // console.log('pointer lock acquired');
+        // this.appWorker.postMessage({
+        //   command: AppWorkerCommandEnum.POINTER_LOCK_CHANGE,
+        //   params: {
+        //     isLocked: true,
+        //   },
+        // });
+        document.addEventListener('mousemove', mouseMoveHandler, false);
+      } else {
+        // pointerLockDeactivatedAt = performance.now();
+        // console.log('pointer lock lost');
+        // this.appWorker.postMessage({
+        //   command: AppWorkerCommandEnum.POINTER_LOCK_CHANGE,
+        //   params: {
+        //     isLocked: false,
+        //   },
+        // });
+        document.removeEventListener('mousemove', mouseMoveHandler, false);
+      }
+    };
+
+    const pointerLockErrorHandler = () => {
+      // console.error('Pointer lock error');
+    };
+
+    document.addEventListener('pointerlockchange', pointerLockChangeHandler);
+    document.addEventListener('pointerlockerror', pointerLockErrorHandler);
   }
 
   private buildAppWorkerParams() {

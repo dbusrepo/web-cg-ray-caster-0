@@ -773,7 +773,7 @@ abstract class Panel {
     return this.viewMode === ViewMode.WIN;
   }
 
-  get canvasContainerEl(): HTMLDivElement {
+  get CanvasContainer(): HTMLDivElement {
     return this.canvasContainer;
   }
 
@@ -872,16 +872,13 @@ abstract class Panel {
     this.cfg.eventLogConfig.isBelowCanvas = value;
   }
 
-  get InputEl(): HTMLElement {
-    return this.canvasContainerEl;
-  }
-
   get InputKeys(): Set<string> {
     return this.inputKeys;
   }
 
   get InputElement(): HTMLElement {
-    return this.canvasContainer;
+    // return this.CanvasContainer;
+    return this.canvas;
   }
 
   get Id() {

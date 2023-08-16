@@ -176,6 +176,8 @@ body::-webkit-scrollbar {
   /* object-fit: */
   width: 100%;
   height: 100%;
+  /* https://stackoverflow.com/questions/34471077/disable-text-selection-on-double-click */
+   user-select: none;
 }
 
 .canvas-win {

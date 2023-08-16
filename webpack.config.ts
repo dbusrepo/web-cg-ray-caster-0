@@ -249,7 +249,7 @@ const config: webpack.Configuration = {
     // https://webpack.js.org/configuration/watch/#watchoptionsignored
     // don't use this pattern, if you have a monorepo with linked packages
     // https://github.com/TypeStrong/ts-loader#usage-with-webpack-watch
-    ignored: ['**/node_modules', '**/*.js', '**/*.d.ts'],
+    ignored: ['**/node_modules', '**/*.d.ts'], // '**/*.js'
   },
 };
 

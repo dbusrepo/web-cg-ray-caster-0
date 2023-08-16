@@ -76,7 +76,7 @@ abstract class PanelGui {
   }
 
   private initTweakPane(): void {
-    const container = this.panel.canvasContainerEl;
+    const container = this.panel.CanvasContainer;
     this.tweakPane = new TweakPane({
       container,
       expanded: this.cfg.isTweakPaneExpanded,
