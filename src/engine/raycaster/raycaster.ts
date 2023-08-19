@@ -15,14 +15,12 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
-  drawBorders,
-  DrawViewParams,
-  initDrawParams,
-  drawBackground,
-  drawViewVert,
-  drawViewVertHorz,
-  drawViewHorz,
-} from './draw';
+  initRender,
+  renderBorders,
+  RenderViewParams,
+  renderBackground,
+  renderView,
+} from './render';
 import { Key, keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
 import { Texture, initTextureWasm } from '../wasmEngine/texture';
@@ -140,7 +138,7 @@ class Raycaster {
 
     this.initFrameBuf();
 
-    drawBorders(this.BorderColor);
+    renderBorders(this.BorderColor);
   }
 
   private initFrameBuf() {
@@ -156,7 +154,7 @@ class Raycaster {
 
     assert(this.wallTextures, 'wall textures mips not initialized');
 
-    initDrawParams(
+    initRender(
       frameBuf32,
       frameStride,
       this.viewport.StartX,
@@ -602,7 +600,7 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    const drawViewParams: DrawViewParams = {
+    const renderViewParams: RenderViewParams = {
       posX,
       posY,
       posZ,
@@ -618,10 +616,10 @@ class Raycaster {
       maxWallTop,
       minWallBottom,
       maxWallBottom,
+      texturedFloor: false,
     };
-    drawViewVert(drawViewParams);
-    // drawViewVertHorz(drawViewParams);
-    // drawViewHorz(drawViewParams);
+
+    renderView(renderViewParams);
 
     // this.wasmEngineModule.render();
   }
