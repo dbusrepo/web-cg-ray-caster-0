@@ -142,12 +142,13 @@ type RenderViewParams = {
 };
 
 function renderView(renderViewParams: RenderViewParams) {
-  // renderViewFullVertical(renderViewParams);
+  renderViewFullVert(renderViewParams);
+  // renderViewFullVert2(renderViewParams);
   // renderViewWallsVertFloorsHorz(renderViewParams);
-  renderViewFullHorz(renderViewParams);
+  // renderViewFullHorz(renderViewParams);
 }
 
-function renderViewFullVertical(renderViewParams: RenderViewParams) {
+function renderViewFullVert(renderViewParams: RenderViewParams) {
   const {
     frameBuf32,
     frameStride,
@@ -320,7 +321,7 @@ function renderViewFullVertical(renderViewParams: RenderViewParams) {
     if (texturedFloor) {
       let prevFloorTexMapIdx = null;
       let floorTex;
-      for (let y = bottom + 1; y < vpHeight; y++) {
+      for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
         const dist = posZ / (y - projYcenter);
         let weight = dist / wallDistance;
@@ -368,7 +369,6 @@ function renderViewFullVertical(renderViewParams: RenderViewParams) {
           // console.log('color: ', color);
           frameBuf32[framePtr] = color;
         }
-        framePtr += frameStride;
       }
     } else {
       for (let y = bottom + 1; y < vpHeight; y++) {
@@ -406,6 +406,175 @@ function renderViewFullVertical(renderViewParams: RenderViewParams) {
   //   frameBuf32[scrPtr] = 0xff0000ff;
   //   scrPtr += stride;
   // }
+}
+
+function renderViewFullVert2(renderViewParams: RenderViewParams) {
+  const {
+    frameBuf32,
+    frameStride,
+    startFramePtr,
+    vpWidth,
+    vpHeight,
+    floorTexturesMap,
+    // frameColorRGBAWasm,
+    stepXhspans,
+    stepYhspans,
+    lfloorXhspans,
+    lfloorYhspans,
+    frameRowPtrs,
+  } = renderParams;
+
+  const {
+    posX,
+    posY,
+    posZ,
+    dirX,
+    dirY,
+    planeX,
+    planeY,
+    wallSlices,
+    mapWidth,
+    projYcenter,
+    // minWallTop,
+    // maxWallBottom,
+    minWallTop,
+    maxWallTop,
+    minWallBottom,
+    maxWallBottom,
+    texturedFloor,
+  } = renderViewParams;
+
+  const rayDirLeftX = dirX - planeX;
+  const rayDirLeftY = dirY - planeY;
+  const rayDirRightX = dirX + planeX;
+  const rayDirRightY = dirY + planeY;
+  const invWidth = 1 / vpWidth;
+  const rayStepX = (rayDirRightX - rayDirLeftX) * invWidth;
+  const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
+
+  for (let y = minWallBottom + 1; y < vpHeight; ++y) {
+    const yd = y - projYcenter;
+    const sDist = posZ / yd;
+    lfloorXhspans[y] = posX + sDist * rayDirLeftX;
+    lfloorYhspans[y] = posY + sDist * rayDirLeftY;
+    stepXhspans[y] = sDist * rayStepX;
+    stepYhspans[y] = sDist * rayStepY;
+  }
+
+  for (let x = 0; x < vpWidth; x++) {
+    let {
+      Hit: hit,
+      Top: top,
+      Bottom: bottom,
+      Side: side,
+      // TexId: texId,
+      // MipLvl: mipLvl,
+      TexX: texX,
+      TexY: texY,
+      TexStepY: texStepY,
+      Distance: wallDistance,
+      FloorWallX: floorWallX,
+      FloorWallY: floorWallY,
+      Mipmap: mipmap,
+      clipTop,
+      projHeight,
+    } = wallSlices[x];
+
+    const colPtr = startFramePtr + x;
+    let framePtr = colPtr;
+    let frameLimitPtr = frameRowPtrs[top] + x;
+
+    // render ceil
+
+    // for (let y = 0; y < top; y++) {
+    for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      frameBuf32[framePtr] = CEIL_COLOR;
+    }
+    // assert(framePtr === colPtr + top * frameStride);
+
+    const wallSliceHeight = bottom - top + 1;
+    frameLimitPtr = framePtr + wallSliceHeight * frameStride;
+
+    if (hit) {
+      const {
+        Buf32: mipPixels,
+        Width: texWidth,
+        // Height: texHeight,
+        Lg2Pitch: lg2Pitch,
+      } = mipmap;
+
+      // mipmap is rotated 90ccw
+      // const mipStride = 1 << pitchLg2;
+      const mipRowOffs = texX << lg2Pitch;
+      let offs = mipRowOffs + texY;
+      // // wall alg2: dda
+      // for (let y = top; y <= bottom; y++) {
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        // const texColOffs = texY | 0;
+        // const color = mipPixels[mipRowOffs + texColOffs];
+        const color = mipPixels[offs | 0];
+        // const color = texels[texColOffs];
+        // const color = mipmap.Buf32[texY * texWidth + texX];
+        // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+        frameBuf32[framePtr] = color;
+        // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+        // texY += texStepY;
+        offs += texStepY;
+        // framePtr += frameStride;
+      }
+    } else {
+      // no hit untextured wall
+      const color = side === 0 ? 0xff0000ee : 0xff0000aa;
+      // for (let y = top; y <= bottom; y++) {
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        frameBuf32[framePtr] = color;
+      }
+    }
+
+    // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+
+    if (texturedFloor) {
+      let prevFloorTexMapIdx = null;
+      let floorTex;
+      for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
+        const floorX = lfloorXhspans[y] + x * stepXhspans[y];
+        const floorY = lfloorYhspans[y] + x * stepYhspans[y];
+        const floorXidx = floorX | 0;
+        const floorYidx = floorY | 0;
+        const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
+        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
+        const sameFloorTexMapIdx = floorTexMapIdx === prevFloorTexMapIdx;
+        if (
+          sameFloorTexMapIdx ||
+          (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length)
+        ) {
+          if (!sameFloorTexMapIdx) {
+            floorTex = floorTexturesMap[floorTexMapIdx].getMipmap(0).Image;
+            prevFloorTexMapIdx = floorTexMapIdx;
+          }
+          const tex = floorTex!;
+          const u = floorX - floorXidx;
+          const v = floorY - floorYidx;
+          // assert(floorX >= 0 && floorX < 1);
+          // assert(floorY >= 0 && floorY < 1);
+          const floorTexX = u * tex.Width;
+          const floorTexY = v * tex.Height;
+          const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
+          // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
+          const color = tex.Buf32[colorOffset];
+          // console.log(colorOffset);
+          // console.log('color: ', color);
+          frameBuf32[framePtr] = color;
+        }
+      }
+    } else {
+      for (let y = bottom + 1; y < vpHeight; y++) {
+        frameBuf32[framePtr] = FLOOR_COLOR;
+        framePtr += frameStride;
+      }
+    }
+    // assert(framePtr === colPtr + vpHeight * frameStride);
+  }
 }
 
 const genRenderCeilSpan = (renderViewParams: RenderViewParams) => {
@@ -539,8 +708,6 @@ function renderViewWallsVertFloorsHorz(renderViewParams: RenderViewParams) {
     texturedFloor,
   } = renderViewParams;
 
-  rhspans.set(initrhspans);
-
   const rayDirLeftX = dirX - planeX;
   const rayDirLeftY = dirY - planeY;
   const rayDirRightX = dirX + planeX;
@@ -568,6 +735,8 @@ function renderViewWallsVertFloorsHorz(renderViewParams: RenderViewParams) {
   const renderFloorSpan = genRenderFloorSpan(renderViewParams);
 
   let frameColPtr = startFramePtr;
+
+  rhspans.set(initrhspans);
 
   // render walls vertically
   for (let x = 0; x < vpWidth; x++, frameColPtr++) {

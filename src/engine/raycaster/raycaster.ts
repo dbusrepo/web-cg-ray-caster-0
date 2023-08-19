@@ -616,7 +616,7 @@ class Raycaster {
       maxWallTop,
       minWallBottom,
       maxWallBottom,
-      texturedFloor: false,
+      texturedFloor: true,
     };
 
     renderView(renderViewParams);
