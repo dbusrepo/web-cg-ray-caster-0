@@ -153,6 +153,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
     startFramePtr,
     vpWidth,
     vpHeight,
+    floorTexturesMap,
     // frameColorRGBAWasm,
   } = drawParams;
 
@@ -188,14 +189,20 @@ function drawViewVert(drawViewParams: DrawViewParams) {
 
     const colPtr = startFramePtr + x;
     let framePtr = colPtr;
+    let frameLimitPtr;
 
     // draw ceil
-    for (let y = 0; y < top; y++) {
-      frameBuf32[framePtr] = CEIL_COLOR;
-      framePtr += frameStride;
-    }
 
-    // assert(dstPtr === colPtr + top * frameStride);
+    frameLimitPtr = framePtr + top * frameStride;
+
+    // for (let y = 0; y < top; y++) {
+    for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      frameBuf32[framePtr] = CEIL_COLOR;
+    }
+    // assert(framePtr === colPtr + top * frameStride);
+
+    const wallSliceHeight = bottom - top + 1;
+    frameLimitPtr = framePtr + wallSliceHeight * frameStride;
 
     if (hit) {
       const {
@@ -209,9 +216,9 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << lg2Pitch;
 
-      // let numPixels = bottom - top + 1;
+      let numPixels = wallSliceHeight;
 
-      // wall alg1: bres
+      // // wall alg1: bres
       // const frac = texWidth;
       // let counter = -projHeight + clipTop * frac;
       // let colIdx = mipRowOffs;
@@ -227,16 +234,28 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       //   framePtr += frameStride;
       // }
 
+      // mipPixels.vi
+      // const texels = new Uint32Array(
+      //   mipPixels.buffer,
+      //   mipPixels.byteOffset + mipRowOffs * 4,
+      //   mipPixels.byteLength / 4,
+      // );
+      // const texels = mipPixels.subarray(mipRowOffs, mipRowOffs + 64);
+
+      let offs = mipRowOffs + texY;
       // // wall alg2: dda
-      for (let y = top; y <= bottom; y++) {
-        const texColOffs = texY | 0;
-        let color = mipPixels[mipRowOffs + texColOffs];
+      // for (let y = top; y <= bottom; y++) {
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        // const texColOffs = texY | 0;
+        // const color = mipPixels[mipRowOffs + texColOffs];
+        const color = mipPixels[offs | 0];
+        // const color = texels[texColOffs];
         // const color = mipmap.Buf32[texY * texWidth + texX];
         // color = frameColorRGBAWasm.lightColorABGR(color, 255);
         frameBuf32[framePtr] = color;
         // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        texY += texStepY;
-        framePtr += frameStride;
+        // texY += texStepY;
+        offs += texStepY;
       }
 
       // wall alg3: dda fixed
@@ -289,13 +308,13 @@ function drawViewVert(drawViewParams: DrawViewParams) {
     } else {
       // no hit untextured wall
       const color = side === 0 ? 0xff0000ff : 0xff00ff00;
-      for (let y = top; y <= bottom; y++) {
+      // for (let y = top; y <= bottom; y++) {
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
         frameBuf32[framePtr] = color;
-        framePtr += frameStride;
       }
     }
 
-    // assert(dstPtr === colPtr + (bottom + 1) * frameStride);
+    // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
     const SOLID_FLOOR = true;
 
@@ -305,9 +324,9 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       //   frameBuf32[dstPtr] = 0xff777777;
       //   dstPtr += frameStride;
       // }
-      const { floorTexturesMap } = drawParams;
       let prevFloorTexMapIdx = null;
       let floorTex;
+      // for (let y = bottom + 1; y < vpHeight; y++) {
       for (let y = bottom + 1; y < vpHeight; y++) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
         const dist = posZ / (y - projYcenter);
@@ -365,7 +384,7 @@ function drawViewVert(drawViewParams: DrawViewParams) {
       }
     }
 
-    assert(framePtr === colPtr + vpHeight * frameStride);
+    // assert(framePtr === colPtr + vpHeight * frameStride);
   }
 
   // // draw horizontal lines for minWallTop and maxWallBottom

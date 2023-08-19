@@ -25,6 +25,7 @@ import type { WasmViews } from '../engine/wasmEngine/wasmViews';
 import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
 import type { Key } from '../input/inputManager';
 import { keyOffsets } from '../input/inputManager';
+import { EnginePanelInputKeysEnum } from '../panels/enginePanelTypes';
 
 class App {
   private stats: Stats;
@@ -43,7 +44,7 @@ class App {
 
   private initEventListeners() {
     this.initKeyListeners(this.enginePanel);
-    this.initPointerLock(this.enginePanel);
+    // this.initPointerLock(this.enginePanel);
   }
 
   private initKeyListeners(panel: Panel) {
@@ -99,14 +100,17 @@ class App {
     });
 
     const mouseMoveHandler = (event: MouseEvent) => {
+      // console.log('mouse move', event.movementX, event.movementY);
       // this.appWorker.postMessage({
       //   command: AppWorkerCommandEnum.MOUSE_MOVE,
       //   params: {
-      //     movementX: event.movementX,
-      //     movementY: event.movementY,
+      //     dx: event.movementX,
+      //     dy: event.movementY,
       //   },
       // });
-      // console.log('mouse move', event.movementX, event.movementY);
+      // const { inputKeys } = this.wasmViews;
+      // const keyOffset = keyOffsets[EnginePanelInputKeysEnum.KEY_D];
+      // inputKeys[keyOffset] = 1;
     };
 
     const pointerLockChangeHandler = () => {

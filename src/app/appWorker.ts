@@ -391,8 +391,18 @@ class AppWorker {
   //   this.inputManager.onKeyUp(inputEvent.code);
   // }
 
-  // onMouseMove(inputEvent: InputEvent) {
-  // }
+  onMouseMove(mouseEvent: MouseEvent) {
+    // console.log('on mouse move dx = ', mouseEvent.dx, ' dy = ', mouseEvent.dy);
+    if (mouseEvent.dx) {
+      // const rotspeed = 0.005;
+      const rotspeed = 0.009;
+      this.raycaster.rotatePlayer(mouseEvent.dx > 0 ? rotspeed : -rotspeed);
+      // this.raycaster.rotatePlayer(mouseEvent.dx * rotspeed);
+    }
+    // if (mouseEvent.dy) {
+    //   this.raycaster.rotateCamera(mouseEvent.dy);
+    // }
+  }
 
   onCanvasDisplayResize(displayWidth: number, displayHeight: number) {
     // console.log('onCanvasDisplayResize', displayWidth, displayHeight);
@@ -410,8 +420,15 @@ const enum AppWorkerCommandEnum {
   RUN = 'app_worker_run',
   KEY_DOWN = 'app_worker_key_down',
   KEY_UP = 'app_worker_key_up',
+  MOUSE_MOVE = 'app_worker_mouse_move',
   RESIZE_CANVAS_DISPLAY_SIZE = 'app_worker_resize_canvas_display_size',
 }
+
+
+type MouseEvent = {
+  dx: number;
+  dy: number;
+};
 
 const commands = {
   [AppWorkerCommandEnum.INIT]: async (params: AppWorkerParams) => {
@@ -436,6 +453,9 @@ const commands = {
   // [AppWorkerCommandEnum.KEY_UP]: (inputEvent: InputEvent) => {
   //   appWorker.onKeyUp(inputEvent);
   // },
+  [AppWorkerCommandEnum.MOUSE_MOVE]: (mouseEvent: MouseEvent) => {
+    appWorker.onMouseMove(mouseEvent);
+  },
   [AppWorkerCommandEnum.RESIZE_CANVAS_DISPLAY_SIZE]: (
     resizeEvent: CanvasDisplayResizeEvent,
   ) => {

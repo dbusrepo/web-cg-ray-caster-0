@@ -627,21 +627,29 @@ class Raycaster {
   }
 
   update(time: number) {
-    this.updateLookUp();
+    this.updateLookUpDown(time);
     this.updatePlayer(time);
   }
 
-  private updateLookUp() {
-    const OFFS = 15;
+  private updateLookUpDown(time: number) {
+    const OFFS = 15 * time;
     if (this.isKeyDown(keys.KEY_E)) {
-      const yCenter = this.ProjYCenter + OFFS;
-      this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
+      this.lookUp(OFFS);
     }
 
     if (this.isKeyDown(keys.KEY_C)) {
-      const yCenter = this.ProjYCenter - OFFS;
-      this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
+      this.lookDown(OFFS);
     }
+  }
+
+  public lookUp(upOffs: number) {
+    const yCenter = this.ProjYCenter + upOffs;
+    this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
+  }
+
+  public lookDown(downOffs: number) {
+    const yCenter = this.ProjYCenter - downOffs;
+    this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
   }
 
   private isKeyDown(key: Key): boolean {
@@ -692,7 +700,7 @@ class Raycaster {
     player.PosY += player.DirY * moveSpeed;
   }
 
-  private rotatePlayer(rotSpeed: number) {
+  public rotatePlayer(rotSpeed: number) {
     const { player } = this;
     const cos = Math.cos(rotSpeed);
     const sin = Math.sin(rotSpeed);
