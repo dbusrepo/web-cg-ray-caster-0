@@ -95,9 +95,9 @@ import {
   getBlueFogTablePtr,
 } from './frameColorRGBA';
 import {
-  initRaycasterDraw,
-  drawViewVert,
-} from './raycaster/draw';
+  initRender,
+  renderViewVert,
+} from './raycaster/render';
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -136,7 +136,6 @@ function initData(): void {
   }
 
   initTextures();
-  initRaycasterDraw(frameColorRGBA, raycaster.Viewport, textures);
 }
 
 function init(): void {
@@ -161,10 +160,11 @@ function getRaycasterPtr(): PTR_T {
 
 function initRaycaster(): void {
   raycaster.init();
+  initRender(raycaster, frameColorRGBA, textures, mipmaps);
 }
 
 function render(): void {
-  drawViewVert(raycaster, mipmaps);
+  renderViewVert(raycaster);
 }
 
 function run(): void {

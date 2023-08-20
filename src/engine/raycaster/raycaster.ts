@@ -587,8 +587,8 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    renderView();
-    // this.wasmEngineModule.render();
+    // renderView();
+    this.wasmEngineModule.render();
   }
 
   update(time: number) {
