@@ -24,9 +24,9 @@ import { WasmRun } from '../engine/wasmEngine/wasmRun';
 import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
 import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
 import { arrAvg, sleep } from '../engine/utils';
+import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
 import type { AuxWorkerParams } from '../engine/auxWorker';
-import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;

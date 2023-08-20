@@ -17,7 +17,6 @@ import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
   initRender,
   renderBorders,
-  RenderViewParams,
   renderBackground,
   renderView,
 } from './render';
@@ -154,16 +153,7 @@ class Raycaster {
 
     assert(this.wallTextures, 'wall textures mips not initialized');
 
-    initRender(
-      frameBuf32,
-      frameStride,
-      this.viewport.StartX,
-      this.viewport.StartY,
-      this.viewport.Width,
-      this.viewport.Height,
-      this.floorTexturesMap,
-      this.frameColorRGBAWasm,
-    );
+    initRender(this, frameBuf32, frameStride, true);
   }
 
   private initViewport() {
@@ -351,10 +341,7 @@ class Raycaster {
   }
 
   renderView() {
-    // this.wasmEngine.WasmRun.WasmModules.engine.render();
-    // this.wasmEngineModule.render();
-
-    // drawBackground(this.backgroundColor);
+    // renderBackground(this.backgroundColor);
 
     const { mapWidth, mapHeight } = this;
     const { xGrid, yGrid } = this;
@@ -600,27 +587,7 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    const renderViewParams: RenderViewParams = {
-      posX,
-      posY,
-      posZ,
-      dirX,
-      dirY,
-      planeX,
-      planeY,
-      wallSlices,
-      mapWidth,
-      mapHeight,
-      projYcenter,
-      minWallTop,
-      maxWallTop,
-      minWallBottom,
-      maxWallBottom,
-      texturedFloor: true,
-    };
-
-    renderView(renderViewParams);
-
+    renderView();
     // this.wasmEngineModule.render();
   }
 
@@ -710,7 +677,7 @@ class Raycaster {
     player.PlaneY = oldPlaneX * sin + player.PlaneY * cos;
   }
 
-  private get ProjYCenter(): number {
+  get ProjYCenter(): number {
     return this.wasmRun.WasmViews.view.getInt32(this.projYCenterPtr, true);
   }
 
@@ -718,7 +685,7 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setInt32(this.projYCenterPtr, val, true);
   }
 
-  private get MinWallTop(): number {
+  get MinWallTop(): number {
     return this.wasmRun.WasmViews.view.getUint32(this.minWallTopPtr, true);
   }
 
@@ -726,7 +693,7 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setUint32(this.minWallTopPtr, val, true);
   }
 
-  private get MaxWallTop(): number {
+  get MaxWallTop(): number {
     return this.wasmRun.WasmViews.view.getUint32(this.maxWallTopPtr, true);
   }
 
@@ -734,7 +701,7 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setUint32(this.maxWallTopPtr, val, true);
   }
 
-  private get MinWallBottom(): number {
+  get MinWallBottom(): number {
     return this.wasmRun.WasmViews.view.getUint32(this.minWallBottomPtr, true);
   }
 
@@ -742,7 +709,7 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setUint32(this.minWallBottomPtr, val, true);
   }
 
-  private get MaxWallBottom(): number {
+  get MaxWallBottom(): number {
     return this.wasmRun.WasmViews.view.getUint32(this.maxWallBottomPtr, true);
   }
 
@@ -764,6 +731,18 @@ class Raycaster {
 
   get Player() {
     return this.player;
+  }
+
+  get FloorTexturesMap() {
+    return this.floorTexturesMap;
+  }
+
+  get WallSlices() {
+    return this.wallSlices;
+  }
+
+  get MapWidth() {
+    return this.mapWidth;
   }
 }
 

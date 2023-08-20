@@ -3,6 +3,7 @@ import { WallSlice } from './wallslice';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
+import { Raycaster } from './raycaster';
 
 const CEIL_COLOR = 0xffbbbbbb;
 const FLOOR_COLOR = 0xff555555;
@@ -22,15 +23,19 @@ class RenderParams {
   public lfloorYhspans: Float32Array;
 
   constructor(
+    public raycaster: Raycaster,
     public frameBuf32: Uint32Array,
     public frameStride: number,
-    public vpStartX: number,
-    public vpStartY: number,
-    public vpWidth: number,
-    public vpHeight: number,
-    public floorTexturesMap: Texture[],
-    public frameColorRGBAWasm: FrameColorRGBAWasm,
+    public texturedFloor: boolean,
   ) {
+    const viewport = raycaster.Viewport;
+    const {
+      StartX: vpStartX,
+      StartY: vpStartY,
+      // Width: vpWidth,
+      Height: vpHeight,
+    } = viewport;
+
     this.startFramePtr = vpStartY * frameStride + vpStartX;
 
     this.frameRowPtrs = new Uint32Array(vpHeight);
@@ -54,32 +59,30 @@ class RenderParams {
 let renderParams: RenderParams;
 
 function initRender(
+  raycaster: Raycaster,
   frameBuf32: Uint32Array,
   frameStride: number,
-  vpStartX: number,
-  vpStartY: number,
-  vpWidth: number,
-  vpHeight: number,
-  floorTexturesMap: Texture[],
-  frameColorRGBAWasm: FrameColorRGBAWasm,
+  texturedFloor: boolean,
 ) {
   renderParams = new RenderParams(
+    raycaster,
     frameBuf32,
     frameStride / BPP_RGBA,
-    vpStartX,
-    vpStartY,
-    vpWidth,
-    vpHeight,
-    floorTexturesMap,
-    frameColorRGBAWasm,
+    texturedFloor,
   );
 }
 
 function renderBackground(color: number) {
   assert(renderParams !== undefined);
 
-  const { frameBuf32, frameStride, vpStartX, vpStartY, vpWidth, vpHeight } =
-    renderParams;
+  const { frameBuf32, frameStride, raycaster } = renderParams;
+
+  const {
+    StartX: vpStartX,
+    StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
 
   for (
     let i = vpStartY, offset = vpStartY * frameStride;
@@ -93,8 +96,14 @@ function renderBackground(color: number) {
 function renderBorders(borderColor: number) {
   assert(renderParams !== undefined);
 
-  const { frameBuf32, frameStride, vpStartX, vpStartY, vpWidth, vpHeight } =
-    renderParams;
+  const { frameBuf32, frameStride, raycaster } = renderParams;
+
+  const {
+    StartX: vpStartX,
+    StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
 
   const upperLimit = vpStartY * frameStride;
   const lowerLimit = (vpStartY + vpHeight) * frameStride;
@@ -116,55 +125,38 @@ function renderBorders(borderColor: number) {
   }
 }
 
-type RenderViewParams = {
-  posX: number;
-  posY: number;
-  posZ: number;
-  dirX: number;
-  dirY: number;
-  planeX: number;
-  planeY: number;
-  wallSlices: WallSlice[];
-  mapWidth: number;
-  mapHeight: number;
-  projYcenter: number;
-  minWallTop: number;
-  maxWallTop: number;
-  minWallBottom: number;
-  maxWallBottom: number;
-  texturedFloor: boolean;
-};
-
-function renderView(renderViewParams: RenderViewParams) {
-  renderViewFullVert(renderViewParams);
-  // renderViewFullVert2(renderViewParams);
-  // renderViewWallsVertFloorsHorz(renderViewParams);
-  // renderViewFullHorz(renderViewParams);
+function renderView() {
+  // renderViewFullVert();
+  renderViewFullVert2();
+  // renderViewWallsVertFloorsHorz();
+  // renderViewFullHorz();
 }
 
-function renderViewFullVert(renderViewParams: RenderViewParams) {
+function renderViewFullVert() {
   const {
+    startFramePtr,
     frameBuf32,
     frameStride,
-    startFramePtr,
-    vpWidth,
-    vpHeight,
-    floorTexturesMap,
-    // frameColorRGBAWasm,
     frameRowPtrs,
+    texturedFloor,
+    raycaster,
   } = renderParams;
 
   const {
-    posX,
-    posY,
-    posZ,
-    wallSlices,
-    mapWidth,
-    projYcenter,
-    // minWallTop,
-    // maxWallBottom,
-    texturedFloor,
-  } = renderViewParams;
+    FloorTexturesMap: floorTexturesMap,
+    WallSlices: wallSlices,
+    MapWidth: mapWidth,
+    ProjYCenter: projYCenter,
+  } = raycaster;
+
+  const {
+    // StartX: vpStartX,
+    // StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
+
+  const { PosX: posX, PosY: posY, PosZ: posZ } = raycaster.Player;
 
   for (let x = 0; x < vpWidth; x++) {
     let {
@@ -322,7 +314,7 @@ function renderViewFullVert(renderViewParams: RenderViewParams) {
       let floorTex;
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
-        const dist = posZ / (y - projYcenter);
+        const dist = posZ / (y - projYCenter);
         let weight = dist / wallDistance;
         // assert(weight >= 0);
         // assert(weight <= 1);
@@ -402,41 +394,44 @@ function renderViewFullVert(renderViewParams: RenderViewParams) {
   // }
 }
 
-function renderViewFullVert2(renderViewParams: RenderViewParams) {
+function renderViewFullVert2() {
   const {
+    startFramePtr,
     frameBuf32,
     frameStride,
-    startFramePtr,
-    vpWidth,
-    vpHeight,
-    floorTexturesMap,
-    // frameColorRGBAWasm,
-    stepXhspans,
-    stepYhspans,
+    frameRowPtrs,
     lfloorXhspans,
     lfloorYhspans,
-    frameRowPtrs,
+    stepXhspans,
+    stepYhspans,
+    raycaster,
+    texturedFloor,
   } = renderParams;
 
   const {
-    posX,
-    posY,
-    posZ,
-    dirX,
-    dirY,
-    planeX,
-    planeY,
-    wallSlices,
-    mapWidth,
-    projYcenter,
-    // minWallTop,
-    // maxWallBottom,
-    minWallTop,
-    maxWallTop,
-    minWallBottom,
-    maxWallBottom,
-    texturedFloor,
-  } = renderViewParams;
+    FloorTexturesMap: floorTexturesMap,
+    WallSlices: wallSlices,
+    MapWidth: mapWidth,
+    ProjYCenter: projYCenter,
+    MinWallBottom: minWallBottom,
+  } = raycaster;
+
+  const {
+    // StartX: vpStartX,
+    // StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
+
+  const {
+    DirX: dirX,
+    DirY: dirY,
+    PosX: posX,
+    PosY: posY,
+    PosZ: posZ,
+    PlaneX: planeX,
+    PlaneY: planeY,
+  } = raycaster.Player;
 
   const rayDirLeftX = dirX - planeX;
   const rayDirLeftY = dirY - planeY;
@@ -447,7 +442,7 @@ function renderViewFullVert2(renderViewParams: RenderViewParams) {
   const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
 
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
-    const yd = y - projYcenter;
+    const yd = y - projYCenter;
     const sDist = posZ / yd;
     lfloorXhspans[y] = posX + sDist * rayDirLeftX;
     lfloorYhspans[y] = posY + sDist * rayDirLeftY;
@@ -569,7 +564,7 @@ function renderViewFullVert2(renderViewParams: RenderViewParams) {
   }
 }
 
-const genRenderCeilSpan = (renderViewParams: RenderViewParams) => {
+const genRenderCeilSpan = () => {
   const { frameBuf32, startFramePtr, frameRowPtrs } = renderParams;
 
   const renderCeilSpan = (y: number, x1: number, x2: number) => {
@@ -586,19 +581,20 @@ const genRenderCeilSpan = (renderViewParams: RenderViewParams) => {
   return renderCeilSpan;
 };
 
-const genRenderFloorSpan = (renderViewParams: RenderViewParams) => {
+const genRenderFloorSpan = () => {
   const {
     frameBuf32,
     startFramePtr,
-    floorTexturesMap,
     stepXhspans,
     stepYhspans,
     lfloorXhspans,
     lfloorYhspans,
     frameRowPtrs,
+    raycaster,
+    texturedFloor,
   } = renderParams;
 
-  const { mapWidth, texturedFloor } = renderViewParams;
+  const { FloorTexturesMap: floorTexturesMap, MapWidth: mapWidth } = raycaster;
 
   const renderFloorSpan = (y: number, x1: number, x2: number) => {
     let frameRowPtr = startFramePtr + frameRowPtrs[y] + x1;
@@ -661,44 +657,48 @@ const genRenderFloorSpan = (renderViewParams: RenderViewParams) => {
   return renderFloorSpan;
 };
 
-function renderViewWallsVertFloorsHorz(renderViewParams: RenderViewParams) {
+function renderViewWallsVertFloorsHorz() {
   const {
-    frameColorRGBAWasm,
     frameBuf32,
-    frameStride,
     startFramePtr,
-    // wallTextures,
-    vpWidth,
-    vpHeight,
-    floorTexturesMap,
-    initrhspans,
-    lhspans,
-    rhspans,
+    frameStride,
     stepXhspans,
     stepYhspans,
     lfloorXhspans,
     lfloorYhspans,
     frameRowPtrs,
+    lhspans,
+    rhspans,
+    initrhspans,
+    raycaster,
   } = renderParams;
 
   const {
-    posX,
-    posY,
-    posZ,
-    dirX,
-    dirY,
-    planeX,
-    planeY,
-    wallSlices,
-    projYcenter,
-    mapWidth,
-    mapHeight,
-    minWallTop,
-    maxWallTop,
-    minWallBottom,
-    maxWallBottom,
-    texturedFloor,
-  } = renderViewParams;
+    FloorTexturesMap: floorTexturesMap,
+    WallSlices: wallSlices,
+    MapWidth: mapWidth,
+    ProjYCenter: projYCenter,
+    MinWallTop: minWallTop,
+    MinWallBottom: minWallBottom,
+    MaxWallBottom: maxWallBottom,
+  } = raycaster;
+
+  const {
+    // StartX: vpStartX,
+    // StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
+
+  const {
+    DirX: dirX,
+    DirY: dirY,
+    PosX: posX,
+    PosY: posY,
+    PosZ: posZ,
+    PlaneX: planeX,
+    PlaneY: planeY,
+  } = raycaster.Player;
 
   const rayDirLeftX = dirX - planeX;
   const rayDirLeftY = dirY - planeY;
@@ -709,7 +709,7 @@ function renderViewWallsVertFloorsHorz(renderViewParams: RenderViewParams) {
   const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
 
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
-    const yd = y - projYcenter;
+    const yd = y - projYCenter;
     const sDist = posZ / yd;
     lfloorXhspans[y] = posX + sDist * rayDirLeftX;
     lfloorYhspans[y] = posY + sDist * rayDirLeftY;
@@ -717,14 +717,14 @@ function renderViewWallsVertFloorsHorz(renderViewParams: RenderViewParams) {
     stepYhspans[y] = sDist * rayStepY;
   }
 
-  const renderCeilSpan = genRenderCeilSpan(renderViewParams);
+  const renderCeilSpan = genRenderCeilSpan();
 
   // render horz ceiling above walls
   for (let y = 0; y < minWallTop; y++) {
     renderCeilSpan(y, 0, vpWidth - 1);
   }
 
-  const renderFloorSpan = genRenderFloorSpan(renderViewParams);
+  const renderFloorSpan = genRenderFloorSpan();
 
   let frameColPtr = startFramePtr;
 
@@ -909,43 +909,48 @@ function renderViewWallsVertFloorsHorz(renderViewParams: RenderViewParams) {
   // }
 }
 
-function renderViewFullHorz(renderViewParams: RenderViewParams) {
+function renderViewFullHorz() {
   const {
-    frameColorRGBAWasm,
     frameBuf32,
-    frameStride,
     startFramePtr,
-    // wallTextures,
-    vpWidth,
-    vpHeight,
-    floorTexturesMap,
+    frameStride,
     stepXhspans,
     stepYhspans,
     lfloorXhspans,
     lfloorYhspans,
     frameRowPtrs,
+    raycaster,
   } = renderParams;
 
   const {
-    posX,
-    posY,
-    posZ,
-    dirX,
-    dirY,
-    planeX,
-    planeY,
-    wallSlices,
-    projYcenter,
-    mapWidth,
-    mapHeight,
-    minWallTop,
-    maxWallTop,
-    minWallBottom,
-    maxWallBottom,
-    texturedFloor,
-  } = renderViewParams;
+    FloorTexturesMap: floorTexturesMap,
+    WallSlices: wallSlices,
+    MapWidth: mapWidth,
+    ProjYCenter: projYCenter,
+    MinWallTop: minWallTop,
+    MaxWallTop: maxWallTop,
+    MinWallBottom: minWallBottom,
+    MaxWallBottom: maxWallBottom,
+  } = raycaster;
 
-  const renderCeilSpan = genRenderCeilSpan(renderViewParams);
+  const {
+    // StartX: vpStartX,
+    // StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
+
+  const {
+    DirX: dirX,
+    DirY: dirY,
+    PosX: posX,
+    PosY: posY,
+    PosZ: posZ,
+    PlaneX: planeX,
+    PlaneY: planeY,
+  } = raycaster.Player;
+
+  const renderCeilSpan = genRenderCeilSpan();
 
   const rayDirLeftX = dirX - planeX;
   const rayDirLeftY = dirY - planeY;
@@ -956,7 +961,7 @@ function renderViewFullHorz(renderViewParams: RenderViewParams) {
   const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
 
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
-    const yd = y - projYcenter;
+    const yd = y - projYCenter;
     const sDist = posZ / yd;
     lfloorXhspans[y] = posX + sDist * rayDirLeftX;
     lfloorYhspans[y] = posY + sDist * rayDirLeftY;
@@ -1004,7 +1009,7 @@ function renderViewFullHorz(renderViewParams: RenderViewParams) {
     }
   }
 
-  const renderFloorSpan = genRenderFloorSpan(renderViewParams);
+  const renderFloorSpan = genRenderFloorSpan();
 
   // render walls bottom half
   for (
@@ -1046,6 +1051,5 @@ export {
   initRender,
   renderBackground,
   renderBorders,
-  RenderViewParams,
   renderView,
 };
