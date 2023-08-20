@@ -69,7 +69,7 @@ class AssetTextureRGBA {
     if (params.rotate) {
       this.levels.forEach(AssetTextureRGBA.rotate90ccw);
     }
-    this.levels.forEach((level) => level.resizePitchPow2());
+    this.levels.forEach((level) => level.resizePitchToPow2());
   }
 
   private static rotate90ccw(mipmap: BitImageRGBA) {

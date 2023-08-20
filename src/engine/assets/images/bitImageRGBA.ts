@@ -14,7 +14,7 @@ class BitImageRGBA extends BitImage {
     // this.resizePitchPow2();
   }
 
-  initPitchLg2(
+  initLg2Pitch(
     width: number,
     height: number,
     lg2Pitch: number,
@@ -27,7 +27,7 @@ class BitImageRGBA extends BitImage {
     assert(this.width <= 1 << this.lg2Pitch);
   }
 
-  public resizePitchPow2() {
+  public resizePitchToPow2() {
     let pitch = this.width;
     if (!utils.isPowerOf2(pitch)) {
       pitch = utils.nextPowerOf2(pitch);

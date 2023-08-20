@@ -84,7 +84,7 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
   );
 
   const mipmap = new BitImageRGBA();
-  mipmap.initPitchLg2(width, height, pitchLg2, imageBuf8);
+  mipmap.initLg2Pitch(width, height, pitchLg2, imageBuf8);
 
   return mipmap;
 }

@@ -27,7 +27,7 @@ const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
     return <PTR_T>(texturesPixelsPtr + load<u32>(this.descPtr + WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + LG2_PITCH_FIELD_SIZE));
   }
 
-  @inline get PitchLg2(): SIZE_T {
+  @inline get Lg2Pitch(): SIZE_T {
     return load<u32>(this.descPtr + WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE);
   }
 

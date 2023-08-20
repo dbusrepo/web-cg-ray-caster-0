@@ -29,7 +29,7 @@ const HEADER_SIZE = getTypeSize<Header>() + HEADER_ALIGN_MASK;
 // @ts-ignore: decorator
 @final @unmanaged class SArray<T> {
 
-  @inline private idx2Ptr(idx: SIZE_T): PTR_T {
+  @inline private idx2ptr(idx: SIZE_T): PTR_T {
     const header = getHeader(this);
     // TODO:
     // myAssert(idx < header.length);
@@ -38,18 +38,18 @@ const HEADER_SIZE = getTypeSize<Header>() + HEADER_ALIGN_MASK;
   }
 
   @inline ptrAt(idx: SIZE_T): PTR_T {
-    return this.idx2Ptr(idx);
+    return this.idx2ptr(idx);
   }
 
   // returns a reference if T is a reference type, otherwise returns a value
   @inline at(idx: SIZE_T): T {
-    const ptr = this.idx2Ptr(idx);
+    const ptr = this.idx2ptr(idx);
     return new Pointer<T>(ptr).value;
   }
 
   // copies the input value bytes (shallow copy for ref types) in array memory (no reference)
   @inline set(idx: SIZE_T, value: T): void {
-    const ptr = this.idx2Ptr(idx);
+    const ptr = this.idx2ptr(idx);
     // TODO: add copy constructor for ref types ?
     new Pointer<T>(ptr).value = value;
   }
