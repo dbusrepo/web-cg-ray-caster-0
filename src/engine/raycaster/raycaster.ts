@@ -488,8 +488,8 @@ class Raycaster {
 
       const ratio = 1 / perpWallDist;
       const projWallBottom = (projYcenter + posZ * ratio) | 0;
-      const wallSliceHeight = (this.wallHeight * ratio) | 0;
-      const projWallTop = projWallBottom - wallSliceHeight + 1;
+      const wallSliceProjHeight = (this.wallHeight * ratio) | 0;
+      const projWallTop = projWallBottom - wallSliceProjHeight + 1;
       // const sliceHeight = projWallBottom - projWallTop + 1;
 
       let wallTop = projWallTop;
@@ -582,11 +582,11 @@ class Raycaster {
       }
       // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
-      const texStepY = texHeight / wallSliceHeight;
+      const texStepY = texHeight / wallSliceProjHeight;
       const texY = clipTop * texStepY;
 
-      wallSlice.projHeight = wallSliceHeight;
-      wallSlice.clipTop = clipTop;
+      wallSlice.ProjHeight = wallSliceProjHeight;
+      wallSlice.ClipTop = clipTop;
 
       wallSlice.MipMapIdx = mipmap.WasmIdx;
       wallSlice.TexX = texX;

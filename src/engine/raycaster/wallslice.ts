@@ -4,12 +4,12 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class WallSlice {
   private mipmap: BitImageRGBA; // ts cached fields
-  public projHeight: number;
-  public clipTop: number;
 
   constructor(
     // private wallSlicePtr: number,
     private distancePtr: number,
+    private projHeightPtr: number,
+    private clipTopPtr: number,
     private hitPtr: number,
     private sidePtr: number,
     private topPtr: number,
@@ -122,7 +122,21 @@ class WallSlice {
     gWasmView.setFloat32(this.floorWallYPtr, floorWallY, true);
   }
 
+  get ProjHeight(): number {
+    return gWasmView.getUint32(this.projHeightPtr, true);
+  }
 
+  set ProjHeight(projHeight: number) {
+    gWasmView.setUint32(this.projHeightPtr, projHeight, true);
+  }
+
+  get ClipTop(): number {
+    return gWasmView.getUint32(this.clipTopPtr, true);
+  }
+
+  set ClipTop(clipTop: number) {
+    gWasmView.setUint32(this.clipTopPtr, clipTop, true);
+  }
 }
 
 function getWasmWallSlicesView(
@@ -139,6 +153,8 @@ function getWasmWallSlicesView(
     wallSlices[i] = new WallSlice(
       // wallSlicePtr,
       wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceProjHeightPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceClipTopPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceHitPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),
       wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),

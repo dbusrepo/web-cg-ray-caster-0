@@ -181,8 +181,8 @@ function renderViewFullVert(renderViewParams: RenderViewParams) {
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
       Mipmap: mipmap,
-      clipTop,
-      projHeight,
+      ProjHeight: projHeight,
+      ClipTop: clipTop,
     } = wallSlices[x];
 
     const colPtr = startFramePtr + x;
@@ -470,8 +470,6 @@ function renderViewFullVert2(renderViewParams: RenderViewParams) {
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
       Mipmap: mipmap,
-      clipTop,
-      projHeight,
     } = wallSlices[x];
 
     const colPtr = startFramePtr + x;

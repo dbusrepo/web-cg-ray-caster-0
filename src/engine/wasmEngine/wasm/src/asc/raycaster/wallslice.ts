@@ -8,6 +8,9 @@ import { logi } from '../importVars';
   private top: u32;
   private bottom: u32;
 
+  private projHeight: u32;
+  private clipTop: u32;
+
   private hit: u8;
   private side: u8;
 
@@ -108,6 +111,22 @@ import { logi } from '../importVars';
   set FloorWallY(floorWallY: f32) {
     this.floorWallY = floorWallY;
   }
+
+  get ProjHeight(): u32 {
+    return this.projHeight;
+  }
+
+  set ProjHeight(projHeight: u32) {
+    this.projHeight = projHeight;
+  }
+
+  get ClipTop(): u32 {
+    return this.clipTop;
+  }
+
+  set ClipTop(clipTop: u32) {
+    this.clipTop = clipTop;
+  }
 }
 
 let wallSliceAllocator = changetype<ObjectAllocator<WallSlice>>(NULL_PTR);
@@ -168,6 +187,14 @@ function getWallSliceMipMapIdxPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('mipMapIdx');
 }
 
+function getWallSliceProjHeightPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('projHeight');
+}
+
+function getWallSliceClipTopPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('clipTop');
+}
+
 export {
   WallSlice,
   newWallSlice,
@@ -182,5 +209,7 @@ export {
   getWallSliceFloorWallXPtr,
   getWallSliceFloorWallYPtr,
   getWallSliceMipMapIdxPtr,
+  getWallSliceProjHeightPtr,
+  getWallSliceClipTopPtr,
 };
   
