@@ -48,12 +48,6 @@ class RenderParams {
     this.stepYhspans = new Float32Array(vpHeight);
     this.lfloorXhspans = new Float32Array(vpHeight);
     this.lfloorYhspans = new Float32Array(vpHeight);
-
-    // this.tops = new Int32Array(vpWidth);
-    // this.bottoms = new Int32Array(vpWidth);
-    // this.texXs = new Int32Array(vpWidth);
-    // this.texStepYs = new Float32Array(vpWidth);
-    // this.texPosYs = new Float32Array(vpWidth);
   }
 }
 
@@ -318,7 +312,12 @@ function renderViewFullVert(renderViewParams: RenderViewParams) {
 
     // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
-    if (texturedFloor) {
+    if (!texturedFloor) {
+      for (let y = bottom + 1; y < vpHeight; y++) {
+        frameBuf32[framePtr] = FLOOR_COLOR;
+        framePtr += frameStride;
+      }
+    } else {
       let prevFloorTexMapIdx = null;
       let floorTex;
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
@@ -369,11 +368,6 @@ function renderViewFullVert(renderViewParams: RenderViewParams) {
           // console.log('color: ', color);
           frameBuf32[framePtr] = color;
         }
-      }
-    } else {
-      for (let y = bottom + 1; y < vpHeight; y++) {
-        frameBuf32[framePtr] = FLOOR_COLOR;
-        framePtr += frameStride;
       }
     }
 
@@ -533,7 +527,12 @@ function renderViewFullVert2(renderViewParams: RenderViewParams) {
 
     // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
-    if (texturedFloor) {
+    if (!texturedFloor) {
+      for (let y = bottom + 1; y < vpHeight; y++) {
+        frameBuf32[framePtr] = FLOOR_COLOR;
+        framePtr += frameStride;
+      }
+    } else {
       let prevFloorTexMapIdx = null;
       let floorTex;
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
@@ -566,11 +565,6 @@ function renderViewFullVert2(renderViewParams: RenderViewParams) {
           // console.log('color: ', color);
           frameBuf32[framePtr] = color;
         }
-      }
-    } else {
-      for (let y = bottom + 1; y < vpHeight; y++) {
-        frameBuf32[framePtr] = FLOOR_COLOR;
-        framePtr += frameStride;
       }
     }
     // assert(framePtr === colPtr + vpHeight * frameStride);
