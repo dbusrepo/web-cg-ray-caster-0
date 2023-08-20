@@ -40,11 +40,17 @@ const WALL_COLOR_SIDE_1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0x88);
 const CEIL_COLOR = FrameColorRGBA.colorABGR(0xff, 0xbb, 0xbb, 0xbb);
 const FLOOR_COLOR = FrameColorRGBA.colorABGR(0xff, 0x55, 0x55, 0x55);
 
+const TEXTURED_FLOOR = true;
+
 let raycaster: Raycaster = changetype<Raycaster>(NULL_PTR);
 let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
 let textures = changetype<SArray<Texture>>(NULL_PTR);
 let mipmaps = changetype<SArray<BitImageRGBA>>(NULL_PTR);
 let frameRowPtrs = changetype<SArray<PTR_T>>(NULL_PTR);
+let lfloorSpanX = changetype<SArray<f32>>(NULL_PTR);
+let lfloorSpanY = changetype<SArray<f32>>(NULL_PTR);
+let floorStepX = changetype<SArray<f32>>(NULL_PTR);
+let floorStepY = changetype<SArray<f32>>(NULL_PTR);
 
 const FRAME_STRIDE = rgbaSurface0width * BPP_RGBA;
 let startFramePtr: PTR_T = NULL_PTR;
@@ -60,6 +66,10 @@ function initRender(inRaycaster: Raycaster, infColorRGBA: FrameColorRGBA, inText
   for (let y = 0 as u32; y <= viewport.Height; y++) {
     frameRowPtrs.set(y, startFramePtr + y * FRAME_STRIDE);
   }
+  lfloorSpanX = newSArray<f32>(viewport.Height);
+  lfloorSpanY = newSArray<f32>(viewport.Height);
+  floorStepX = newSArray<f32>(viewport.Height);
+  floorStepY = newSArray<f32>(viewport.Height);
 }
 
 function renderViewVert(raycaster: Raycaster): void {
@@ -132,30 +142,113 @@ function renderViewVert(raycaster: Raycaster): void {
       const F_TO_FIX = (1 << FIX_P) as f32;
       const texStepY_fix = wallSlice.TexStepY * F_TO_FIX as u32;
       let texY_fix = wallSlice.TexY * F_TO_FIX as u32;
-      for (let y = top; y <= bottom; y++) {
-      // for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
+      // for (let y = top; y <= bottom; y++) {
+        // framePtr += FRAME_STRIDE;
+      for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
         const texColOffs = texY_fix >> FIX_P;
         const texCol = load<u32>(mipmapPtr + texColOffs * BPP_RGBA);
         store<u32>(framePtr, texCol);
         texY_fix += texStepY_fix;
-        framePtr += FRAME_STRIDE;
       }
     } else {
       // render empty wall
       const color = side == 0 ? WALL_COLOR_SIDE_0 : WALL_COLOR_SIDE_1;
-      for (let y = top; y <= bottom; y++) {
+      // for (let y = top; y <= bottom; y++) {
+        // framePtr += FRAME_STRIDE;
+      for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
         store<u32>(framePtr, color);
-        framePtr += FRAME_STRIDE;
       }
     }
 
-    // // render floor
-    // frameLimitPtr = frameRowPtrs.at(viewport.Height) + x * BPP_RGBA;
-    // // for (let y = bottom + 1 as u32; y < viewport.Height; y++) {
-    // for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
-    //   store<u32>(framePtr, FLOOR_COLOR);
-    // }
+    if (!TEXTURED_FLOOR) {
+      // render floor
+      frameLimitPtr = frameRowPtrs.at(viewport.Height) + xcolOffs;
+      // for (let y = bottom + 1 as u32; y < viewport.Height; y++) {
+      for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
+        store<u32>(framePtr, FLOOR_COLOR);
+      }
+    } else {
+      const posX = player.PosX;
+      const posY = player.PosY;
+      const posZ = player.PosZ;
+      const dirX = player.DirX;
+      const dirY = player.DirY;
+      const planeX = player.PlaneX;
+      const planeY = player.PlaneY;
 
+      const rayDirLeftX = dirX - planeX;
+      const rayDirLeftY = dirY - planeY;
+      const rayDirRightX = dirX + planeX;
+      const rayDirRightY = dirY + planeY;
+      const invWidth = 1. / viewport.Width;
+      const rayStepX: f32 = (rayDirRightX - rayDirLeftX) * invWidth;
+      const rayStepY: f32 = (rayDirRightY - rayDirLeftY) * invWidth;
+
+      const projYCenter = raycaster.ProjYCenter;
+      const minWallBottom = raycaster.MinWallBottom;
+
+      for (let y = minWallBottom + 1; y < viewport.Height; ++y) {
+        const yd: f32 = y - projYCenter;
+        const sDist = posZ / yd;
+        lfloorSpanX.set(y, posX + sDist * rayDirLeftX);
+        lfloorSpanY.set(y, posY + sDist * rayDirLeftY);
+        floorStepX.set(y, sDist * rayStepX);
+        floorStepY.set(y, sDist * rayStepY);
+      }
+
+      const mapWidth = raycaster.Map.Width;
+
+      // let prevTexIdx = null;
+      // let floorTex;
+      for (let y = bottom + 1; y < viewport.Height; y++, framePtr += FRAME_STRIDE) {
+        const floorX = lfloorSpanX.at(y) + (x as f32) * floorStepX.at(y);
+        const floorY = lfloorSpanY.at(y) + (x as f32) * floorStepY.at(y);
+        const floorXidx = floorX;
+        const floorYidx = floorY;
+        // const texIdx = floorYidx * mapWidth + floorXidx;
+        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
+        // const sameFloorTexMapIdx = texIdx === prevTexIdx;
+
+        const texIdx = 0;
+        const tex = mipmaps.at(texIdx);
+        const u = floorX - floorXidx;
+        const v = floorY - floorYidx;
+        // assert(floorX >= 0 && floorX < 1);
+        // assert(floorY >= 0 && floorY < 1);
+        const floorTexX = u32(u * (tex.Width as f32));
+        const floorTexY = u32(v * (tex.Height as f32));
+        const texOffs = ((floorTexX as SIZE_T) << tex.PitchLg2) | floorTexY;
+        // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
+        const color = load<u32>(tex.Ptr + texOffs * BPP_RGBA);
+        // console.log(colorOffset);
+        // console.log('color: ', color);
+        store<u32>(framePtr, color);
+
+        // if (
+        //   sameFloorTexMapIdx ||
+        //   (texIdx >= 0 && texIdx < floorTexturesMap.length)
+        // ) {
+        //   if (!sameFloorTexMapIdx) {
+        //     floorTex = floorTexturesMap[texIdx].getMipmap(0).Image;
+        //     prevTexIdx = texIdx;
+        //   }
+        //   const tex = floorTex!;
+        //   const u = floorX - floorXidx;
+        //   const v = floorY - floorYidx;
+        //   // assert(floorX >= 0 && floorX < 1);
+        //   // assert(floorY >= 0 && floorY < 1);
+        //   const floorTexX = u * tex.Width;
+        //   const floorTexY = v * tex.Height;
+        //   const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
+        //   // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
+        //   const color = tex.Buf32[colorOffset];
+        //   // console.log(colorOffset);
+        //   // console.log('color: ', color);
+        //   frameBuf32[framePtr] = color;
+        // }
+
+      }
+    }
   }
 }
 

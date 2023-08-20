@@ -29,7 +29,7 @@ const HEADER_SIZE = getTypeSize<Header>() + HEADER_ALIGN_MASK;
 // @ts-ignore: decorator
 @final @unmanaged class SArray<T> {
 
-  private idx2Ptr(idx: SIZE_T): PTR_T {
+  @inline private idx2Ptr(idx: SIZE_T): PTR_T {
     const header = getHeader(this);
     // TODO:
     // myAssert(idx < header.length);
