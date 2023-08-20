@@ -75,7 +75,6 @@ class ConsolePanel extends React.Component<
   }
 
   componentDidMount() {
-    this.inputRef?.focus();
 
     this.onKeyDown = (event: KeyboardEvent) => {
       const { key } = event;
@@ -117,6 +116,9 @@ class ConsolePanel extends React.Component<
     };
 
     this.listContRef.addEventListener('mousedown', this.onMouseDown);
+
+    this.inputRef.focus();
+    this.inputRef.value = this.props.prompt;
   }
 
   componentDidUpdate(
@@ -207,6 +209,10 @@ class ConsolePanel extends React.Component<
 
   private clearInput() {
     this.inputRef.value = this.props.prompt;
+  }
+
+  private onInputFocus() {
+    // this.inputRef.value = this.props.prompt;
   }
 
   public setOpen(open: boolean): void {
@@ -448,7 +454,7 @@ class ConsolePanel extends React.Component<
             this.inputRef = el!;
           }}
           // defaultValue={this.props.prompt}
-          onFocus={this.clearInput.bind(this)}
+          onFocus={this.onInputFocus.bind(this)}
           onChange={this.onInputKeyChange.bind(this)}
           onClick={this.onInputClick.bind(this)}
           onKeyDown={this.onInputKeyDown.bind(this)}
