@@ -123,7 +123,7 @@ function renderViewVert(raycaster: Raycaster): void {
       const mipmap = mipmaps.at(wallSlice.MipMapIdx);
 
       const texX = wallSlice.TexX;
-      const mipmapRowOffs = (texX as SIZE_T) << mipmap.PitchLg2;
+      const mipmapRowOffs = (texX as SIZE_T) << mipmap.Lg2Pitch;
       const mipmapPtr = mipmap.Ptr + mipmapRowOffs * BPP_RGBA;
       
       // const texStepY = wallSlice.TexStepY;
@@ -217,7 +217,7 @@ function renderViewVert(raycaster: Raycaster): void {
         // assert(floorY >= 0 && floorY < 1);
         const floorTexX = u32(u * (tex.Width as f32));
         const floorTexY = u32(v * (tex.Height as f32));
-        const texOffs = ((floorTexX as SIZE_T) << tex.PitchLg2) | floorTexY;
+        const texOffs = ((floorTexX as SIZE_T) << tex.Lg2Pitch) | floorTexY;
         // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
         const color = load<u32>(tex.Ptr + texOffs * BPP_RGBA);
         // console.log(colorOffset);
