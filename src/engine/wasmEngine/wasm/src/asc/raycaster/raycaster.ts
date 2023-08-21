@@ -43,8 +43,9 @@ import {
   private projYCenter: i32;
   private player: Player;
   private map: Map;
-  private zBuffer: SArray<f32>;
   private wallSlices: SArray<WallSlice>;
+  private zBuffer: SArray<f32>;
+  private maxWallDistance: f32;
   private minWallTop: u32;
   private maxWallTop: u32;
   private minWallBottom: u32;
@@ -154,6 +155,14 @@ import {
   set MaxWallBottom(maxWallBottom: u32) {
     this.maxWallBottom = maxWallBottom;
   }
+
+  get MaxWallDistance(): f32 {
+    return this.maxWallDistance;
+  }
+
+  set MaxWallDistance(maxWallDistance: f32) {
+    this.maxWallDistance = maxWallDistance;
+  }
 }
 
 let raycasterAlloc = changetype<ObjectAllocator<Raycaster>>(NULL_PTR);
@@ -229,6 +238,10 @@ function getPlayerPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.PlayerPtr;
 }
 
+function getMaxWallDistancePtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("maxWallDistance");
+}
+
 export {
   Raycaster,
   newRaycaster,
@@ -245,4 +258,5 @@ export {
   getMaxWallBottomPtr,
   getViewportPtr,
   getPlayerPtr,
+  getMaxWallDistancePtr,
 };

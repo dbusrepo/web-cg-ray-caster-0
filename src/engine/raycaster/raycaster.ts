@@ -63,6 +63,8 @@ class Raycaster {
   private wallSlices: WallSlice[];
 
   private zBuffer: Float32Array;
+
+  private maxWallDistancePtr: number;
   private projYCenterPtr: number;
   private minWallTopPtr: number;
   private maxWallTopPtr: number;
@@ -135,12 +137,12 @@ class Raycaster {
     this.initMap();
     this.initFloorMap();
 
-    this.initFrameBuf();
+    this.initRender();
 
     renderBorders(this.BorderColor);
   }
 
-  private initFrameBuf() {
+  private initRender() {
     const { rgbaSurface0: frameBuf8 } = this.wasmRun.WasmViews;
 
     const frameBuf32 = new Uint32Array(
@@ -150,8 +152,6 @@ class Raycaster {
     );
 
     const frameStride = this.params.wasmRun.FrameStride;
-
-    assert(this.wallTextures, 'wall textures mips not initialized');
 
     initRender(this, frameBuf32, frameStride, true);
   }
@@ -380,6 +380,8 @@ class Raycaster {
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
 
+    let maxWallDistance = 0;
+
     const { wallSlices } = this;
 
     for (let x = 0; x < vpWidth; x++) {
@@ -472,6 +474,9 @@ class Raycaster {
       } while (--MAX_STEPS);
 
       this.zBuffer[x] = perpWallDist;
+      if (perpWallDist > maxWallDistance) {
+        maxWallDistance = perpWallDist;
+      }
 
       const ratio = 1 / perpWallDist;
       const projWallBottom = (projYcenter + posZ * ratio) | 0;
@@ -582,13 +587,14 @@ class Raycaster {
       wallSlice.Mipmap = mipmap.Image;
     } // end col loop
 
+    this.MaxWallDistance = maxWallDistance;
     this.MinWallTop = minWallTop;
     this.MaxWallTop = maxWallTop;
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    // renderView();
-    this.wasmEngineModule.render();
+    renderView();
+    // this.wasmEngineModule.render();
   }
 
   update(time: number) {
@@ -683,6 +689,14 @@ class Raycaster {
 
   private set ProjYCenter(val: number) {
     this.wasmRun.WasmViews.view.setInt32(this.projYCenterPtr, val, true);
+  }
+
+  get MaxWallDistance(): number {
+    return this.wasmRun.WasmViews.view.getFloat32(this.maxWallDistancePtr, true);
+  }
+
+  private set MaxWallDistance(val: number) {
+    this.wasmRun.WasmViews.view.setFloat32(this.maxWallDistancePtr, val, true);
   }
 
   get MinWallTop(): number {

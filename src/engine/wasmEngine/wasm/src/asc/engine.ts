@@ -63,6 +63,7 @@ import {
   getMaxWallBottomPtr,
   getViewportPtr,
   getPlayerPtr,
+  getMaxWallDistancePtr,
 } from './raycaster/raycaster';
 import { 
   WallSlice,

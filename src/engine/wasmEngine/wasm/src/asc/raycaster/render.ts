@@ -93,7 +93,6 @@ function renderViewVert(raycaster: Raycaster): void {
   // const maxWallBottom = raycaster.MaxWallBottom;
 
   for (let x: u32 = 0; x < viewport.Width; x++) {
-
     const wallSlice = wallSlices.at(x);
 
     const top = wallSlice.Top;
@@ -180,16 +179,16 @@ function renderViewVert(raycaster: Raycaster): void {
       const rayDirLeftY = dirY - planeY;
       const rayDirRightX = dirX + planeX;
       const rayDirRightY = dirY + planeY;
-      const invWidth = 1. / viewport.Width;
-      const rayStepX: f32 = (rayDirRightX - rayDirLeftX) * invWidth;
-      const rayStepY: f32 = (rayDirRightY - rayDirLeftY) * invWidth;
+      const invWidth: f32 = 1 / (viewport.Width as f32);
+      const rayStepX = ((rayDirRightX - rayDirLeftX) as f32) * invWidth;
+      const rayStepY = ((rayDirRightY - rayDirLeftY) as f32) * invWidth;
 
       const projYCenter = raycaster.ProjYCenter;
       const minWallBottom = raycaster.MinWallBottom;
 
       for (let y = minWallBottom + 1; y < viewport.Height; ++y) {
-        const yd: f32 = y - projYCenter;
-        const sDist = posZ / yd;
+        const yd = y - projYCenter;
+        const sDist = posZ / (yd as f32);
         lfloorSpanX.set(y, posX + sDist * rayDirLeftX);
         lfloorSpanY.set(y, posY + sDist * rayDirLeftY);
         floorStepX.set(y, sDist * rayStepX);
@@ -203,18 +202,17 @@ function renderViewVert(raycaster: Raycaster): void {
       for (let y = bottom + 1; y < viewport.Height; y++, framePtr += FRAME_STRIDE) {
         const floorX = lfloorSpanX.at(y) + (x as f32) * floorStepX.at(y);
         const floorY = lfloorSpanY.at(y) + (x as f32) * floorStepY.at(y);
-        const floorXidx = floorX;
-        const floorYidx = floorY;
+        const floorXidx = floorX as u32;
+        const floorYidx = floorY as u32;
         // const texIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
         // const sameFloorTexMapIdx = texIdx === prevTexIdx;
-
-        const texIdx = 0;
-        const tex = mipmaps.at(texIdx);
-        const u = floorX - floorXidx;
-        const v = floorY - floorYidx;
+        const u = floorX - (floorXidx as f32);
+        const v = floorY - (floorYidx as f32);
         // assert(floorX >= 0 && floorX < 1);
         // assert(floorY >= 0 && floorY < 1);
+        const texIdx = 14;
+        const tex = mipmaps.at(texIdx);
         const floorTexX = u32(u * (tex.Width as f32));
         const floorTexY = u32(v * (tex.Height as f32));
         const texOffs = ((floorTexX as SIZE_T) << tex.Lg2Pitch) | floorTexY;

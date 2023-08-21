@@ -127,9 +127,9 @@ function renderBorders(borderColor: number) {
 }
 
 function renderView() {
-  // renderViewFullVert();
+  renderViewFullVert();
   // renderViewFullVert2();
-  renderViewWallsVertFloorsHorz();
+  // renderViewWallsVertFloorsHorz();
   // renderViewFullHorz(); // TODO:
 }
 
