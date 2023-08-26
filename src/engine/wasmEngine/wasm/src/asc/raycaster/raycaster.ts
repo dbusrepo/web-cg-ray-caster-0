@@ -43,8 +43,8 @@ import {
   private projYCenter: i32;
   private player: Player;
   private map: Map;
+  private floorMap: SArray<u8>;
   private wallSlices: SArray<WallSlice>;
-  private floorTexMap: SArray<u32>;
   private zBuffer: SArray<f32>;
   private maxWallDistance: f32;
   private minWallTop: u32;
@@ -198,14 +198,35 @@ function getWallSlicesPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.WallSlices.DataPtr;
 }
 
-function getXGridPtr(raycasterPtr: PTR_T): PTR_T {
+function getXmapPtr(raycasterPtr: PTR_T): PTR_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.xGridPtr.DataPtr;
+  return raycaster.Map.Xmap.DataPtr;
 }
 
-function getYGridPtr(raycasterPtr: PTR_T): PTR_T {
+function getYmapPtr(raycasterPtr: PTR_T): PTR_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.yGridPtr.DataPtr;
+  return raycaster.Map.Ymap.DataPtr;
+}
+
+function getXmapWidth(raycasterPtr: PTR_T): u32 {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  logi(raycaster.Map.XmapWidth);
+  return raycaster.Map.XmapWidth;
+}
+
+function getXmapHeight(raycasterPtr: PTR_T): u32 {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.Map.XmapHeight;
+}
+
+function getYmapWidth(raycasterPtr: PTR_T): u32 {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.Map.YmapWidth;
+}
+
+function getYmapHeight(raycasterPtr: PTR_T): u32 {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.Map.YmapHeight;
 }
 
 function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
@@ -249,8 +270,12 @@ export {
   getBorderColorPtr,
   getProjYCenterPtr,
   getZBufferPtr,
-  getXGridPtr,
-  getYGridPtr,
+  getXmapPtr,
+  getXmapWidth,
+  getXmapHeight,
+  getYmapPtr,
+  getYmapWidth,
+  getYmapHeight,
   getWallSlicesPtr,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,

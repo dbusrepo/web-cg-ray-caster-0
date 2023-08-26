@@ -53,8 +53,12 @@ import {
   getBorderColorPtr,
   getProjYCenterPtr,
   getZBufferPtr,
-  getXGridPtr,
-  getYGridPtr,
+  getXmapPtr,
+  getXmapWidth,
+  getXmapHeight,
+  getYmapPtr,
+  getYmapWidth,
+  getYmapHeight,
   getWallSlicesPtr,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
@@ -105,6 +109,7 @@ const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
 const MAIN_THREAD_IDX = mainWorkerIdx;
 
+// let map = changetype<Map>(NULL_PTR);
 let raycaster = changetype<Raycaster>(NULL_PTR);
 
 let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
@@ -113,7 +118,7 @@ function getFrameColorRGBAPtr(): PTR_T {
   return changetype<PTR_T>(frameColorRGBA);
 }
 
-function allocMap(mapWidth: i32, mapHeight: i32): void {
+function initMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
   raycaster.Map = map;
 }
@@ -189,7 +194,7 @@ export {
   render,
   run,
 
-  allocMap,
+  initMap,
 
   initRaycaster,
 
@@ -198,8 +203,12 @@ export {
   getProjYCenterPtr,
   getZBufferPtr,
   getWallSlicesPtr,
-  getXGridPtr,
-  getYGridPtr,
+  getXmapPtr,
+  getXmapWidth,
+  getXmapHeight,
+  getYmapPtr,
+  getYmapWidth,
+  getYmapHeight,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
   getMaxWallTopPtr,

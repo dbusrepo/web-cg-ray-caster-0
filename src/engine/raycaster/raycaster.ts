@@ -50,16 +50,24 @@ class Raycaster {
   private mapHeight: number;
 
   private textures: Texture[];
+
   private floorTextures: Texture[];
+  private wallTextures: Texture[][]; // refs to tex pairs (light/dark) for walls
 
-  private wallTextures: Texture[][];
+  // maps with tex indices into wallTextures
+  private xMap: Uint8Array;
+  private yMap: Uint8Array;
 
-  // map grids with tex indices into wallTextures
-  private xGrid: Uint8Array;
-  private yGrid: Uint8Array;
+  private xMapWidth: number;
+  private xMapHeight: number;
+  private yMapWidth: number;
+  private yMapHeight: number;
+
+  // map with tex indices into floorTextures
   private floorMap: Uint8Array;
   // private ceilingMap: Uint8Array;
   // private floorMap: Uint8Array;
+
 
   private wallSlices: WallSlice[];
 
@@ -283,46 +291,45 @@ class Raycaster {
     this.mapWidth = mapWidth;
     this.mapHeight = mapHeight;
 
-    this.wasmEngineModule.allocMap(mapWidth, mapHeight);
+    this.wasmEngineModule.initMap(mapWidth, mapHeight);
 
-    const xGridPtr = this.wasmEngineModule.getXGridPtr(this.wasmRaycasterPtr);
-    const yGridPtr = this.wasmEngineModule.getYGridPtr(this.wasmRaycasterPtr);
+    const xMapPtr = this.wasmEngineModule.getXmapPtr(this.wasmRaycasterPtr);
+    const yMapPtr = this.wasmEngineModule.getYmapPtr(this.wasmRaycasterPtr);
 
-    // console.log(`xGridPtr=${xGridPtr}, yGridPtr=${yGridPtr}`);
+    this.xMapWidth = this.wasmEngineModule.getXmapWidth(this.wasmRaycasterPtr);
+    this.xMapHeight = this.wasmEngineModule.getXmapHeight(this.wasmRaycasterPtr);
+    this.yMapWidth = this.wasmEngineModule.getYmapWidth(this.wasmRaycasterPtr);
+    this.yMapHeight = this.wasmEngineModule.getYmapHeight(this.wasmRaycasterPtr);
 
-    const gridWidth = mapWidth + 1; // use the same
-    const xGridHeight = mapHeight;
-    // const yGridWidth = mapWidth;
-    const yGridHeight = mapHeight + 1;
-
-    this.xGrid = new Uint8Array(
+    this.xMap = new Uint8Array(
       this.wasmRun.WasmMem.buffer,
-      xGridPtr,
-      gridWidth * xGridHeight,
+      xMapPtr,
+      this.xMapWidth * this.xMapHeight,
     );
 
-    this.yGrid = new Uint8Array(
+    this.yMap = new Uint8Array(
       this.wasmRun.WasmMem.buffer,
-      yGridPtr,
-      gridWidth * yGridHeight,
+      yMapPtr,
+      this.yMapWidth * this.yMapHeight,
     );
 
-    for (let i = 0; i < xGridHeight; i++) {
-      this.xGrid[i * gridWidth] = 1;
-      this.xGrid[i * gridWidth + (gridWidth - 1)] = 1;
+    for (let i = 0; i < this.xMapHeight; i++) {
+      this.xMap[i * this.xMapWidth] = 1;
+      this.xMap[i * this.xMapWidth + (this.xMapWidth - 1)] = 1;
     }
 
-    for (let i = 0; i < gridWidth; i++) {
-      this.yGrid[i] = 1;
-      this.yGrid[i + (yGridHeight - 1) * gridWidth] = 1;
+    for (let i = 0; i < this.yMapWidth; i++) {
+      this.yMap[i] = 1;
+      this.yMap[i + (this.yMapHeight - 1) * this.yMapWidth] = 1;
     }
 
-    this.xGrid[4] = 1;
-    // // this.yGrid[2] = 0; // test hole // TODO:
+    this.xMap[4] = 1;
+    // // this.yMap[2] = 0; // test hole
 
-    this.xGrid[4 + gridWidth * 2] = 1;
-    this.yGrid[4 + gridWidth * 2] = 3;
-    this.yGrid[5 + gridWidth * 2] = 3;
+    this.xMap[4 + this.xMapWidth * 2] = 1;
+
+    this.yMap[4 + this.yMapWidth * 2] = 3;
+    this.yMap[5 + this.yMapWidth * 2] = 3;
   }
 
   // TODO:
@@ -345,7 +352,7 @@ class Raycaster {
     // renderBackground(this.backgroundColor);
 
     const { mapWidth, mapHeight } = this;
-    const { xGrid, yGrid } = this;
+    const { xMap, yMap } = this;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
     const {
       PosX: posX,
@@ -365,14 +372,6 @@ class Raycaster {
 
     const cellX = posX - mapX;
     const cellY = posY - mapY;
-
-    const gridWidth = mapWidth + 1;
-    const xGridHeight = mapHeight;
-    // const yGridWidth = mapWidth;
-    const yGridHeight = mapHeight + 1;
-
-    // const gridHeight = mapHeight + 1;
-    // const srcMapIdx = mapY * gridWidth + mapX;
 
     const projYcenter = this.ProjYCenter;
 
@@ -394,10 +393,11 @@ class Raycaster {
       const deltaDistX = 1 / Math.abs(rayDirX);
       const deltaDistY = 1 / Math.abs(rayDirY);
 
-      let sideDistX, sideDistY; // distances to next x/y grid line
+      let sideDistX, sideDistY; // distances to next x/y line
       let stepX, stepY; // +1 or -1, step in map
-      let stepYoff; // offset for ygrid step
-      let xChkIdx, yChkOff, yChkIdx; // check offsets in xgrid/ygrid
+      let xStepYOffs; // step y in x map
+      let yStepYOffs; // step y in y map
+      let xChkIdx, yChkOff, yChkIdx; // check offsets in x/y maps
 
       if (rayDirX < 0) {
         stepX = -1;
@@ -411,66 +411,71 @@ class Raycaster {
 
       if (rayDirY < 0) {
         stepY = -1;
-        stepYoff = -gridWidth;
+        xStepYOffs = -this.xMapWidth;
+        yStepYOffs = -this.yMapWidth;
         yChkOff = 0;
         yChkIdx = 0;
         sideDistY = cellY * deltaDistY;
       } else {
         stepY = 1;
-        stepYoff = gridWidth;
-        yChkOff = gridWidth;
+        xStepYOffs = this.xMapWidth;
+        yStepYOffs = this.yMapWidth;
+        yChkOff = this.yMapWidth;
         yChkIdx = 1;
         sideDistY = (1.0 - cellY) * deltaDistY;
       }
 
-      // let hit = false;
-      let side = 0;
+      // ray map position
+      let curMapX = mapX;
+      let curMapY = mapY;
+      let nextMapX, nextMapY;
 
-      let gridX = mapX;
-      let gridY = mapY;
-      let nextGridX, nextGridY;
-      // let gridYoff = gridY * gridWidth;
-      let gridOff = gridY * gridWidth + gridX;
-      let checkGridX, checkGridY;
-      let checkGridIdx = -1;
+      let xMapOffs = curMapY * this.xMapWidth + curMapX;
+      let yMapOffs = curMapY * this.yMapWidth + curMapX;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
       let wallX = 0;
       let flipTexX = false;
-      let outOfGrid = false;
+      let outOfMap = false;
+
+      let checkWallIdx = -1;
+
+      let side = 0;
 
       do {
         if (sideDistX < sideDistY) {
           side = 0;
           perpWallDist = sideDistX;
-          checkGridIdx = gridOff + xChkIdx;
-          if (xGrid[checkGridIdx]) {
+          checkWallIdx = xMapOffs + xChkIdx;
+          if (xMap[checkWallIdx]) {
             break;
           }
-          nextGridX = gridX + stepX;
-          if (nextGridX < 0 || nextGridX >= mapWidth) {
-            outOfGrid = true;
+          nextMapX = curMapX + stepX;
+          if (nextMapX < 0 || nextMapX >= mapWidth) {
+            outOfMap = true;
             break;
           }
-          gridX = nextGridX;
+          curMapX = nextMapX;
           sideDistX += deltaDistX;
-          gridOff += stepX;
+          xMapOffs += stepX;
+          yMapOffs += stepX;
         } else {
           side = 1;
           perpWallDist = sideDistY;
-          checkGridIdx = gridOff + yChkOff;
-          if (yGrid[checkGridIdx]) {
+          checkWallIdx = yMapOffs + yChkOff;
+          if (yMap[checkWallIdx]) {
             break;
           }
-          nextGridY = gridY + stepY;
-          if (nextGridY < 0 || nextGridY >= mapHeight) {
-            outOfGrid = true;
+          nextMapY = curMapY + stepY;
+          if (nextMapY < 0 || nextMapY >= mapHeight) {
+            outOfMap = true;
             break;
           }
-          gridY = nextGridY;
+          curMapY = nextMapY;
           sideDistY += deltaDistY;
-          gridOff += stepYoff;
+          yMapOffs += yStepYOffs;
+          xMapOffs += xStepYOffs;
         }
       } while (--MAX_STEPS);
 
@@ -517,32 +522,32 @@ class Raycaster {
         minWallBottom = wallBottom;
       }
 
-      let wallGrid;
+      let hitMap;
 
       // used only for vert floor/ceil rend
       let floorWallX;
       let floorWallY;
 
       if (side === 0) {
-        wallGrid = xGrid;
+        hitMap = xMap;
         wallX = posY + perpWallDist * rayDirY;
         wallX -= wallX | 0;
         flipTexX = rayDirX > 0;
-        floorWallY = gridY + wallX;
-        floorWallX = gridX + xChkIdx;
+        floorWallY = curMapY + wallX;
+        floorWallX = curMapX + xChkIdx;
       } else {
-        wallGrid = yGrid;
+        hitMap = yMap;
         wallX = posX + perpWallDist * rayDirX;
         wallX -= wallX | 0;
         flipTexX = rayDirY < 0;
-        floorWallX = gridX + wallX;
-        floorWallY = gridY + yChkIdx;
+        floorWallX = curMapX + wallX;
+        floorWallY = curMapY + yChkIdx;
       }
 
       wallSlice.FloorWallX = floorWallX;
       wallSlice.FloorWallY = floorWallY;
 
-      if (outOfGrid || MAX_STEPS <= 0) {
+      if (outOfMap || MAX_STEPS <= 0) {
         wallSlice.Hit = 0;
         // console.log('MAX_STEPS exceeded');
         // console.log('no hit');
@@ -553,7 +558,7 @@ class Raycaster {
 
       wallSlice.Hit = 1;
 
-      const texIdx = wallGrid[checkGridIdx] - 1; // TODO:
+      const texIdx = hitMap[checkWallIdx] - 1; // TODO:
 
       // assert(
       //   texId >= 0 && texId < this.wallTextures.length,

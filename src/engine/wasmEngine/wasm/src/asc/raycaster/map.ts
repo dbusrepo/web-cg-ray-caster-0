@@ -7,14 +7,23 @@ import { SArray, newSArray } from '../sarray';
 @final @unmanaged class Map {
   private width: u32;
   private height: u32;
-  private xGrid: SArray<u8>;
-  private yGrid: SArray<u8>;
+  // maps with tex indices
+  private xMap: SArray<u8>;
+  private yMap: SArray<u8>;
+  private xMapWidth: u32;
+  private xMapHeight: u32;
+  private yMapWidth: u32;
+  private yMapHeight: u32;
 
   init(mapWidth: u32, mapHeight: u32): void {
     this.width = mapWidth;
     this.height = mapHeight;
-    this.xGrid = newSArray<u8>((mapWidth + 1) * mapHeight);
-    this.yGrid = newSArray<u8>((mapWidth + 1) * (mapHeight + 1));
+    this.xMapWidth = mapWidth + 1;
+    this.xMapHeight = mapHeight;
+    this.yMapWidth = mapWidth + 1;
+    this.yMapHeight = mapHeight + 1;
+    this.xMap = newSArray<u8>(this.xMapWidth * this.xMapHeight);
+    this.yMap = newSArray<u8>(this.yMapWidth * this.yMapHeight);
   }
 
   get Width(): u32 {
@@ -25,14 +34,29 @@ import { SArray, newSArray } from '../sarray';
     return this.height;
   }
 
-  get xGridPtr(): SArray<u8> {
-    return this.xGrid;
+  get Xmap(): SArray<u8> {
+    return this.xMap;
   }
 
-  get yGridPtr(): SArray<u8> {
-    return this.yGrid;
+  get Ymap(): SArray<u8> {
+    return this.yMap;
   }
 
+  get XmapWidth(): u32 {
+    return this.xMapWidth;
+  }
+
+  get XmapHeight(): u32 {
+    return this.xMapHeight;
+  }
+
+  get YmapWidth(): u32 {
+    return this.yMapWidth;
+  }
+
+  get YmapHeight(): u32 {
+    return this.yMapHeight;
+  }
 }
 
 let mapAlloc = changetype<ObjectAllocator<Map>>(NULL_PTR);
