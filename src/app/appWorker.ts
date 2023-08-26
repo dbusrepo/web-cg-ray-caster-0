@@ -38,8 +38,8 @@ class AppWorker {
 
   private static readonly UPDATE_TIME_MAX = AppWorker.UPDATE_PERIOD_MS * 8;
 
-  private static readonly STATS_ARR_LEN = 15; // fps, rps, ups
-  private static readonly FRAME_TIMES_ARR_LEN = 15; // used for ufps
+  private static readonly STATS_ARR_LEN = 10; // fps, rps, ups
+  private static readonly FRAME_TIMES_ARR_LEN = 10; // used for ufps
   private static readonly TIMES_SINCE_LAST_FRAME_ARR_LEN = 5; // update, render
 
   private static readonly STATS_PERIOD_MS = 100; // MILLI_IN_SEC;

@@ -44,6 +44,7 @@ import {
   private player: Player;
   private map: Map;
   private wallSlices: SArray<WallSlice>;
+  private floorTexMap: SArray<u32>;
   private zBuffer: SArray<f32>;
   private maxWallDistance: f32;
   private minWallTop: u32;

@@ -50,15 +50,16 @@ class Raycaster {
   private mapHeight: number;
 
   private textures: Texture[];
-  private wallTextures: Texture[][];
   private floorTextures: Texture[];
 
-  // private ceilingMap: Uint8Array;
-  // private floorMap: Uint8Array;
-  private floorTexturesMap: Texture[];
+  private wallTextures: Texture[][];
 
+  // map grids with tex indices into wallTextures
   private xGrid: Uint8Array;
   private yGrid: Uint8Array;
+  private floorMap: Uint8Array;
+  // private ceilingMap: Uint8Array;
+  // private floorMap: Uint8Array;
 
   private wallSlices: WallSlice[];
 
@@ -224,8 +225,8 @@ class Raycaster {
     const wasmTexturesImport = Object.entries(ascImportImages);
     let mipMapBaseIdx = 0;
     this.textures = [];
-    wasmTexturesImport.forEach(([texName, texIdx]) => {
-      const texture = initTextureWasm(texName, texIdx, mipMapBaseIdx);
+    wasmTexturesImport.forEach(([texName, wasmTexIdx]) => {
+      const texture = initTextureWasm(texName, wasmTexIdx, mipMapBaseIdx);
       this.textures.push(texture);
       mipMapBaseIdx += texture.NumMipmaps;
     });
@@ -324,20 +325,20 @@ class Raycaster {
     this.yGrid[5 + gridWidth * 2] = 3;
   }
 
+  // TODO:
   private initFloorMap() {
     let texId = 0;
-    this.floorTexturesMap = new Array<Texture>(this.mapWidth * this.mapHeight);
+    this.floorMap = new Uint8Array(this.mapWidth * this.mapHeight);
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
         texId = 0;
         assert(texId >= 0 && texId < this.floorTextures.length);
-        this.floorTexturesMap[y * this.mapWidth + x] =
-          this.floorTextures[texId];
+        this.floorMap[y * this.mapWidth + x] = texId;
       }
     }
     texId = 1;
     assert(texId >= 0 && texId < this.floorTextures.length);
-    this.floorTexturesMap[4 * this.mapWidth + 4] = this.floorTextures[texId];
+    this.floorMap[4 * this.mapWidth + 4] = texId;
   }
 
   renderView() {
@@ -386,7 +387,7 @@ class Raycaster {
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
-      // TODO: horz floor casting gives out bounds with rayDirX 
+      // TODO: horz floor casting gives out bounds with rayDirX
       // const cameraX = (2 * x) / (vpWidth - 1) - 1;
       const rayDirX = dirX + planeX * cameraX;
       const rayDirY = dirY + planeY * cameraX;
@@ -580,11 +581,11 @@ class Raycaster {
       wallSlice.ProjHeight = wallSliceProjHeight;
       wallSlice.ClipTop = clipTop;
 
-      wallSlice.MipMapIdx = mipmap.WasmIdx;
       wallSlice.TexX = texX;
       wallSlice.TexStepY = texStepY;
       wallSlice.TexY = texY;
-      wallSlice.Mipmap = mipmap.Image;
+      wallSlice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
+      wallSlice.Mipmap = mipmap.Image; // used in render ts
     } // end col loop
 
     this.MaxWallDistance = maxWallDistance;
@@ -692,7 +693,10 @@ class Raycaster {
   }
 
   get MaxWallDistance(): number {
-    return this.wasmRun.WasmViews.view.getFloat32(this.maxWallDistancePtr, true);
+    return this.wasmRun.WasmViews.view.getFloat32(
+      this.maxWallDistancePtr,
+      true,
+    );
   }
 
   private set MaxWallDistance(val: number) {
@@ -747,8 +751,12 @@ class Raycaster {
     return this.player;
   }
 
-  get FloorTexturesMap() {
-    return this.floorTexturesMap;
+  get FloorTextures() {
+    return this.floorTextures;
+  }
+
+  get FloorMap() {
+    return this.floorMap;
   }
 
   get WallSlices() {

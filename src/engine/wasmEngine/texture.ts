@@ -91,14 +91,14 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
 
 const initTextureWasm = (
   texName: string,
-  texIdx: number,
+  wasmTexIdx: number,
   mipMapBaseIdx: number,
 ): Texture => {
-  assert(texIdx >= 0 && texIdx < Object.keys(ascImportImages).length);
+  assert(wasmTexIdx >= 0 && wasmTexIdx < Object.keys(ascImportImages).length);
 
   const texDescOffs =
     gWasmViews.texturesIndex.byteOffset +
-    texIdx * wasmTexFieldSizes.TEX_DESC_SIZE;
+    wasmTexIdx * wasmTexFieldSizes.TEX_DESC_SIZE;
 
   const numMipmaps = gWasmView.getUint32(texDescOffs, true);
 
@@ -118,7 +118,7 @@ const initTextureWasm = (
     mipmapDescOffs += wasmTexFieldSizes.MIP_DESC_SIZE;
   }
 
-  const texture = new Texture(texName, texIdx, mipmaps);
+  const texture = new Texture(texName, wasmTexIdx, mipmaps);
 
   return texture;
 };
