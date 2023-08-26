@@ -16,13 +16,12 @@ class RenderParams {
   public floorTextures: Texture[];
 
   // used with horz floor span rend
-  public initrhspans: Int32Array;
-  public lhspans: Int32Array;
-  public rhspans: Int32Array;
-  public stepXhspans: Float32Array;
-  public stepYhspans: Float32Array;
-  public lfloorXhspans: Float32Array;
-  public lfloorYhspans: Float32Array;
+  public spansX1: Int32Array;
+  public spansX2: Int32Array;
+  public spansStepX: Float32Array;
+  public spansStepY: Float32Array;
+  public spansFloorLX: Float32Array;
+  public spansFloorLY: Float32Array;
 
   constructor(
     public raycaster: Raycaster,
@@ -46,16 +45,12 @@ class RenderParams {
       this.frameRowPtrs[i] = this.startFramePtr + i * this.frameStride;
     }
 
-    this.initrhspans = new Int32Array(vpHeight);
-    for (let i = 0; i < vpHeight; i++) {
-      this.initrhspans[i] = -2;
-    }
-    this.lhspans = new Int32Array(vpHeight);
-    this.rhspans = new Int32Array(vpHeight);
-    this.stepXhspans = new Float32Array(vpHeight);
-    this.stepYhspans = new Float32Array(vpHeight);
-    this.lfloorXhspans = new Float32Array(vpHeight);
-    this.lfloorYhspans = new Float32Array(vpHeight);
+    this.spansX1 = new Int32Array(vpHeight);
+    this.spansX2 = new Int32Array(vpHeight);
+    this.spansStepX = new Float32Array(vpHeight);
+    this.spansStepY = new Float32Array(vpHeight);
+    this.spansFloorLX = new Float32Array(vpHeight);
+    this.spansFloorLY = new Float32Array(vpHeight);
 
     this.floorTextures = raycaster.FloorTextures;
   }
@@ -405,10 +400,10 @@ function renderViewFullVert2() {
     frameBuf32,
     frameStride,
     frameRowPtrs,
-    lfloorXhspans,
-    lfloorYhspans,
-    stepXhspans,
-    stepYhspans,
+    spansFloorLX,
+    spansFloorLY,
+    spansStepX,
+    spansStepY,
     raycaster,
     texturedFloor,
     floorTextures,
@@ -526,17 +521,17 @@ function renderViewFullVert2() {
       for (let y = minWallBottom + 1; y < vpHeight; ++y) {
         const yd = y - projYCenter;
         const sDist = posZ / yd;
-        lfloorXhspans[y] = posX + sDist * rayDirLeftX;
-        lfloorYhspans[y] = posY + sDist * rayDirLeftY;
-        stepXhspans[y] = sDist * rayStepX;
-        stepYhspans[y] = sDist * rayStepY;
+        spansFloorLX[y] = posX + sDist * rayDirLeftX;
+        spansFloorLY[y] = posY + sDist * rayDirLeftY;
+        spansStepX[y] = sDist * rayStepX;
+        spansStepY[y] = sDist * rayStepY;
       }
 
       let prevTexIdx = null;
       let floorMipmap;
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
-        const floorX = lfloorXhspans[y] + x * stepXhspans[y];
-        const floorY = lfloorYhspans[y] + x * stepYhspans[y];
+        const floorX = spansFloorLX[y] + x * spansStepX[y];
+        const floorY = spansFloorLY[y] + x * spansStepY[y];
         const floorXidx = floorX | 0;
         const floorYidx = floorY | 0;
         const texIdx = floorYidx * mapWidth + floorXidx;
@@ -583,10 +578,10 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
   const {
     frameBuf32,
     startFramePtr,
-    stepXhspans,
-    stepYhspans,
-    lfloorXhspans,
-    lfloorYhspans,
+    spansStepX,
+    spansStepY,
+    spansFloorLX,
+    spansFloorLY,
     frameRowPtrs,
     raycaster,
     texturedFloor,
@@ -604,10 +599,10 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
     }
   } else {
     // render textured floor
-    const stepX = stepXhspans[y];
-    const stepY = stepYhspans[y];
-    let floorX = lfloorXhspans[y] + x1 * stepX;
-    let floorY = lfloorYhspans[y] + x1 * stepY;
+    const stepX = spansStepX[y];
+    const stepY = spansStepY[y];
+    let floorX = spansFloorLX[y] + x1 * stepX;
+    let floorY = spansFloorLY[y] + x1 * stepY;
     let prevTexIdx = null;
     let floorMipmap;
     // for (let x = x1; x <= x2; x++) {
@@ -654,14 +649,13 @@ function renderViewWallsVertFloorsHorz() {
     frameBuf32,
     startFramePtr,
     frameStride,
-    stepXhspans,
-    stepYhspans,
-    lfloorXhspans,
-    lfloorYhspans,
+    spansStepX,
+    spansStepY,
+    spansFloorLX,
+    spansFloorLY,
     frameRowPtrs,
-    lhspans,
-    rhspans,
-    initrhspans,
+    spansX1,
+    spansX2,
     raycaster,
   } = renderParams;
 
@@ -702,10 +696,10 @@ function renderViewWallsVertFloorsHorz() {
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
     const yd = y - projYCenter;
     const sDist = posZ / yd;
-    lfloorXhspans[y] = posX + sDist * rayDirLeftX;
-    lfloorYhspans[y] = posY + sDist * rayDirLeftY;
-    stepXhspans[y] = sDist * rayStepX;
-    stepYhspans[y] = sDist * rayStepY;
+    spansFloorLX[y] = posX + sDist * rayDirLeftX;
+    spansFloorLY[y] = posY + sDist * rayDirLeftY;
+    spansStepX[y] = sDist * rayStepX;
+    spansStepY[y] = sDist * rayStepY;
   }
 
   // render horz ceiling above walls
@@ -713,12 +707,12 @@ function renderViewWallsVertFloorsHorz() {
     renderCeilSpan(y, 0, vpWidth - 1);
   }
 
-  let frameColPtr = startFramePtr;
-
-  rhspans.set(initrhspans);
+  for (let y = minWallBottom + 1; y <= maxWallBottom; y++) {
+    spansX2[y] = -2;
+  }
 
   // render walls vertically
-  for (let x = 0; x < vpWidth; x++, frameColPtr++) {
+  for (let x = 0; x < vpWidth; x++) {
     let {
       Hit: hit,
       Top: top,
@@ -777,12 +771,12 @@ function renderViewWallsVertFloorsHorz() {
 
     for (let y = bottom + 1; y <= maxWallBottom; y++) {
       // check if we can extend the horizontal span
-      if (x === rhspans[y] + 1) {
-        rhspans[y] = x;
+      if (x === spansX2[y] + 1) {
+        spansX2[y] = x;
       } else {
         // we can't extend the horizontal span, so render it and start a new one
-        renderFloorSpan(y, lhspans[y], rhspans[y]);
-        lhspans[y] = rhspans[y] = x;
+        renderFloorSpan(y, spansX1[y], spansX2[y]);
+        spansX1[y] = spansX2[y] = x;
       }
     }
   }
@@ -796,7 +790,7 @@ function renderViewWallsVertFloorsHorz() {
   // render floor spans that were not closed
   for (let y = minWallBottom + 1; y <= maxWallBottom; y++) {
     // assert(hspans[y] === 1);
-    renderFloorSpan(y, lhspans[y], rhspans[y]);
+    renderFloorSpan(y, spansX1[y], spansX2[y]);
   }
 
   // render horz floor below walls
@@ -900,10 +894,10 @@ function renderViewFullHorz() {
     frameBuf32,
     startFramePtr,
     frameStride,
-    stepXhspans,
-    stepYhspans,
-    lfloorXhspans,
-    lfloorYhspans,
+    spansStepX,
+    spansStepY,
+    spansFloorLX,
+    spansFloorLY,
     frameRowPtrs,
     raycaster,
   } = renderParams;
@@ -947,10 +941,10 @@ function renderViewFullHorz() {
   for (let y = minWallBottom + 1; y < vpHeight; ++y) {
     const yd = y - projYCenter;
     const sDist = posZ / yd;
-    lfloorXhspans[y] = posX + sDist * rayDirLeftX;
-    lfloorYhspans[y] = posY + sDist * rayDirLeftY;
-    stepXhspans[y] = sDist * rayStepX;
-    stepYhspans[y] = sDist * rayStepY;
+    spansFloorLX[y] = posX + sDist * rayDirLeftX;
+    spansFloorLY[y] = posY + sDist * rayDirLeftY;
+    spansStepX[y] = sDist * rayStepX;
+    spansStepY[y] = sDist * rayStepY;
   }
 
   // render horz ceiling above walls
