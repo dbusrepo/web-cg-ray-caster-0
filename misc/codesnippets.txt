@@ -966,3 +966,12 @@ function render(): void {
 //   console.log('too early...');
 //   return;
 // }
+
+
+// mipPixels.vi
+// const texels = new Uint32Array(
+//   mipPixels.buffer,
+//   mipPixels.byteOffset + mipRowOffs * 4,
+//   mipPixels.byteLength / 4,
+// );
+// const texels = mipPixels.subarray(mipRowOffs, mipRowOffs + 64);

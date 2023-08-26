@@ -174,8 +174,8 @@ function renderViewFullVert() {
       FloorWallX: floorWallX,
       FloorWallY: floorWallY,
       Mipmap: mipmap,
-      // ProjHeight: projHeight,
-      // ClipTop: clipTop,
+      ProjHeight: projHeight,
+      ClipTop: clipTop,
     } = wallSlices[x];
 
     const colPtr = startFramePtr + x;
@@ -198,7 +198,7 @@ function renderViewFullVert() {
     if (hit) {
       const {
         Buf32: mipPixels,
-        // Width: texWidth,
+        Width: texWidth,
         // Height: texHeight,
         Lg2Pitch: lg2Pitch,
       } = mipmap;
@@ -207,53 +207,55 @@ function renderViewFullVert() {
       // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << lg2Pitch;
 
+      // wall alg1: bres
+      // const wallSliceHeight = bottom - top + 1;
       // let numPixels = wallSliceHeight;
-      // // wall alg1: bres
-      // const frac = texWidth;
-      // let counter = -projHeight + clipTop * frac;
-      // let colIdx = mipRowOffs;
-      // let color = mipPixels[colIdx];
+      const frac = texWidth;
+      let counter = -projHeight + clipTop * frac;
+      let colIdx = mipRowOffs;
+      let color = mipPixels[colIdx];
       // while (numPixels--) {
-      //   while (counter >= 0) {
-      //     counter -= projHeight;
-      //     colIdx++;
-      //     color = mipPixels[colIdx];
-      //   }
-      //   frameBuf32[framePtr] = color;
-      //   counter += frac;
-      //   framePtr += frameStride;
-      // }
-
-      // mipPixels.vi
-      // const texels = new Uint32Array(
-      //   mipPixels.buffer,
-      //   mipPixels.byteOffset + mipRowOffs * 4,
-      //   mipPixels.byteLength / 4,
-      // );
-      // const texels = mipPixels.subarray(mipRowOffs, mipRowOffs + 64);
-
-      let offs = mipRowOffs + texY;
-      // // wall alg2: dda
-      // for (let y = top; y <= bottom; y++) {
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        // const texColOffs = texY | 0;
-        // const color = mipPixels[mipRowOffs + texColOffs];
-        const color = mipPixels[offs | 0];
-        // const color = texels[texColOffs];
-        // const color = mipmap.Buf32[texY * texWidth + texX];
-        // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+        while (counter >= 0) {
+          counter -= projHeight;
+          colIdx++;
+          color = mipPixels[colIdx];
+        }
         frameBuf32[framePtr] = color;
-        // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        // texY += texStepY;
-        offs += texStepY;
-        // framePtr += frameStride;
+        counter += frac;
       }
 
-      // wall alg3: dda fixed
-      // const texStepY_fix = wallSlice.TexStepY * 65536.0 as u32;
-      // let texY_fix = wallSlice.TexY * 65536.0 as u32;
+      // wall alg2: dda vers 1
+      // for (let y = top; y <= bottom; y++) {
+      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      //   const texColOffs = texY | 0;
+      //   const color = mipPixels[mipRowOffs + texColOffs];
+      //   // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+      //   // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+      //   frameBuf32[framePtr] = color;
+      //   texY += texStepY;
+      // }
 
-      // wall alg4: dda when min, bres when mag
+      // // wall alg2 dda vers 2
+      // let offs = mipRowOffs + texY;
+      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      //   const color = mipPixels[offs | 0];
+      //   frameBuf32[framePtr] = color;
+      //   offs += texStepY;
+      // }
+
+      // // wall alg3: fixed
+      // const FIX = 16;
+      // let texStepY_fix = (texStepY * (1 << FIX)) | 0;
+      // let texY_fix = ((texY) * (1 << FIX)) | 0;
+      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      //   const texColOffs = texY_fix >> FIX;
+      //   const color = mipPixels[mipRowOffs + texColOffs];
+      //   frameBuf32[framePtr] = color;
+      //   texY_fix += texStepY_fix;
+      // }
+
+      // // wall alg4: dda when min, bres when mag
       // if (projHeight <= texWidth) {
       //   for (let y = top; y <= bottom; y++) {
       //     const texColOffs = texY | 0;
@@ -270,7 +272,7 @@ function renderViewFullVert() {
       //   let counter = -projHeight + clipTop * frac;
       //   let colIdx = mipRowOffs;
       //   let color = mipPixels[colIdx];
-      //   while (numPixels--) {
+      //   for (; framePtr < frameLimitPtr; framePtr += frameStride) {
       //     while (counter >= 0) {
       //       counter -= projHeight;
       //       colIdx++;
@@ -278,7 +280,6 @@ function renderViewFullVert() {
       //     }
       //     frameBuf32[framePtr] = color;
       //     counter += frac;
-      //     framePtr += frameStride;
       //   }
       //   // // prev version:
       //   // // const frac = texWidth;
@@ -732,7 +733,6 @@ function renderViewWallsVertFloorsHorz() {
     for (; framePtr < frameLimitPtr; framePtr += frameStride) {
       frameBuf32[framePtr] = CEIL_COLOR;
     }
-
     // assert(framePtr === colPtr + top * frameStride);
 
     // framePtr = frameColPtr + frameRowPtrs[top];
