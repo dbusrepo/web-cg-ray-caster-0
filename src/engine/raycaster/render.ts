@@ -126,9 +126,9 @@ function renderBorders(borderColor: number) {
 }
 
 function renderView() {
-  // renderViewFullVert();
+  renderViewFullVert();
   // renderViewFullVert2();
-  renderViewWallsVertFloorsHorz();
+  // renderViewWallsVertFloorsHorz();
   // renderViewFullHorz(); // TODO:
 }
 
@@ -207,23 +207,23 @@ function renderViewFullVert() {
       // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << lg2Pitch;
 
-      // wall alg1: bres
-      // const wallSliceHeight = bottom - top + 1;
-      // let numPixels = wallSliceHeight;
-      const frac = texWidth;
-      let counter = -projHeight + clipTop * frac;
-      let colIdx = mipRowOffs;
-      let color = mipPixels[colIdx];
-      // while (numPixels--) {
-      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        while (counter >= 0) {
-          counter -= projHeight;
-          colIdx++;
-          color = mipPixels[colIdx];
-        }
-        frameBuf32[framePtr] = color;
-        counter += frac;
-      }
+      // // wall alg1: bres
+      // // const wallSliceHeight = bottom - top + 1;
+      // // let numPixels = wallSliceHeight;
+      // const frac = texWidth;
+      // let counter = -projHeight + clipTop * frac;
+      // let colIdx = mipRowOffs;
+      // let color = mipPixels[colIdx];
+      // // while (numPixels--) {
+      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      //   while (counter >= 0) {
+      //     counter -= projHeight;
+      //     colIdx++;
+      //     color = mipPixels[colIdx];
+      //   }
+      //   frameBuf32[framePtr] = color;
+      //   counter += frac;
+      // }
 
       // wall alg2: dda vers 1
       // for (let y = top; y <= bottom; y++) {
@@ -236,13 +236,13 @@ function renderViewFullVert() {
       //   texY += texStepY;
       // }
 
-      // // wall alg2 dda vers 2
-      // let offs = mipRowOffs + texY;
-      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-      //   const color = mipPixels[offs | 0];
-      //   frameBuf32[framePtr] = color;
-      //   offs += texStepY;
-      // }
+      // wall alg2 dda vers 2
+      let offs = mipRowOffs + texY;
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        const color = mipPixels[offs | 0];
+        frameBuf32[framePtr] = color;
+        offs += texStepY;
+      }
 
       // // wall alg3: fixed
       // const FIX = 16;
@@ -315,7 +315,7 @@ function renderViewFullVert() {
       }
     } else {
       let prevTexIdx = null;
-      let floorMipmap;
+      let floorTex;
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
         const dist = posZ / (y - projYCenter);
@@ -339,15 +339,15 @@ function renderViewFullVert() {
         // }
         // const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
-        const texIdx = floorYidx * mapWidth + floorXidx;
+        const floorTexIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
-        const sameFloorMapIdx = texIdx === prevTexIdx;
-        if (sameFloorMapIdx || (texIdx >= 0 && texIdx < floorMap.length)) {
+        const sameFloorMapIdx = floorTexIdx === prevTexIdx;
+        if (sameFloorMapIdx || (floorTexIdx >= 0 && floorTexIdx < floorMap.length)) {
           if (!sameFloorMapIdx) {
-            floorMipmap = floorTextures[floorMap[texIdx]].getMipmap(0).Image;
-            prevTexIdx = texIdx;
+            floorTex = floorTextures[floorMap[floorTexIdx]].getMipmap(0).Image;
+            prevTexIdx = floorTexIdx;
           }
-          const mip = floorMipmap!;
+          const mip = floorTex!;
           const u = floorX - floorXidx;
           const v = floorY - floorYidx;
           // assert(floorX >= 0 && floorX < 1);

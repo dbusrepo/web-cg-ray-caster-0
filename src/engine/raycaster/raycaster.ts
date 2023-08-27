@@ -144,7 +144,6 @@ class Raycaster {
     // this.renderBorders(); // TODO:
 
     this.initMap();
-    this.initFloorMap();
 
     this.initRender();
 
@@ -330,12 +329,22 @@ class Raycaster {
 
     this.yMap[4 + this.yMapWidth * 2] = 3;
     this.yMap[5 + this.yMapWidth * 2] = 3;
+
+    this.initFloorMap();
   }
 
   // TODO:
   private initFloorMap() {
+
+    const floorMapPtr = this.wasmEngineModule.getFloorMapPtr(this.wasmRaycasterPtr);
+
+    this.floorMap = new Uint8Array(
+      this.wasmRun.WasmMem.buffer,
+      floorMapPtr,
+      this.mapWidth * this.mapHeight,
+    );
+
     let texId = 0;
-    this.floorMap = new Uint8Array(this.mapWidth * this.mapHeight);
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
         texId = 0;
@@ -599,8 +608,8 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    renderView();
-    // this.wasmEngineModule.render();
+    // renderView();
+    this.wasmEngineModule.render();
   }
 
   update(time: number) {

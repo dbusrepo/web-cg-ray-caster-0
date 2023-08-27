@@ -1,3 +1,4 @@
+import { myAssert } from '../myAssert';
 import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
 import { SArray, newSArray } from '../sarray';
 import { Texture } from '../texture';
@@ -76,6 +77,7 @@ function renderViewVert(raycaster: Raycaster): void {
   const wallSlices = raycaster.WallSlices;
   const viewport = raycaster.Viewport;
   const player = raycaster.Player;
+  const map = raycaster.Map;
   // const posX = player.PosX;
   // const posY = player.PosY;
   // const dirX = player.DirX;
@@ -84,7 +86,6 @@ function renderViewVert(raycaster: Raycaster): void {
   // const planeY = player.PlaneY;
   // const projYCenter = raycaster.ProjYCenter;
   // // const zBuffer = raycaster.ZBuffer;
-  // const map = raycaster.Map;
   // const mapWidth = map.Width;
   // const mapHeight = map.Height;
   // const minWallTop = raycaster.MinWallTop;
@@ -125,25 +126,24 @@ function renderViewVert(raycaster: Raycaster): void {
       const mipmapRowOffs = (texX as SIZE_T) << mipmap.Lg2Pitch;
       const mipmapPtr = mipmap.Ptr + mipmapRowOffs * BPP_RGBA;
       
-      // const texStepY = wallSlice.TexStepY;
-      // let texY = wallSlice.TexY;
-      //
-      // for (let y = top; y <= bottom; y++) {
+      const texStepY = wallSlice.TexStepY;
+      let texY = wallSlice.TexY;
+
+      // for (; framePtr < frameLimitPtr; framePtr += FRAME_STRIDE) {
       //   const texColOffs = texY as u32;
       //   const texCol = load<u32>(mipmapPtr + texColOffs * BPP_RGBA);
       //   store<u32>(framePtr, texCol);
-      //   framePtr += FRAME_STRIDE;
       //   texY += texStepY;
       // }
 
-      // fixed version
+      // // fixed
       const FIX_P = 16;
       const F_TO_FIX = (1 << FIX_P) as f32;
       const texStepY_fix = wallSlice.TexStepY * F_TO_FIX as u32;
       let texY_fix = wallSlice.TexY * F_TO_FIX as u32;
       // for (let y = top; y <= bottom; y++) {
         // framePtr += FRAME_STRIDE;
-      for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
+      for (; framePtr < frameLimitPtr; framePtr += FRAME_STRIDE) {
         const texColOffs = texY_fix >> FIX_P;
         const texCol = load<u32>(mipmapPtr + texColOffs * BPP_RGBA);
         store<u32>(framePtr, texCol);
@@ -154,7 +154,7 @@ function renderViewVert(raycaster: Raycaster): void {
       const color = side == 0 ? WALL_COLOR_SIDE_0 : WALL_COLOR_SIDE_1;
       // for (let y = top; y <= bottom; y++) {
         // framePtr += FRAME_STRIDE;
-      for (; framePtr !== frameLimitPtr; framePtr += FRAME_STRIDE) {
+      for (; framePtr < frameLimitPtr; framePtr += FRAME_STRIDE) {
         store<u32>(framePtr, color);
       }
     }
@@ -167,83 +167,58 @@ function renderViewVert(raycaster: Raycaster): void {
         store<u32>(framePtr, FLOOR_COLOR);
       }
     } else {
+      const mapWidth = map.Width;
       const posX = player.PosX;
       const posY = player.PosY;
       const posZ = player.PosZ;
-      const dirX = player.DirX;
-      const dirY = player.DirY;
-      const planeX = player.PlaneX;
-      const planeY = player.PlaneY;
-
-      const rayDirLeftX = dirX - planeX;
-      const rayDirLeftY = dirY - planeY;
-      const rayDirRightX = dirX + planeX;
-      const rayDirRightY = dirY + planeY;
-      const invWidth: f32 = 1 / (viewport.Width as f32);
-      const rayStepX = ((rayDirRightX - rayDirLeftX) as f32) * invWidth;
-      const rayStepY = ((rayDirRightY - rayDirLeftY) as f32) * invWidth;
-
       const projYCenter = raycaster.ProjYCenter;
-      const minWallBottom = raycaster.MinWallBottom;
+      const wallDistance = wallSlice.Distance;
+      const floorWallX = wallSlice.FloorWallX;
+      const floorWallY = wallSlice.FloorWallY;
+      const floorMap = map.FloorMap;
+      const floorMapLength = map.FloorMap.Length as u32;
 
-      for (let y = minWallBottom + 1; y < viewport.Height; ++y) {
-        const yd = y - projYCenter;
-        const sDist = posZ / (yd as f32);
-        lfloorSpanX.set(y, posX + sDist * rayDirLeftX);
-        lfloorSpanY.set(y, posY + sDist * rayDirLeftY);
-        floorStepX.set(y, sDist * rayStepX);
-        floorStepY.set(y, sDist * rayStepY);
-      }
+      let prevFloorMapIdx = -1 as u32;
+      let floorTex: Texture = changetype<Texture>(NULL_PTR);
 
-      const mapWidth = raycaster.Map.Width;
-
-      // let prevTexIdx = null;
-      // let floorTex;
       for (let y = bottom + 1; y < viewport.Height; y++, framePtr += FRAME_STRIDE) {
-        const floorX = lfloorSpanX.at(y) + (x as f32) * floorStepX.at(y);
-        const floorY = lfloorSpanY.at(y) + (x as f32) * floorStepY.at(y);
+        const sDist = posZ / ((y - projYCenter) as f32);
+        const weight = sDist / wallDistance;
+        const floorX = weight * floorWallX + (1 - weight) * posX;
+        const floorY = weight * floorWallY + (1 - weight) * posY;
         const floorXidx = floorX as u32;
         const floorYidx = floorY as u32;
+        const floorMapIdx = floorYidx * mapWidth + floorXidx;
+        const sameFloorTexIdx = floorMapIdx === prevFloorMapIdx;
+        if (sameFloorTexIdx || (floorMapIdx < floorMapLength)) {
+          if (!sameFloorTexIdx) {
+            // const texIdx = floorMap.at(floorMapIdx);
+            // floorTex = textures.at(texIdx).getMipmap(0);
+            // prevFloorMapIdx = floorMapIdx;
+          }
+          // const u = floorX - (floorXidx as f32);
+          // const v = floorY - (floorYidx as f32);
+        }
+
         // const texIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
         // const sameFloorTexMapIdx = texIdx === prevTexIdx;
-        const u = floorX - (floorXidx as f32);
-        const v = floorY - (floorYidx as f32);
-        // assert(floorX >= 0 && floorX < 1);
-        // assert(floorY >= 0 && floorY < 1);
-        const texIdx = 14;
-        const tex = mipmaps.at(texIdx);
-        const floorTexX = u32(u * (tex.Width as f32));
-        const floorTexY = u32(v * (tex.Height as f32));
-        const texOffs = ((floorTexX as SIZE_T) << tex.Lg2Pitch) | floorTexY;
-        // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
-        const color = load<u32>(tex.Ptr + texOffs * BPP_RGBA);
-        // console.log(colorOffset);
-        // console.log('color: ', color);
-        store<u32>(framePtr, color);
 
-        // if (
-        //   sameFloorTexMapIdx ||
-        //   (texIdx >= 0 && texIdx < floorTexturesMap.length)
-        // ) {
-        //   if (!sameFloorTexMapIdx) {
-        //     floorTex = floorTexturesMap[texIdx].getMipmap(0).Image;
-        //     prevTexIdx = texIdx;
-        //   }
-        //   const tex = floorTex!;
-        //   const u = floorX - floorXidx;
-        //   const v = floorY - floorYidx;
-        //   // assert(floorX >= 0 && floorX < 1);
-        //   // assert(floorY >= 0 && floorY < 1);
-        //   const floorTexX = u * tex.Width;
-        //   const floorTexY = v * tex.Height;
-        //   const colorOffset = (floorTexX << tex.Lg2Pitch) | floorTexY;
-        //   // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
-        //   const color = tex.Buf32[colorOffset];
-        //   // console.log(colorOffset);
-        //   // console.log('color: ', color);
-        //   frameBuf32[framePtr] = color;
-        // }
+
+        // const u = floorX - (floorXidx as f32);
+        // const v = floorY - (floorYidx as f32);
+        // // assert(floorX >= 0 && floorX < 1);
+        // // assert(floorY >= 0 && floorY < 1);
+        // const texIdx = 14;
+        // const tex = mipmaps.at(texIdx);
+        // const texX = u32(u * (tex.Width as f32));
+        // const texY = u32(v * (tex.Height as f32));
+        // const texOffs = ((texX as SIZE_T) << tex.Lg2Pitch) | texY;
+        // // assert(colorOffset >= 0 && colorOffset < floorTex.Buf32.length);
+        // const color = load<u32>(tex.Ptr + texOffs * BPP_RGBA);
+        // // console.log(colorOffset);
+        // // console.log('color: ', color);
+        // store<u32>(framePtr, color);
 
       }
     }

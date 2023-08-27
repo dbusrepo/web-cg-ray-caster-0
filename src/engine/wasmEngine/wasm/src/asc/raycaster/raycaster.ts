@@ -43,7 +43,6 @@ import {
   private projYCenter: i32;
   private player: Player;
   private map: Map;
-  private floorMap: SArray<u8>;
   private wallSlices: SArray<WallSlice>;
   private zBuffer: SArray<f32>;
   private maxWallDistance: f32;
@@ -229,6 +228,11 @@ function getYmapHeight(raycasterPtr: PTR_T): u32 {
   return raycaster.Map.YmapHeight;
 }
 
+function getFloorMapPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = changetype<Raycaster>(raycasterPtr);
+  return raycaster.Map.FloorMap.DataPtr;
+}
+
 function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
   return raycaster.WallSliceObjSizeLg2;
@@ -276,6 +280,7 @@ export {
   getYmapPtr,
   getYmapWidth,
   getYmapHeight,
+  getFloorMapPtr,
   getWallSlicesPtr,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,

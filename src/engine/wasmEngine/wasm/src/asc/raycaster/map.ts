@@ -14,6 +14,7 @@ import { SArray, newSArray } from '../sarray';
   private xMapHeight: u32;
   private yMapWidth: u32;
   private yMapHeight: u32;
+  private floorMap: SArray<u8>;
 
   init(mapWidth: u32, mapHeight: u32): void {
     this.width = mapWidth;
@@ -24,6 +25,7 @@ import { SArray, newSArray } from '../sarray';
     this.yMapHeight = mapHeight + 1;
     this.xMap = newSArray<u8>(this.xMapWidth * this.xMapHeight);
     this.yMap = newSArray<u8>(this.yMapWidth * this.yMapHeight);
+    this.floorMap = newSArray<u8>(mapWidth * mapHeight);
   }
 
   get Width(): u32 {
@@ -56,6 +58,10 @@ import { SArray, newSArray } from '../sarray';
 
   get YmapHeight(): u32 {
     return this.yMapHeight;
+  }
+
+  get FloorMap(): SArray<u8> {
+    return this.floorMap;
   }
 }
 
