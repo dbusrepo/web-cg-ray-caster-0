@@ -15,9 +15,7 @@ class RenderParams {
 
   public floorTextures: Texture[];
 
-  // used with horz floor span rend
   public spansX1: Int32Array;
-  public spansX2: Int32Array;
   public spansStepX: Float32Array;
   public spansStepY: Float32Array;
   public spansFloorLX: Float32Array;
@@ -46,7 +44,6 @@ class RenderParams {
     }
 
     this.spansX1 = new Int32Array(vpHeight);
-    this.spansX2 = new Int32Array(vpHeight);
     this.spansStepX = new Float32Array(vpHeight);
     this.spansStepY = new Float32Array(vpHeight);
     this.spansFloorLX = new Float32Array(vpHeight);
@@ -127,8 +124,8 @@ function renderBorders(borderColor: number) {
 
 function renderView() {
   // renderViewFullVert();
-  renderViewFullVert2();
-  // renderViewWallsVertFloorsHorz();
+  // renderViewFullVert2();
+  renderViewWallsVertFloorsHorz();
   // renderViewFullHorz(); // TODO:
 }
 
@@ -342,7 +339,10 @@ function renderViewFullVert() {
         const floorTexIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
         const sameFloorMapIdx = floorTexIdx === prevTexIdx;
-        if (sameFloorMapIdx || (floorTexIdx >= 0 && floorTexIdx < floorMap.length)) {
+        if (
+          sameFloorMapIdx ||
+          (floorTexIdx >= 0 && floorTexIdx < floorMap.length)
+        ) {
           if (!sameFloorMapIdx) {
             floorTex = floorTextures[floorMap[floorTexIdx]].getMipmap(0).Image;
             prevTexIdx = floorTexIdx;
@@ -593,18 +593,10 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
     let floorY = spansFloorLY[y] + x1 * stepY;
     let prevTexIdx = null;
     let floorMipmap;
-    // for (let x = x1; x <= x2; x++) {
     while (numPixels--) {
       const floorXidx = floorX | 0;
       const floorYidx = floorY | 0;
       const texIdx = floorYidx * mapWidth + floorXidx;
-      // assert(
-      //   floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length,
-      //   `floorX: ${floorX} floorY: ${floorY} x1: ${x1} x2: ${x2} y: ${y}`,
-      //   // `flooorX: ${floorX} floorY: ${floorY}`,
-      //   // `floorTexMapIdx: ${floorTexMapIdx} floorXidx: ${floorXidx} floorYidx: ${floorYidx}
-      //   //  flooorX: ${floorX} floorY: ${floorY}`,
-      // );
       const sameFloorTexMapIdx = texIdx === prevTexIdx;
       if (sameFloorTexMapIdx || (texIdx >= 0 && texIdx < floorMap.length)) {
         if (!sameFloorTexMapIdx) {
@@ -619,10 +611,8 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
         const floorTexX = u * mip.Width;
         const floorTexY = v * mip.Height;
         const texOffs = (floorTexX << mip.Lg2Pitch) | floorTexY;
-        // assert(texOffs >= 0 && texOffs < floorTex.Buf32.length);
+        // assert(texOffs >= 0 && texOffs < mip.Buf32.length);
         const color = mip.Buf32[texOffs];
-        // console.log(texOffs);
-        // console.log('color: ', color);
         frameBuf32[frameRowPtr] = color;
       }
       frameRowPtr++;
@@ -643,7 +633,6 @@ function renderViewWallsVertFloorsHorz() {
     spansFloorLY,
     frameRowPtrs,
     spansX1,
-    spansX2,
     raycaster,
   } = renderParams;
 
@@ -695,10 +684,7 @@ function renderViewWallsVertFloorsHorz() {
     renderCeilSpan(y, 0, vpWidth - 1);
   }
 
-  // init spans x2
-  for (let y = minWallBottom + 1; y <= maxWallBottom; y++) {
-    spansX2[y] = -2;
-  }
+  let prevWallBottom = maxWallBottom;
 
   // render walls vertically
   for (let x = 0; x < vpWidth; x++) {
@@ -723,8 +709,6 @@ function renderViewWallsVertFloorsHorz() {
     }
     // assert(framePtr === colPtr + top * frameStride);
 
-    // framePtr = frameColPtr + frameRowPtrs[top];
-
     frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
     if (hit) {
@@ -738,54 +722,40 @@ function renderViewWallsVertFloorsHorz() {
       const mipRowOffs = texX << lg2Pitch;
       let offs = mipRowOffs + texY;
 
-      // textured wall
-      // for (let y = top; y <= bottom; y++) {
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        // const texColOffs = texY | 0;
-        // const color = mipPixels[mipRowOffs + texColOffs];
         const color = mipPixels[offs | 0];
         frameBuf32[framePtr] = color;
         offs += texStepY;
-        // framePtr += frameStride;
       }
     } else {
-      // for (let y = top; y <= bottom; y++) {
       const color = side === 0 ? 0xff0000ee : 0xff0000aa;
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
         frameBuf32[framePtr] = color;
-        // framePtr += frameStride;
       }
     }
 
-    for (let y = bottom + 1; y <= maxWallBottom; y++) {
-      // check if we can extend the horizontal span
-      if (x === spansX2[y] + 1) {
-        spansX2[y] = x;
-      } else {
-        // we can't extend the horizontal span, so render it and start a new one
-        renderFloorSpan(y, spansX1[y], spansX2[y]);
-        spansX1[y] = spansX2[y] = x;
-      }
+    // new span is shorter than previous
+    for (let y = prevWallBottom; y > bottom; y--) {
+      spansX1[y] = x;
     }
+
+    // new span is longer than previous
+    for (let y = bottom; y > prevWallBottom; y--) {
+      renderFloorSpan(y, spansX1[y], x - 1);
+    }
+
+    prevWallBottom = bottom;
   }
 
-  // // render ceil spans that were not closed
-  // for (let y = minWallTop; y < maxWallTop; y++) {
-  //   // assert(hspans[y] === 1);
-  //   renderCeilSpan(y, lhspans[y], rhspans[y]);
-  // }
-
-  // render floor spans that were not closed
-  for (let y = minWallBottom + 1; y <= maxWallBottom; y++) {
-    // assert(hspans[y] === 1);
-    renderFloorSpan(y, spansX1[y], spansX2[y]);
+  // render floor spans not closed
+  for (let y = prevWallBottom; y <= maxWallBottom; y++) {
+    renderFloorSpan(y, spansX1[y], vpWidth - 1);
   }
 
   // render horz floor below walls
   for (let y = maxWallBottom + 1; y < vpHeight; y++) {
     renderFloorSpan(y, 0, vpWidth - 1);
   }
-
 }
 
 function renderViewFullHorz() {

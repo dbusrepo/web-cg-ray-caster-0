@@ -976,6 +976,13 @@ function render(): void {
 // );
 // const texels = mipPixels.subarray(mipRowOffs, mipRowOffs + 64);
 
+// assert(
+//   floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length,
+//   `floorX: ${floorX} floorY: ${floorY} x1: ${x1} x2: ${x2} y: ${y}`,
+//   // `flooorX: ${floorX} floorY: ${floorY}`,
+//   // `floorTexMapIdx: ${floorTexMapIdx} floorXidx: ${floorXidx} floorYidx: ${floorYidx}
+//   //  flooorX: ${floorX} floorY: ${floorY}`,
+// );
 
 // // from render.ts
 // let framePtr;
