@@ -26,7 +26,6 @@ function clearBg(
     v128.store(framePtr, value);
   }
 
-  // // const numPixels = FRAME_ROW_LEN * (end - start);
   // // const numPixels32 = numPixels / 32;
   // const value = v128.splat<i32>(color);
   // for (let framePtr = startPtr; framePtr < endPtr; framePtr += 32) {
