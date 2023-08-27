@@ -975,3 +975,114 @@ function render(): void {
 //   mipPixels.byteLength / 4,
 // );
 // const texels = mipPixels.subarray(mipRowOffs, mipRowOffs + 64);
+
+
+// // from render.ts
+// let framePtr;
+//
+// // render horz line at minWallTop
+// framePtr = startFramePtr + minWallTop * frameStride;
+// for (let x = colStart; x < colEnd; x++) {
+//   frameBuf32[framePtr++] = 0xff00ff00;
+// }
+//
+// // render horz line at maxWallTop
+// framePtr = startFramePtr + maxWallTop * frameStride;
+// for (let x = colStart; x < colEnd; x++) {
+//   frameBuf32[framePtr++] = 0xff00ff00;
+// }
+//
+// // render horz line at minWallBottom
+// framePtr = startFramePtr + minWallBottom * frameStride;
+// for (let x = colStart; x < colEnd; x++) {
+//   frameBuf32[framePtr++] = 0xffffff00;
+// }
+//
+// // render horz line at maxWallBottom
+// framePtr = startFramePtr + maxWallBottom * frameStride;
+// for (let x = colStart; x < colEnd; x++) {
+//   frameBuf32[framePtr++] = 0xffffff00;
+// }
+
+// render ceil/floor between walls
+// framePtr = startFrameViewPtr + minWallTop * frameStride;
+
+// for (let y = minWallTop; y < viewMidY; y++) {
+//   for (let x = colStart; x < colEnd; x++) {
+//     const wallSlice = wallSlices[x];
+//     if (!(y >= wallSlice.Top && y <= wallSlice.Bottom)) {
+//       // const mipRowOffs = wallSlice.TexX << wallSlice.CachedMipmap.PitchLg2;
+//       // const texColOffs = wallSlice.TexPosY | 0;
+//       // wallSlices[x].TexPosY = wallSlice.TexPosY + wallSlice.TexStepY;
+//       // color = wallSlice.CachedMipmap.Buf32[mipRowOffs | texColOffs];
+//       // color = mipmap.Buf32[(texX << mipmap.PitchLg2) | (texPosY | 0)];
+//       frameBuf32[framePtr + x] = CEIL_COLOR;
+//     }
+//   }
+//   framePtr += frameStride;
+// }
+
+// for (let y = viewMidY + 1; y <= maxWallBottom; y++) {
+//   for (let x = colStart; x < colEnd; x++) {
+//     const wallSlice = wallSlices[x];
+//     if (!(y >= wallSlice.Top && y <= wallSlice.Bottom)) {
+//       frameBuf32[framePtr + x] = FLOOR_COLOR;
+//     }
+//   }
+//   framePtr += frameStride;
+// }
+
+// render floor below walls
+// framePtr = startFrameViewPtr + (maxWallBottom + 1) * frameStride + colStart;
+//
+// for (let y = maxWallBottom + 1; y < viewHeight; y++) {
+//   const yd = y - viewMidY;
+//   const sDist = posZ / yd;
+//   const stepX = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
+//   const stepY = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
+//   let floorX = posX + sDist * rayDirLeftX;
+//   let floorY = posY + sDist * rayDirLeftY;
+//   for (let x = colStart; x < colEnd; x++) {
+//     const floorXidx = floorX | 0;
+//     const floorYidx = floorY | 0;
+//     const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
+//     if (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length) {
+//       const tex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
+//       const u = floorX - floorXidx;
+//       const v = floorY - floorYidx;
+//       // assert(floorX >= 0 && floorX < 1);
+//       // assert(floorY >= 0 && floorY < 1);
+//       const floorTexX = (u * tex.Width) | 0;
+//       const floorTexY = (v * tex.Height) | 0;
+//       const texOffs = (floorTexX << tex.PitchLg2) | floorTexY;
+//       // assert(texOffs >= 0 && texOffs < floorTex.Buf32.length);
+//       const color = tex.Buf32[texOffs];
+//       // console.log(texOffs);
+//       // console.log('color: ', color);
+//       frameBuf32[framePtr] = color;
+//     }
+//     framePtr++;
+//     floorX += stepX;
+//     floorY += stepY;
+//   }
+//   framePtr += frameStride - viewWidth;
+// }
+
+// mipmap is rotated 90ccw
+// const mipStride = 1 << pitchLg2;
+const mipRowOffs = texX << lg2Pitch;
+let offs = mipRowOffs + texY;
+// // wall alg2: dda
+for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+  // const texColOffs = texY | 0;
+  // const color = mipPixels[mipRowOffs + texColOffs];
+  const color = mipPixels[offs | 0];
+  // const color = texels[texColOffs];
+  // const color = mipmap.Buf32[texY * texWidth + texX];
+  // color = frameColorRGBAWasm.lightColorABGR(color, 255);
+  frameBuf32[framePtr] = color;
+  // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
+  // texY += texStepY;
+  offs += texStepY;
+  // framePtr += frameStride;
+}

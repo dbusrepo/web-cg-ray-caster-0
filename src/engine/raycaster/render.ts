@@ -126,8 +126,8 @@ function renderBorders(borderColor: number) {
 }
 
 function renderView() {
-  renderViewFullVert();
-  // renderViewFullVert2();
+  // renderViewFullVert();
+  renderViewFullVert2();
   // renderViewWallsVertFloorsHorz();
   // renderViewFullHorz(); // TODO:
 }
@@ -435,6 +435,23 @@ function renderViewFullVert2() {
     PlaneY: planeY,
   } = raycaster.Player;
 
+  const rayDirLeftX = dirX - planeX;
+  const rayDirLeftY = dirY - planeY;
+  const rayDirRightX = dirX + planeX;
+  const rayDirRightY = dirY + planeY;
+  const invWidth = 1 / vpWidth;
+  const rayStepX = (rayDirRightX - rayDirLeftX) * invWidth;
+  const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
+
+  for (let y = minWallBottom + 1; y < vpHeight; ++y) {
+    const yd = y - projYCenter;
+    const sDist = posZ / yd;
+    spansFloorLX[y] = posX + sDist * rayDirLeftX;
+    spansFloorLY[y] = posY + sDist * rayDirLeftY;
+    spansStepX[y] = sDist * rayStepX;
+    spansStepY[y] = sDist * rayStepY;
+  }
+
   for (let x = 0; x < vpWidth; x++) {
     let {
       Hit: hit,
@@ -457,7 +474,6 @@ function renderViewFullVert2() {
     let frameLimitPtr = frameRowPtrs[top] + x;
 
     // render ceil
-
     // for (let y = 0; y < top; y++) {
     for (; framePtr < frameLimitPtr; framePtr += frameStride) {
       frameBuf32[framePtr] = CEIL_COLOR;
@@ -475,24 +491,13 @@ function renderViewFullVert2() {
         Lg2Pitch: lg2Pitch,
       } = mipmap;
 
-      // mipmap is rotated 90ccw
-      // const mipStride = 1 << pitchLg2;
       const mipRowOffs = texX << lg2Pitch;
       let offs = mipRowOffs + texY;
       // // wall alg2: dda
-      // for (let y = top; y <= bottom; y++) {
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        // const texColOffs = texY | 0;
-        // const color = mipPixels[mipRowOffs + texColOffs];
         const color = mipPixels[offs | 0];
-        // const color = texels[texColOffs];
-        // const color = mipmap.Buf32[texY * texWidth + texX];
-        // color = frameColorRGBAWasm.lightColorABGR(color, 255);
         frameBuf32[framePtr] = color;
-        // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        // texY += texStepY;
         offs += texStepY;
-        // framePtr += frameStride;
       }
     } else {
       // no hit untextured wall
@@ -502,7 +507,6 @@ function renderViewFullVert2() {
         frameBuf32[framePtr] = color;
       }
     }
-
     // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
     if (!texturedFloor) {
@@ -511,23 +515,6 @@ function renderViewFullVert2() {
         framePtr += frameStride;
       }
     } else {
-      const rayDirLeftX = dirX - planeX;
-      const rayDirLeftY = dirY - planeY;
-      const rayDirRightX = dirX + planeX;
-      const rayDirRightY = dirY + planeY;
-      const invWidth = 1 / vpWidth;
-      const rayStepX = (rayDirRightX - rayDirLeftX) * invWidth;
-      const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
-
-      for (let y = minWallBottom + 1; y < vpHeight; ++y) {
-        const yd = y - projYCenter;
-        const sDist = posZ / yd;
-        spansFloorLX[y] = posX + sDist * rayDirLeftX;
-        spansFloorLY[y] = posY + sDist * rayDirLeftY;
-        spansStepX[y] = sDist * rayStepX;
-        spansStepY[y] = sDist * rayStepY;
-      }
-
       let prevTexIdx = null;
       let floorMipmap;
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
@@ -703,11 +690,12 @@ function renderViewWallsVertFloorsHorz() {
     spansStepY[y] = sDist * rayStepY;
   }
 
-  // render horz ceiling above walls
+  // render ceiling above walls with horz spans
   for (let y = 0; y < minWallTop; y++) {
     renderCeilSpan(y, 0, vpWidth - 1);
   }
 
+  // init spans x2
   for (let y = minWallBottom + 1; y <= maxWallBottom; y++) {
     spansX2[y] = -2;
   }
@@ -798,95 +786,6 @@ function renderViewWallsVertFloorsHorz() {
     renderFloorSpan(y, 0, vpWidth - 1);
   }
 
-  // let framePtr;
-  //
-  // // render horz line at minWallTop
-  // framePtr = startFramePtr + minWallTop * frameStride;
-  // for (let x = colStart; x < colEnd; x++) {
-  //   frameBuf32[framePtr++] = 0xff00ff00;
-  // }
-  //
-  // // render horz line at maxWallTop
-  // framePtr = startFramePtr + maxWallTop * frameStride;
-  // for (let x = colStart; x < colEnd; x++) {
-  //   frameBuf32[framePtr++] = 0xff00ff00;
-  // }
-  //
-  // // render horz line at minWallBottom
-  // framePtr = startFramePtr + minWallBottom * frameStride;
-  // for (let x = colStart; x < colEnd; x++) {
-  //   frameBuf32[framePtr++] = 0xffffff00;
-  // }
-  //
-  // // render horz line at maxWallBottom
-  // framePtr = startFramePtr + maxWallBottom * frameStride;
-  // for (let x = colStart; x < colEnd; x++) {
-  //   frameBuf32[framePtr++] = 0xffffff00;
-  // }
-
-  // render ceil/floor between walls
-  // framePtr = startFrameViewPtr + minWallTop * frameStride;
-
-  // for (let y = minWallTop; y < viewMidY; y++) {
-  //   for (let x = colStart; x < colEnd; x++) {
-  //     const wallSlice = wallSlices[x];
-  //     if (!(y >= wallSlice.Top && y <= wallSlice.Bottom)) {
-  //       // const mipRowOffs = wallSlice.TexX << wallSlice.CachedMipmap.PitchLg2;
-  //       // const texColOffs = wallSlice.TexPosY | 0;
-  //       // wallSlices[x].TexPosY = wallSlice.TexPosY + wallSlice.TexStepY;
-  //       // color = wallSlice.CachedMipmap.Buf32[mipRowOffs | texColOffs];
-  //       // color = mipmap.Buf32[(texX << mipmap.PitchLg2) | (texPosY | 0)];
-  //       frameBuf32[framePtr + x] = CEIL_COLOR;
-  //     }
-  //   }
-  //   framePtr += frameStride;
-  // }
-
-  // for (let y = viewMidY + 1; y <= maxWallBottom; y++) {
-  //   for (let x = colStart; x < colEnd; x++) {
-  //     const wallSlice = wallSlices[x];
-  //     if (!(y >= wallSlice.Top && y <= wallSlice.Bottom)) {
-  //       frameBuf32[framePtr + x] = FLOOR_COLOR;
-  //     }
-  //   }
-  //   framePtr += frameStride;
-  // }
-
-  // render floor below walls
-  // framePtr = startFrameViewPtr + (maxWallBottom + 1) * frameStride + colStart;
-  //
-  // for (let y = maxWallBottom + 1; y < viewHeight; y++) {
-  //   const yd = y - viewMidY;
-  //   const sDist = posZ / yd;
-  //   const stepX = sDist * (rayDirRightX - rayDirLeftX) * invWidth;
-  //   const stepY = sDist * (rayDirRightY - rayDirLeftY) * invWidth;
-  //   let floorX = posX + sDist * rayDirLeftX;
-  //   let floorY = posY + sDist * rayDirLeftY;
-  //   for (let x = colStart; x < colEnd; x++) {
-  //     const floorXidx = floorX | 0;
-  //     const floorYidx = floorY | 0;
-  //     const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
-  //     if (floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length) {
-  //       const tex = floorTexturesMap[floorTexMapIdx].getMipmap(0);
-  //       const u = floorX - floorXidx;
-  //       const v = floorY - floorYidx;
-  //       // assert(floorX >= 0 && floorX < 1);
-  //       // assert(floorY >= 0 && floorY < 1);
-  //       const floorTexX = (u * tex.Width) | 0;
-  //       const floorTexY = (v * tex.Height) | 0;
-  //       const texOffs = (floorTexX << tex.PitchLg2) | floorTexY;
-  //       // assert(texOffs >= 0 && texOffs < floorTex.Buf32.length);
-  //       const color = tex.Buf32[texOffs];
-  //       // console.log(texOffs);
-  //       // console.log('color: ', color);
-  //       frameBuf32[framePtr] = color;
-  //     }
-  //     framePtr++;
-  //     floorX += stepX;
-  //     floorY += stepY;
-  //   }
-  //   framePtr += frameStride - viewWidth;
-  // }
 }
 
 function renderViewFullHorz() {
