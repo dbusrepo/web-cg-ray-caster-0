@@ -2,7 +2,10 @@ import assert from 'assert';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { ascImportImages } from '../../../assets/build/images';
 import { gWasmView, gWasmViews } from './wasmRun';
-import { wasmTexFieldSizes } from './wasmMemInitImages';
+import {
+  wasmTexturesIndexFieldSizes,
+  wasmTexturesIndexFieldOffsets,
+} from './wasmMemInitImages';
 
 class Mipmap {
   // eslint-disable-next-line no-useless-constructor
@@ -57,29 +60,25 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
   const width = gWasmView.getUint32(mipmapOffs, true);
 
   const height = gWasmView.getUint32(
-    mipmapOffs + wasmTexFieldSizes.WIDTH_FIELD_SIZE,
+    mipmapOffs + wasmTexturesIndexFieldOffsets.MIPMAP_HEIGHT_FIELD_OFFSET,
     true,
   );
 
   const pitchLg2 = gWasmView.getUint32(
-    mipmapOffs +
-      wasmTexFieldSizes.WIDTH_FIELD_SIZE +
-      wasmTexFieldSizes.HEIGHT_FIELD_SIZE,
+    mipmapOffs + wasmTexturesIndexFieldOffsets.MIPMAP_LG2_PITCH_FIELD_OFFSET,
     true,
   );
   const pitch = 1 << pitchLg2;
 
-  const pixelsOffs = gWasmView.getUint32(
+  const texelsOffs = gWasmView.getUint32(
     mipmapOffs +
-      wasmTexFieldSizes.WIDTH_FIELD_SIZE +
-      wasmTexFieldSizes.HEIGHT_FIELD_SIZE +
-      wasmTexFieldSizes.LG2_PITCH_FIELD_SIZE,
+      wasmTexturesIndexFieldOffsets.MIPMAP_OFFSET_TO_TEXELS_FIELD_OFFSET,
     true,
   );
 
   const imageBuf8 = new Uint8Array(
-    gWasmViews.texturesPixels.buffer,
-    gWasmViews.texturesPixels.byteOffset + pixelsOffs,
+    gWasmViews.texels.buffer,
+    gWasmViews.texels.byteOffset + texelsOffs,
     height * pitch * BPP_RGBA,
   );
 
@@ -98,24 +97,24 @@ const initTextureWasm = (
 
   const texDescOffs =
     gWasmViews.texturesIndex.byteOffset +
-    wasmTexIdx * wasmTexFieldSizes.TEX_DESC_SIZE;
+    wasmTexIdx * wasmTexturesIndexFieldSizes.TEX_DESC_SIZE;
 
   const numMipmaps = gWasmView.getUint32(texDescOffs, true);
 
-  const firstMipmapDescOffRelIdx = gWasmView.getUint32(
-    texDescOffs + wasmTexFieldSizes.NUM_MIPS_FIELD_SIZE,
+  const firstMipDescOffs = gWasmView.getUint32(
+    texDescOffs +
+      wasmTexturesIndexFieldOffsets.TEX_OFFSET_TO_FIRST_MIP_DESC_FIELD_OFFSET,
     true,
   );
 
-  let mipmapDescOffs =
-    gWasmViews.texturesIndex.byteOffset + firstMipmapDescOffRelIdx;
+  let mipmapDescOffs = gWasmViews.texturesIndex.byteOffset + firstMipDescOffs;
 
   const mipmaps: Mipmap[] = new Array(numMipmaps);
 
   for (let i = 0; i < numMipmaps; i++) {
     const image = wasmMipmap2BitImageRGBAView(mipmapDescOffs);
     mipmaps[i] = new Mipmap(mipMapBaseIdx + i, image);
-    mipmapDescOffs += wasmTexFieldSizes.MIP_DESC_SIZE;
+    mipmapDescOffs += wasmTexturesIndexFieldSizes.MIPMAP_DESC_SIZE;
   }
 
   const texture = new Texture(texName, wasmTexIdx, mipmaps);

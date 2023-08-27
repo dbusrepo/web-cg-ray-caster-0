@@ -3,18 +3,25 @@ import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
 import { ObjectAllocator, newObjectAllocator } from './objectAllocator';
 import { SArray, newSArray } from './sarray';
 import { BitImageRGBA } from './bitImageRGBA';
-import { texturesIndexPtr, texturesIndexSize, texturesPixelsPtr, texturesPixelsSize, numTextures } from './importVars';
+import { logi, numTextures, texturesIndexPtr } from './importVars';
 import {
-  NUM_MIPS_FIELD_SIZE,
-  PTR_TO_FIRST_MIP_DESC_FIELD_SIZE,
+  TEX_NUM_MIPS_FIELD_SIZE,
+  TEX_OFFSET_TO_FIRST_MIP_DESC_FIELD_SIZE,
   TEX_DESC_SIZE,
-  WIDTH_FIELD_SIZE,
-  HEIGHT_FIELD_SIZE,
-  LG2_PITCH_FIELD_SIZE,
-  OFFSET_TO_MIP_DATA_FIELD_SIZE,
-  MIP_DESC_SIZE,
-} from './importFieldSizes';
-import { logi } from './importVars';
+  MIPMAP_WIDTH_FIELD_SIZE,
+  MIPMAP_HEIGHT_FIELD_SIZE,
+  MIPMAP_LG2_PITCH_FIELD_SIZE,
+  MIPMAP_OFFSET_TO_TEXELS_FIELD_SIZE,
+  MIPMAP_DESC_SIZE,
+} from './importTexturesIndexFieldSizes';
+import {
+  TEX_NUM_MIPS_FIELD_OFFSET,
+  TEX_OFFSET_TO_FIRST_MIP_DESC_FIELD_OFFSET,
+  MIPMAP_WIDTH_FIELD_OFFSET,
+  MIPMAP_HEIGHT_FIELD_OFFSET,
+  MIPMAP_LG2_PITCH_FIELD_OFFSET,
+  MIPMAP_OFFSET_TO_TEXELS_FIELD_OFFSET,
+} from './importTexturesIndexFieldOffsets';
 
 // TEXTURES INDEX LAYOUT: (see wasmMemInitImages.ts)
 
@@ -31,38 +38,35 @@ import { logi } from './importVars';
 // @ts-ignore: decorator
 @final @unmanaged class Texture {
 
-  private mipMapDescOffs: SIZE_T; // offset to the first mip map descriptor
-  private numMipMaps: SIZE_T;
-  private mipMapsOffs: SIZE_T; // index of the first mipmap in global mipmaps array
+  private descPtr: PTR_T = NULL_PTR;
+  private gFirstMipMapIdx: SIZE_T; // index in the global mips array of the first mipmap of this tex
 
   init(texIdx: SIZE_T): void {
     myAssert(texIdx >= 0 && texIdx < numTextures);
-    const numMipMaps = load<u32>(texturesIndexPtr + texIdx * TEX_DESC_SIZE);
-    myAssert(numMipMaps > 0);
-    const mipMapDescOffs = load<u32>(texturesIndexPtr + texIdx * TEX_DESC_SIZE + NUM_MIPS_FIELD_SIZE);
-    this.mipMapDescOffs = texturesIndexPtr + mipMapDescOffs;
-    this.numMipMaps = numMipMaps;
+    this.descPtr = texturesIndexPtr + texIdx * TEX_DESC_SIZE;
+    myAssert(this.NumMipMaps > 0);
   }
 
-  initMipMaps(startOffset: SIZE_T, mipmaps: SArray<BitImageRGBA>): void {
-    this.mipMapsOffs = startOffset;
-    for (let i: SIZE_T = 0; i < this.numMipMaps; i++) {
-      const bitImageRgba = mipmaps.at(this.mipMapsOffs + i);
-      bitImageRgba.init(this.mipMapDescOffs + i * MIP_DESC_SIZE);
+  initMipMaps(mipmaps: SArray<BitImageRGBA>, firstMipIdx: SIZE_T): void {
+    this.gFirstMipMapIdx = firstMipIdx;
+    for (let i: SIZE_T = 0; i < this.NumMipMaps; i++) {
+      const bitImageRgba = mipmaps.at(this.gMipIdx(i));
+      bitImageRgba.init(this.FirstMipDescPtr + i * MIPMAP_DESC_SIZE);
     }
   }
 
-  @inline mipmapIdx(mipIdx: SIZE_T): SIZE_T {
-    // myAssert(mipIdx >= 0 && mipIdx < this.numMipMaps);
-    return this.mipMapsOffs + mipIdx;
+  @inline private get FirstMipDescPtr(): SIZE_T {
+    const firstMipMapDescOffs = load<u32>(this.descPtr + TEX_OFFSET_TO_FIRST_MIP_DESC_FIELD_OFFSET) as SIZE_T;
+    return texturesIndexPtr + firstMipMapDescOffs;
   }
 
   @inline get NumMipMaps(): SIZE_T {
-    return this.numMipMaps;
+    return load<u32>(this.descPtr + TEX_NUM_MIPS_FIELD_OFFSET) as SIZE_T;
   }
 
-  @inline get MipMapsOffs(): SIZE_T {
-    return this.mipMapsOffs;
+  @inline gMipIdx(mipIdx: SIZE_T): SIZE_T {
+    // myAssert(mipIdx >= 0 && mipIdx < this.numMipMaps);
+    return this.gFirstMipMapIdx + mipIdx;
   }
 }
 
@@ -99,7 +103,7 @@ function initTextures(): void {
   numMips = 0 as SIZE_T;
   for (let i: SIZE_T = 0; i < numTextures; i++) {
     const tex = textures.at(i);
-    tex.initMipMaps(numMips, mipmaps);
+    tex.initMipMaps(mipmaps, numMips);
     numMips += tex.NumMipMaps;
   }
 }

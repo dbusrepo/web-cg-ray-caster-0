@@ -3,7 +3,10 @@ import engineWasm from './wasm/build/asc/engine.wasm';
 import engineExport from './wasm/build/asc/engine';
 import { ascImportImages } from '../../../assets/build/images';
 import { ascImportStrings } from '../../../assets/build/strings';
-import { wasmTexFieldSizes } from './wasmMemInitImages';
+import {
+  wasmTexturesIndexFieldSizes,
+  wasmTexturesIndexFieldOffsets,
+} from './wasmMemInitImages';
 
 // TODO
 type wasmBuilderFunc<T> = (
@@ -34,8 +37,8 @@ type WasmImports = {
   numTextures: number;
   texturesIndexPtr: number;
   texturesIndexSize: number;
-  texturesPixelsPtr: number;
-  texturesPixelsSize: number;
+  texelsPtr: number;
+  texelsSize: number;
   fontCharsPtr: number;
   fontCharsSize: number;
   stringsDataPtr: number;
@@ -81,8 +84,11 @@ async function loadWasm<T>(
       ...wasmInput,
       ...otherImpObj,
     },
-    importFieldSizes: {
-      ...wasmTexFieldSizes,
+    importTexturesIndexFieldSizes: {
+      ...wasmTexturesIndexFieldSizes,
+    },
+    importTexturesIndexFieldOffsets: {
+      ...wasmTexturesIndexFieldOffsets,
     },
     gen_importImages: {
       ...ascImportImages,

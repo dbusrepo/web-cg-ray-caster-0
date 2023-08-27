@@ -23,8 +23,8 @@ export declare const numTextures: u32;
 export declare const texturesIndexPtr: usize;
 export declare const texturesIndexSize: usize;
 
-export declare const texturesPixelsPtr: usize;
-export declare const texturesPixelsSize: usize;
+export declare const texelsPtr: usize;
+export declare const texelsSize: usize;
 
 export declare const stringsDataPtr: usize;
 export declare const stringsDataSize: usize;

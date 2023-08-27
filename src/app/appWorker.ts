@@ -189,8 +189,8 @@ class AppWorker {
             console.log(
               `Aux app worker id=${workerIndex} init,
                left count=${remWorkers}, time=${
-                Date.now() - initStart
-              }ms with data = ${JSON.stringify(data)}`,
+                 Date.now() - initStart
+               }ms with data = ${JSON.stringify(data)}`,
             );
             if (remWorkers === 0) {
               console.log(
@@ -423,7 +423,6 @@ const enum AppWorkerCommandEnum {
   MOUSE_MOVE = 'app_worker_mouse_move',
   RESIZE_CANVAS_DISPLAY_SIZE = 'app_worker_resize_canvas_display_size',
 }
-
 
 type MouseEvent = {
   dx: number;

@@ -1,18 +1,26 @@
 import { myAssert } from './myAssert';
 import { PTR_T, SIZE_T, NULL_PTR } from './memUtils';
 import { ObjectAllocator, newObjectAllocator } from './objectAllocator';
-import { texturesPixelsSize, texturesPixelsPtr } from './importVars';
-import { logi } from './importVars';
+import { logi, texelsPtr } from './importVars';
+import {
+  MIPMAP_WIDTH_FIELD_SIZE,
+  MIPMAP_HEIGHT_FIELD_SIZE,
+  MIPMAP_LG2_PITCH_FIELD_SIZE,
+  MIPMAP_OFFSET_TO_TEXELS_FIELD_SIZE,
+  MIPMAP_DESC_SIZE,
+} from './importTexturesIndexFieldSizes';
+import {
+  MIPMAP_WIDTH_FIELD_OFFSET,
+  MIPMAP_HEIGHT_FIELD_OFFSET,
+  MIPMAP_LG2_PITCH_FIELD_OFFSET,
+  MIPMAP_OFFSET_TO_TEXELS_FIELD_OFFSET,
+} from './importTexturesIndexFieldOffsets';
 
 // SECOND INDEX: (for each mipmap/image)
 // width (32bit)
 // height (32bit)
+// lg2Pitch (32bit)
 // ptr to mipmap image data (32bit)
-
-const WIDTH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const HEIGHT_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const LG2_PITCH_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
-const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
 
 // @ts-ignore: decorator
 @final @unmanaged class BitImageRGBA {
@@ -23,20 +31,21 @@ const OFFSET_TO_MIP_DATA_FIELD_SIZE = Uint32Array.BYTES_PER_ELEMENT;
     this.descPtr = descPtr;
   }
 
-  @inline get Ptr(): PTR_T {
-    return <PTR_T>(texturesPixelsPtr + load<u32>(this.descPtr + WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE + LG2_PITCH_FIELD_SIZE));
+  @inline get Width(): SIZE_T {
+    return load<u32>(this.descPtr + MIPMAP_WIDTH_FIELD_OFFSET) as SIZE_T;
   }
 
   @inline get Lg2Pitch(): SIZE_T {
-    return load<u32>(this.descPtr + WIDTH_FIELD_SIZE + HEIGHT_FIELD_SIZE);
-  }
-
-  @inline get Width(): SIZE_T {
-    return <SIZE_T>load<u32>(this.descPtr);
+    return load<u32>(this.descPtr + MIPMAP_LG2_PITCH_FIELD_OFFSET) as SIZE_T;
   }
 
   @inline get Height(): SIZE_T {
-    return <SIZE_T>load<u32>(this.descPtr + WIDTH_FIELD_SIZE);
+    return load<u32>(this.descPtr + MIPMAP_HEIGHT_FIELD_OFFSET) as SIZE_T;
+  }
+
+  @inline get Ptr(): PTR_T {
+    const texelsOffset = load<u32>(this.descPtr + MIPMAP_OFFSET_TO_TEXELS_FIELD_OFFSET) as SIZE_T;
+    return texelsPtr + texelsOffset;
   }
 }
 

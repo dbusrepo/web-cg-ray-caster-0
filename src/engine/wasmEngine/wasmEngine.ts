@@ -180,7 +180,7 @@ class WasmEngine {
     wasmImages.copyTextures2WasmMem(
       this.params.assetManager.Textures,
       this.wasmViews.texturesIndex,
-      this.wasmViews.texturesPixels,
+      this.wasmViews.texels,
     );
   }
 
