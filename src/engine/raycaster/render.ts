@@ -734,21 +734,33 @@ function renderViewWallsVertFloorsHorz() {
       }
     }
 
-    // new span is shorter than previous
-    for (let y = prevWallBottom; y > bottom; y--) {
-      spansX1[y] = x;
-    }
+    // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
-    // new span is longer than previous
-    for (let y = bottom; y > prevWallBottom; y--) {
-      renderFloorSpan(y, spansX1[y], x - 1);
+    let nr = prevWallBottom - bottom;
+
+    if (nr > 0) {
+      // cur wall is shorter
+      // set spans start for y in [bottom + 1, prevWallBottom]
+      let y = bottom + 1;
+      do {
+        spansX1[y++] = x;
+      } while (--nr);
+    } else {
+      // cur wall is longer or equal
+      // nr <= 0
+      // render spans for y in [prevWallBottom + 1, bottom]
+      let y = prevWallBottom + 1;
+      while (nr++) {
+        renderFloorSpan(y, spansX1[y], x - 1);
+        ++y;
+      }
     }
 
     prevWallBottom = bottom;
   }
 
-  // render floor spans not closed
-  for (let y = prevWallBottom; y <= maxWallBottom; y++) {
+  // render floor spans not closed: fill spans below last wall
+  for (let y = prevWallBottom + 1; y <= maxWallBottom; y++) {
     renderFloorSpan(y, spansX1[y], vpWidth - 1);
   }
 
