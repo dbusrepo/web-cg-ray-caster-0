@@ -1,5 +1,4 @@
 import assert from 'assert';
-import { WallSlice } from './wallslice';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
@@ -13,7 +12,7 @@ class RenderParams {
 
   public frameRowPtrs: Uint32Array;
 
-  public floorTextures: Texture[];
+  public textures: Texture[];
 
   public spansX1: Int32Array;
   public spansStepX: Float32Array;
@@ -49,13 +48,13 @@ class RenderParams {
     this.spansFloorLX = new Float32Array(vpHeight);
     this.spansFloorLY = new Float32Array(vpHeight);
 
-    this.floorTextures = raycaster.FloorTextures;
+    this.textures = raycaster.Textures;
   }
 }
 
 let renderParams: RenderParams;
 
-function initRender(
+function initRenderParams(
   raycaster: Raycaster,
   frameBuf32: Uint32Array,
   frameStride: number,
@@ -137,7 +136,7 @@ function renderViewFullVert() {
     frameRowPtrs,
     texturedFloor,
     raycaster,
-    floorTextures,
+    textures,
   } = renderParams;
 
   const {
@@ -311,8 +310,9 @@ function renderViewFullVert() {
         framePtr += frameStride;
       }
     } else {
-      let prevTexIdx = null;
-      let floorTex;
+      let prevFloorMapIdx = null;
+      let floorMip;
+
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
         // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
         const dist = posZ / (y - projYCenter);
@@ -323,47 +323,31 @@ function renderViewFullVert() {
         let floorY = weight * floorWallY + (1 - weight) * posY;
         const floorXidx = floorX | 0;
         const floorYidx = floorY | 0;
-        // assert(floorXidx >= 0 && floorXidx < mapWidth, `floorXidx: ${floorXidx}, floorX: ${floorX}, weight: ${weight}, floorWallX: ${floorWallX}, posX: ${posX}`);
-        // const floorXidx = floorX | 0;
-        // const floorYidx = floorY | 0;
-        // if (
-        //   floorXidx < 0 ||
-        //   floorXidx >= mapWidth ||
-        //   floorYidx < 0 ||
-        //   floorYidx >= mapHeight
-        // ) {
-        //   continue;
-        // }
-        // const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
-        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
-        const floorTexIdx = floorYidx * mapWidth + floorXidx;
-        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
-        const sameFloorMapIdx = floorTexIdx === prevTexIdx;
+        const floorMapIdx = floorYidx * mapWidth + floorXidx;
+        const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
         if (
           sameFloorMapIdx ||
-          (floorTexIdx >= 0 && floorTexIdx < floorMap.length)
+          (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
         ) {
           if (!sameFloorMapIdx) {
-            floorTex = floorTextures[floorMap[floorTexIdx]].getMipmap(0).Image;
-            prevTexIdx = floorTexIdx;
+            const floorTexIdx = floorMap[floorMapIdx];
+            floorMip = textures[floorTexIdx].getMipmap(0).Image;
+            prevFloorMapIdx = floorMapIdx;
           }
-          const mip = floorTex!;
+          const mip = floorMip!;
           const u = floorX - floorXidx;
           const v = floorY - floorYidx;
           // assert(floorX >= 0 && floorX < 1);
           // assert(floorY >= 0 && floorY < 1);
-          const floorTexX = u * mip.Width;
-          const floorTexY = v * mip.Height;
-          const texOffs = (floorTexX << mip.Lg2Pitch) | floorTexY;
-          // assert(texOffs >= 0 && texOffs < floorTex.Buf32.length);
-          const color = mip.Buf32[texOffs];
-          // console.log(texOffs);
-          // console.log('color: ', color);
+          const floorMipX = u * mip.Width;
+          const floorMipY = v * mip.Height;
+          const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+          // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+          const color = mip.Buf32[mipOffs];
           frameBuf32[framePtr] = color;
         }
       }
     }
-
     // assert(framePtr === colPtr + vpHeight * frameStride);
   }
 
@@ -407,7 +391,7 @@ function renderViewFullVert2() {
     spansStepY,
     raycaster,
     texturedFloor,
-    floorTextures,
+    textures,
   } = renderParams;
 
   const {
@@ -515,33 +499,35 @@ function renderViewFullVert2() {
         framePtr += frameStride;
       }
     } else {
-      let prevTexIdx = null;
-      let floorMipmap;
+      let floorMip;
+      let prevFloorMapIdx = null;
+
       for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
         const floorX = spansFloorLX[y] + x * spansStepX[y];
         const floorY = spansFloorLY[y] + x * spansStepY[y];
         const floorXidx = floorX | 0;
         const floorYidx = floorY | 0;
-        const texIdx = floorYidx * mapWidth + floorXidx;
-        // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
-        const sameFloorTexMapIdx = texIdx === prevTexIdx;
-        if (sameFloorTexMapIdx || (texIdx >= 0 && texIdx < floorMap.length)) {
-          if (!sameFloorTexMapIdx) {
-            floorMipmap = floorTextures[floorMap[texIdx]].getMipmap(0).Image;
-            prevTexIdx = texIdx;
+        const floorMapIdx = floorYidx * mapWidth + floorXidx;
+        const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
+        if (
+          sameFloorMapIdx ||
+          (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
+        ) {
+          if (!sameFloorMapIdx) {
+            const floorTexIdx = floorMap[floorMapIdx];
+            floorMip = textures[floorTexIdx].getMipmap(0).Image;
+            prevFloorMapIdx = floorMapIdx;
           }
-          const mip = floorMipmap!;
+          const mip = floorMip!;
           const u = floorX - floorXidx;
           const v = floorY - floorYidx;
-          // assert(floorX >= 0 && floorX < 1);
-          // assert(floorY >= 0 && floorY < 1);
-          const floorTexX = u * mip.Width;
-          const floorTexY = v * mip.Height;
-          const texOffs = (floorTexX << mip.Lg2Pitch) | floorTexY;
-          // assert(texOffs >= 0 && texOffs < floorTex.Buf32.length);
-          const color = mip.Buf32[texOffs];
-          // console.log(texOffs);
-          // console.log('color: ', color);
+          // assert(u >= 0 && u < 1);
+          // assert(v >= 0 && v < 1);
+          const floorMipX = u * mip.Width;
+          const floorMipY = v * mip.Height;
+          const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+          // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+          const color = mip.Buf32[mipOffs];
           frameBuf32[framePtr] = color;
         }
       }
@@ -573,7 +559,7 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
     frameRowPtrs,
     raycaster,
     texturedFloor,
-    floorTextures,
+    textures,
   } = renderParams;
 
   const { FloorMap: floorMap, MapWidth: mapWidth } = raycaster;
@@ -591,28 +577,32 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
     const stepY = spansStepY[y];
     let floorX = spansFloorLX[y] + x1 * stepX;
     let floorY = spansFloorLY[y] + x1 * stepY;
-    let prevTexIdx = null;
+    let prevFloorMapIdx = null;
     let floorMipmap;
     while (numPixels--) {
       const floorXidx = floorX | 0;
       const floorYidx = floorY | 0;
-      const texIdx = floorYidx * mapWidth + floorXidx;
-      const sameFloorTexMapIdx = texIdx === prevTexIdx;
-      if (sameFloorTexMapIdx || (texIdx >= 0 && texIdx < floorMap.length)) {
-        if (!sameFloorTexMapIdx) {
-          prevTexIdx = texIdx;
-          floorMipmap = floorTextures[floorMap[texIdx]].getMipmap(0).Image;
+      const floorMapIdx = floorYidx * mapWidth + floorXidx;
+      const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
+      if (
+        sameFloorMapIdx ||
+        (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
+      ) {
+        if (!sameFloorMapIdx) {
+          const floorTexIdx = floorMap[floorMapIdx];
+          floorMipmap = textures[floorTexIdx].getMipmap(0).Image;
+          prevFloorMapIdx = floorMapIdx;
         }
         const mip = floorMipmap!;
         const u = floorX - floorXidx;
         const v = floorY - floorYidx;
         // assert(u >= 0 && u < 1);
         // assert(v >= 0 && v < 1);
-        const floorTexX = u * mip.Width;
-        const floorTexY = v * mip.Height;
-        const texOffs = (floorTexX << mip.Lg2Pitch) | floorTexY;
-        // assert(texOffs >= 0 && texOffs < mip.Buf32.length);
-        const color = mip.Buf32[texOffs];
+        const floorMipX = u * mip.Width;
+        const floorMipY = v * mip.Height;
+        const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+        // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+        const color = mip.Buf32[mipOffs];
         frameBuf32[frameRowPtr] = color;
       }
       frameRowPtr++;
@@ -903,7 +893,7 @@ function renderViewFullHorz() {
 
 export {
   RenderParams,
-  initRender,
+  initRenderParams,
   renderBackground,
   renderBorders,
   renderView,

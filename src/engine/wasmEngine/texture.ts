@@ -10,12 +10,12 @@ import {
 class Mipmap {
   // eslint-disable-next-line no-useless-constructor
   constructor(
-    private mipMapWasmIdx: number, // wasm index in mipmaps array
+    private wasmIdx: number, // wasm index in mipmaps array
     private image: BitImageRGBA,
   ) {}
 
   get WasmIdx(): number {
-    return this.mipMapWasmIdx;
+    return this.wasmIdx;
   }
 
   get Image(): BitImageRGBA {
@@ -27,8 +27,8 @@ class Mipmap {
 class Texture {
   // eslint-disable-next-line no-useless-constructor
   constructor(
-    private texName: string,
-    private texIdx: number,
+    private key: string,
+    private wasmIdx: number,
     private mipmaps: Mipmap[],
   ) {}
 
@@ -37,16 +37,16 @@ class Texture {
     return this.mipmaps[lvl];
   }
 
-  get NumMipmaps(): number {
-    return this.mipmaps.length;
+  get Key(): string {
+    return this.key;
   }
 
   get WasmIdx(): number {
-    return this.texIdx;
+    return this.wasmIdx;
   }
 
-  get Name(): string {
-    return this.texName;
+  get NumMipmaps(): number {
+    return this.mipmaps.length;
   }
 
   makeDarker() {
@@ -56,7 +56,7 @@ class Texture {
   }
 }
 
-function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
+function bitImageRGBAViewOnWasmMip(mipmapOffs: number): BitImageRGBA {
   const width = gWasmView.getUint32(mipmapOffs, true);
 
   const height = gWasmView.getUint32(
@@ -88,10 +88,10 @@ function wasmMipmap2BitImageRGBAView(mipmapOffs: number): BitImageRGBA {
   return mipmap;
 }
 
-const initTextureWasm = (
-  texName: string,
+const initTextureWasmView = (
+  texKey: string,
   wasmTexIdx: number,
-  mipMapBaseIdx: number,
+  wasmMipIdx: number,
 ): Texture => {
   assert(wasmTexIdx >= 0 && wasmTexIdx < Object.keys(ascImportImages).length);
 
@@ -110,16 +110,17 @@ const initTextureWasm = (
   let mipmapDescOffs = gWasmViews.texturesIndex.byteOffset + firstMipDescOffs;
 
   const mipmaps: Mipmap[] = new Array(numMipmaps);
+  let curWasmIdx = wasmMipIdx;
 
   for (let i = 0; i < numMipmaps; i++) {
-    const image = wasmMipmap2BitImageRGBAView(mipmapDescOffs);
-    mipmaps[i] = new Mipmap(mipMapBaseIdx + i, image);
+    const image = bitImageRGBAViewOnWasmMip(mipmapDescOffs);
+    mipmaps[i] = new Mipmap(curWasmIdx++, image);
     mipmapDescOffs += wasmTexturesIndexFieldSizes.MIPMAP_DESC_SIZE;
   }
 
-  const texture = new Texture(texName, wasmTexIdx, mipmaps);
+  const texture = new Texture(texKey, wasmTexIdx, mipmaps);
 
   return texture;
 };
 
-export { Texture, Mipmap, initTextureWasm };
+export { Texture, Mipmap, initTextureWasmView };

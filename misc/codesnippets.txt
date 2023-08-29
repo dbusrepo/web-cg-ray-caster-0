@@ -967,6 +967,19 @@ function render(): void {
 //   return;
 // }
 
+// assert(floorXidx >= 0 && floorXidx < mapWidth, `floorXidx: ${floorXidx}, floorX: ${floorX}, weight: ${weight}, floorWallX: ${floorWallX}, posX: ${posX}`);
+// const floorXidx = floorX | 0;
+// const floorYidx = floorY | 0;
+// if (
+//   floorXidx < 0 ||
+//   floorXidx >= mapWidth ||
+//   floorYidx < 0 ||
+//   floorYidx >= mapHeight
+// ) {
+//   continue;
+// }
+// const floorTexMapIdx = floorYidx * mapWidth + floorXidx;
+// assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length);
 
 // mipPixels.vi
 // const texels = new Uint32Array(
@@ -1093,3 +1106,7 @@ for (; framePtr < frameLimitPtr; framePtr += frameStride) {
   offs += texStepY;
   // framePtr += frameStride;
 }
+
+// wallX -= Math.floor(wallX);
+// wallX %= 1;
+// wallX -= wallX | 0;

@@ -15,14 +15,14 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
-  initRender,
+  initRenderParams,
   renderBorders,
   renderBackground,
   renderView,
 } from './render';
 import { Key, keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
-import { Texture, initTextureWasm } from '../wasmEngine/texture';
+import { Texture, initTextureWasmView } from '../wasmEngine/texture';
 import {
   FrameColorRGBAWasm,
   getFrameColorRGBAWasmView,
@@ -30,6 +30,23 @@ import {
 
 type RaycasterParams = {
   wasmRun: WasmRun;
+};
+
+const wallTexKeys = {
+  GREYSTONE: imageKeys.GREYSTONE,
+  BLUESTONE: imageKeys.BLUESTONE,
+  REDBRICK: imageKeys.REDBRICK,
+};
+
+const darkWallTexKeys = {
+  GREYSTONE_D: imageKeys.GREYSTONE_D,
+  BLUESTONE_D: imageKeys.BLUESTONE_D,
+  REDBRICK_D: imageKeys.REDBRICK_D,
+};
+
+const floorTexKeys = {
+  GREYSTONE: imageKeys.GREYSTONE,
+  BLUESTONE: imageKeys.BLUESTONE,
 };
 
 class Raycaster {
@@ -51,9 +68,6 @@ class Raycaster {
 
   private textures: Texture[];
 
-  private floorTextures: Texture[];
-  private wallTextures: Texture[][]; // refs to tex pairs (light/dark) for walls
-
   // maps with tex indices into wallTextures
   private xMap: Uint8Array;
   private yMap: Uint8Array;
@@ -63,11 +77,9 @@ class Raycaster {
   private yMapWidth: number;
   private yMapHeight: number;
 
-  // map with tex indices into floorTextures
   private floorMap: Uint8Array;
   // private ceilingMap: Uint8Array;
   // private floorMap: Uint8Array;
-
 
   private wallSlices: WallSlice[];
 
@@ -92,8 +104,6 @@ class Raycaster {
     this.wasmRun = params.wasmRun;
     this.wasmViews = this.wasmRun.WasmViews;
     this.inputKeys = this.wasmViews.inputKeys;
-
-    this.initTextures();
 
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
 
@@ -132,17 +142,14 @@ class Raycaster {
     // this.wallHeight = this.cfg.canvas.height;
     this.wallHeight = this.viewport.Height; // TODO:
 
-    // player height
+    // TODO: player height
     this.player.PosZ = this.wallHeight / 2;
-
-    // console.log('raycaster starting...');
 
     this.backgroundColor = FrameColorRGBAWasm.colorRGBAtoABGR(0x000000ff);
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
 
-    // this.renderBorders(); // TODO:
-
+    this.initTextures();
     this.initMap();
 
     this.initRender();
@@ -161,7 +168,7 @@ class Raycaster {
 
     const frameStride = this.params.wasmRun.FrameStride;
 
-    initRender(this, frameBuf32, frameStride, true);
+    initRenderParams(this, frameBuf32, frameStride, true);
   }
 
   private initViewport() {
@@ -230,75 +237,63 @@ class Raycaster {
   // TODO:
   private initTexturesViews() {
     const wasmTexturesImport = Object.entries(ascImportImages);
-    let mipMapBaseIdx = 0;
+    let wasmMipIdx = 0;
     this.textures = [];
     wasmTexturesImport.forEach(([texName, wasmTexIdx]) => {
-      const texture = initTextureWasm(texName, wasmTexIdx, mipMapBaseIdx);
+      const texture = initTextureWasmView(texName, wasmTexIdx, wasmMipIdx);
       this.textures.push(texture);
-      mipMapBaseIdx += texture.NumMipmaps;
+      wasmMipIdx += texture.NumMipmaps;
     });
   }
 
   private initTextures() {
     this.initTexturesViews();
     this.initWallTextures();
-    this.initFloorTextures();
   }
 
-  private findTex(texKeyName: string): Texture {
-    let texture: Texture | null = null;
+  private findTex(texKey: string): Texture {
+    let tex: Texture | null = null;
     for (let i = 0; i < this.textures.length; i++) {
-      if (this.textures[i].Name === texKeyName) {
-        texture = this.textures[i];
+      if (this.textures[i].Key === texKey) {
+        tex = this.textures[i];
       }
     }
-    assert(texture);
-    return texture;
+    assert(tex !== null, `texture ${texKey} not found`);
+    return tex;
   }
 
   private initWallTextures() {
-    const wallTexturesKeys = [
-      imageKeys.GREYSTONE,
-      imageKeys.GREYSTONE_D,
-      imageKeys.BLUESTONE,
-      imageKeys.BLUESTONE_D,
-      imageKeys.REDBRICK,
-      imageKeys.REDBRICK_D,
-    ];
-
-    this.wallTextures = new Array<Texture[]>(wallTexturesKeys.length / 2);
-    for (let i = 0; i < this.wallTextures.length; i++) {
-      this.wallTextures[i] = new Array<Texture>(2);
-      const tex = this.findTex(wallTexturesKeys[i * 2]);
-      const darkTex = this.findTex(wallTexturesKeys[i * 2 + 1]);
+    const wallTexKeysArr = Object.values(darkWallTexKeys);
+    for (let i = 0; i < wallTexKeysArr.length; i++) {
+      const darkTexKey = wallTexKeysArr[i];
+      const darkTex = this.findTex(darkTexKey);
       darkTex.makeDarker();
-      this.wallTextures[i][0] = tex;
-      this.wallTextures[i][1] = darkTex;
     }
   }
 
-  private initFloorTextures() {
-    this.floorTextures = [];
-    this.floorTextures[0] = this.findTex(imageKeys.GREYSTONE);
-    this.floorTextures[1] = this.findTex(imageKeys.BLUESTONE);
+  // TODO:
+  public initMap() {
+    this.mapWidth = 10;
+    this.mapHeight = 10;
+
+    this.wasmEngineModule.initMap(this.mapWidth, this.mapHeight);
+
+    this.initWallMap();
+    this.initFloorMap();
   }
 
-  public initMap() {
-    const mapWidth = 10;
-    const mapHeight = 10;
-
-    this.mapWidth = mapWidth;
-    this.mapHeight = mapHeight;
-
-    this.wasmEngineModule.initMap(mapWidth, mapHeight);
-
+  private initWallMap() {
     const xMapPtr = this.wasmEngineModule.getXmapPtr(this.wasmRaycasterPtr);
     const yMapPtr = this.wasmEngineModule.getYmapPtr(this.wasmRaycasterPtr);
 
     this.xMapWidth = this.wasmEngineModule.getXmapWidth(this.wasmRaycasterPtr);
-    this.xMapHeight = this.wasmEngineModule.getXmapHeight(this.wasmRaycasterPtr);
+    this.xMapHeight = this.wasmEngineModule.getXmapHeight(
+      this.wasmRaycasterPtr,
+    );
     this.yMapWidth = this.wasmEngineModule.getYmapWidth(this.wasmRaycasterPtr);
-    this.yMapHeight = this.wasmEngineModule.getYmapHeight(this.wasmRaycasterPtr);
+    this.yMapHeight = this.wasmEngineModule.getYmapHeight(
+      this.wasmRaycasterPtr,
+    );
 
     this.xMap = new Uint8Array(
       this.wasmRun.WasmMem.buffer,
@@ -312,31 +307,32 @@ class Raycaster {
       this.yMapWidth * this.yMapHeight,
     );
 
+    let tex = this.findTex(wallTexKeys.GREYSTONE);
     for (let i = 0; i < this.xMapHeight; i++) {
-      this.xMap[i * this.xMapWidth] = 1;
-      this.xMap[i * this.xMapWidth + (this.xMapWidth - 1)] = 1;
+      this.xMap[i * this.xMapWidth] = tex.WasmIdx;
+      this.xMap[i * this.xMapWidth + (this.xMapWidth - 1)] = tex.WasmIdx;
     }
 
+    this.xMap[4] = tex.WasmIdx;
+    this.xMap[4 + this.xMapWidth * 2] = tex.WasmIdx;
+
+    tex = this.findTex(darkWallTexKeys.GREYSTONE_D);
     for (let i = 0; i < this.yMapWidth; i++) {
-      this.yMap[i] = 1;
-      this.yMap[i + (this.yMapHeight - 1) * this.yMapWidth] = 1;
+      this.yMap[i] = tex.WasmIdx;
+      this.yMap[i + (this.yMapHeight - 1) * this.yMapWidth] = tex.WasmIdx;
     }
-
-    this.xMap[4] = 1;
     // // this.yMap[2] = 0; // test hole
 
-    this.xMap[4 + this.xMapWidth * 2] = 1;
-
-    this.yMap[4 + this.yMapWidth * 2] = 3;
-    this.yMap[5 + this.yMapWidth * 2] = 3;
-
-    this.initFloorMap();
+    tex = this.findTex(darkWallTexKeys.REDBRICK_D);
+    this.yMap[4 + this.yMapWidth * 2] = tex.WasmIdx;
+    this.yMap[5 + this.yMapWidth * 2] = tex.WasmIdx;
   }
 
   // TODO:
   private initFloorMap() {
-
-    const floorMapPtr = this.wasmEngineModule.getFloorMapPtr(this.wasmRaycasterPtr);
+    const floorMapPtr = this.wasmEngineModule.getFloorMapPtr(
+      this.wasmRaycasterPtr,
+    );
 
     this.floorMap = new Uint8Array(
       this.wasmRun.WasmMem.buffer,
@@ -344,17 +340,16 @@ class Raycaster {
       this.mapWidth * this.mapHeight,
     );
 
-    let texId = 0;
+    let tex = this.findTex(floorTexKeys.GREYSTONE);
+
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
-        texId = 0;
-        assert(texId >= 0 && texId < this.floorTextures.length);
-        this.floorMap[y * this.mapWidth + x] = texId;
+        this.floorMap[y * this.mapWidth + x] = tex.WasmIdx;
       }
     }
-    texId = 1;
-    assert(texId >= 0 && texId < this.floorTextures.length);
-    this.floorMap[4 * this.mapWidth + 4] = texId;
+
+    tex = this.findTex(floorTexKeys.BLUESTONE);
+    this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
   renderView() {
@@ -531,21 +526,21 @@ class Raycaster {
         minWallBottom = wallBottom;
       }
 
-      let hitMap;
-
       // used only for vert floor/ceil rend
       let floorWallX;
       let floorWallY;
 
+      let wallMap;
+
       if (side === 0) {
-        hitMap = xMap;
+        wallMap = xMap;
         wallX = posY + perpWallDist * rayDirY;
         wallX -= wallX | 0;
         flipTexX = rayDirX > 0;
         floorWallY = curMapY + wallX;
         floorWallX = curMapX + xChkIdx;
       } else {
-        hitMap = yMap;
+        wallMap = yMap;
         wallX = posX + perpWallDist * rayDirX;
         wallX -= wallX | 0;
         flipTexX = rayDirY < 0;
@@ -567,21 +562,13 @@ class Raycaster {
 
       wallSlice.Hit = 1;
 
-      const texIdx = hitMap[checkWallIdx] - 1; // TODO:
+      const texIdx = wallMap[checkWallIdx] - 1;
+      // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
-      // assert(
-      //   texId >= 0 && texId < this.wallTextures.length,
-      //   `invalid texture id ${texId}`,
-      // );
-
-      const tex = this.wallTextures[texIdx][side];
+      const tex = this.textures[texIdx];
       const mipLevel = 0; // TODO:
       const mipmap = tex.getMipmap(mipLevel);
       const { Width: texWidth, Height: texHeight } = mipmap.Image;
-
-      // wallX -= Math.floor(wallX);
-      // wallX %= 1;
-      // wallX -= wallX | 0;
 
       let texX = (wallX * texWidth) | 0;
       if (flipTexX) {
@@ -765,10 +752,6 @@ class Raycaster {
     return this.player;
   }
 
-  get FloorTextures() {
-    return this.floorTextures;
-  }
-
   get FloorMap() {
     return this.floorMap;
   }
@@ -779,6 +762,10 @@ class Raycaster {
 
   get MapWidth() {
     return this.mapWidth;
+  }
+
+  get Textures() {
+    return this.textures;
   }
 }
 

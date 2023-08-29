@@ -178,8 +178,8 @@ function renderViewVert(raycaster: Raycaster): void {
       const floorMap = map.FloorMap;
       const floorMapLength = map.FloorMap.Length as u32;
 
+      let floorMip: Texture = changetype<Texture>(NULL_PTR);
       let prevFloorMapIdx = -1 as u32;
-      let floorTex: Texture = changetype<Texture>(NULL_PTR);
 
       for (let y = bottom + 1; y < viewport.Height; y++, framePtr += FRAME_STRIDE) {
         const sDist = posZ / ((y - projYCenter) as f32);
@@ -193,7 +193,7 @@ function renderViewVert(raycaster: Raycaster): void {
         if (sameFloorTexIdx || (floorMapIdx < floorMapLength)) {
           if (!sameFloorTexIdx) {
             // const texIdx = floorMap.at(floorMapIdx);
-            // floorTex = textures.at(texIdx).getMipmap(0);
+            // floorMip = textures.at(texIdx).getMipmap(0);
             // prevFloorMapIdx = floorMapIdx;
           }
           // const u = floorX - (floorXidx as f32);
