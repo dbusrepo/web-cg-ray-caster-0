@@ -45,6 +45,10 @@ class Texture {
     return this.wasmIdx;
   }
 
+  get WallMapIdx(): number {
+    return this.WasmIdx + 1;
+  }
+
   get NumMipmaps(): number {
     return this.mipmaps.length;
   }

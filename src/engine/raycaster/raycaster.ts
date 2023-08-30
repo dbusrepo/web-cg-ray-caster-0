@@ -38,15 +38,19 @@ const wallTexKeys = {
   REDBRICK: imageKeys.REDBRICK,
 };
 
-const darkWallTexKeys = {
-  GREYSTONE_D: imageKeys.GREYSTONE_D,
-  BLUESTONE_D: imageKeys.BLUESTONE_D,
-  REDBRICK_D: imageKeys.REDBRICK_D,
-};
+const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
+  (acc, [key, val]) => {
+    const DARK_TEX_SUFFIX = '_D';
+    acc[key as keyof typeof wallTexKeys] = val + DARK_TEX_SUFFIX;
+    return acc;
+  },
+  {} as typeof wallTexKeys,
+);
 
 const floorTexKeys = {
   GREYSTONE: imageKeys.GREYSTONE,
   BLUESTONE: imageKeys.BLUESTONE,
+  REDBRICK: imageKeys.REDBRICK,
 };
 
 class Raycaster {
@@ -248,7 +252,7 @@ class Raycaster {
 
   private initTextures() {
     this.initTexturesViews();
-    this.initWallTextures();
+    this.genDarkWallTextures();
   }
 
   private findTex(texKey: string): Texture {
@@ -262,7 +266,7 @@ class Raycaster {
     return tex;
   }
 
-  private initWallTextures() {
+  private genDarkWallTextures() {
     const wallTexKeysArr = Object.values(darkWallTexKeys);
     for (let i = 0; i < wallTexKeysArr.length; i++) {
       const darkTexKey = wallTexKeysArr[i];
@@ -271,7 +275,6 @@ class Raycaster {
     }
   }
 
-  // TODO:
   public initMap() {
     this.mapWidth = 10;
     this.mapHeight = 10;
@@ -309,26 +312,26 @@ class Raycaster {
 
     let tex = this.findTex(wallTexKeys.GREYSTONE);
     for (let i = 0; i < this.xMapHeight; i++) {
-      this.xMap[i * this.xMapWidth] = tex.WasmIdx;
-      this.xMap[i * this.xMapWidth + (this.xMapWidth - 1)] = tex.WasmIdx;
+      this.xMap[i * this.xMapWidth] = tex.WallMapIdx;
+      this.xMap[i * this.xMapWidth + (this.xMapWidth - 1)] = tex.WallMapIdx;
     }
 
-    this.xMap[4] = tex.WasmIdx;
-    this.xMap[4 + this.xMapWidth * 2] = tex.WasmIdx;
+    tex = this.findTex(wallTexKeys.REDBRICK);
+    this.xMap[4] = tex.WallMapIdx;
+    this.xMap[4 + this.xMapWidth * 2] = tex.WallMapIdx;
 
-    tex = this.findTex(darkWallTexKeys.GREYSTONE_D);
+    tex = this.findTex(darkWallTexKeys.GREYSTONE);
     for (let i = 0; i < this.yMapWidth; i++) {
-      this.yMap[i] = tex.WasmIdx;
-      this.yMap[i + (this.yMapHeight - 1) * this.yMapWidth] = tex.WasmIdx;
+      this.yMap[i] = tex.WallMapIdx;
+      this.yMap[i + (this.yMapHeight - 1) * this.yMapWidth] = tex.WallMapIdx;
     }
-    // // this.yMap[2] = 0; // test hole
+    // this.yMap[2] = 0; // test hole
 
-    tex = this.findTex(darkWallTexKeys.REDBRICK_D);
-    this.yMap[4 + this.yMapWidth * 2] = tex.WasmIdx;
-    this.yMap[5 + this.yMapWidth * 2] = tex.WasmIdx;
+    tex = this.findTex(darkWallTexKeys.REDBRICK);
+    this.yMap[4 + this.yMapWidth * 2] = tex.WallMapIdx;
+    this.yMap[5 + this.yMapWidth * 2] = tex.WallMapIdx;
   }
 
-  // TODO:
   private initFloorMap() {
     const floorMapPtr = this.wasmEngineModule.getFloorMapPtr(
       this.wasmRaycasterPtr,
@@ -348,7 +351,7 @@ class Raycaster {
       }
     }
 
-    tex = this.findTex(floorTexKeys.BLUESTONE);
+    tex = this.findTex(floorTexKeys.REDBRICK);
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
