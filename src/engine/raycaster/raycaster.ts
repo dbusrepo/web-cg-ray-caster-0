@@ -15,6 +15,7 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
 import {
+  RenderParams,
   initRenderParams,
   renderBorders,
   renderBackground,
@@ -102,6 +103,8 @@ class Raycaster {
 
   private backgroundColor: number;
 
+  private renderParams: RenderParams;
+
   public async init(params: RaycasterParams) {
     this.params = params;
 
@@ -172,7 +175,7 @@ class Raycaster {
 
     const frameStride = this.params.wasmRun.FrameStride;
 
-    initRenderParams(this, frameBuf32, frameStride, true);
+    this.renderParams = initRenderParams(this, frameBuf32, frameStride);
   }
 
   private initViewport() {
@@ -569,9 +572,12 @@ class Raycaster {
       // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
       const tex = this.textures[texIdx];
-      const mipLevel = 0; // TODO:
-      const mipmap = tex.getMipmap(mipLevel);
-      const { Width: texWidth, Height: texHeight } = mipmap.Image;
+      const mipmap = tex.getMipmap(0);
+      const {
+        Width: texWidth,
+        Height: texHeight,
+        // Lg2Pitch: lg2Pitch,
+      } = mipmap.Image;
 
       let texX = (wallX * texWidth) | 0;
       if (flipTexX) {
@@ -580,6 +586,7 @@ class Raycaster {
       // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
       const texStepY = texHeight / wallSliceProjHeight;
+
       const texY = clipTop * texStepY;
 
       wallSlice.ProjHeight = wallSliceProjHeight;
@@ -598,7 +605,9 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
+    this.renderParams.setTexturedFloor(false);
     renderView();
+
     // this.wasmEngineModule.render();
   }
 

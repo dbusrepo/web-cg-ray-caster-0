@@ -41,7 +41,7 @@ const WALL_COLOR_SIDE_1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0x88);
 const CEIL_COLOR = FrameColorRGBA.colorABGR(0xff, 0xbb, 0xbb, 0xbb);
 const FLOOR_COLOR = FrameColorRGBA.colorABGR(0xff, 0x55, 0x55, 0x55);
 
-const TEXTURED_FLOOR = true;
+const TEXTURED_FLOOR = false;
 
 let raycaster: Raycaster = changetype<Raycaster>(NULL_PTR);
 let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
@@ -113,6 +113,7 @@ function renderViewVert(raycaster: Raycaster): void {
     for (; framePtr < frameLimitPtr; framePtr += FRAME_STRIDE) {
       store<u32>(framePtr, CEIL_COLOR);
     }
+
 
     frameLimitPtr = frameRowPtrs.at(bottom + 1) + xcolOffs;
 

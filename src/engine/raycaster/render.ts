@@ -20,11 +20,12 @@ class RenderParams {
   public spansFloorLX: Float32Array;
   public spansFloorLY: Float32Array;
 
+  public texturedFloor = false;
+
   constructor(
     public raycaster: Raycaster,
     public frameBuf32: Uint32Array,
     public frameStride: number,
-    public texturedFloor: boolean,
   ) {
     const viewport = raycaster.Viewport;
     const {
@@ -50,6 +51,10 @@ class RenderParams {
 
     this.textures = raycaster.Textures;
   }
+
+  public setTexturedFloor(texturedFloor: boolean) {
+    this.texturedFloor = texturedFloor;
+  }
 }
 
 let renderParams: RenderParams;
@@ -58,14 +63,13 @@ function initRenderParams(
   raycaster: Raycaster,
   frameBuf32: Uint32Array,
   frameStride: number,
-  texturedFloor: boolean,
 ) {
   renderParams = new RenderParams(
     raycaster,
     frameBuf32,
     frameStride,
-    texturedFloor,
   );
+  return renderParams;
 }
 
 function renderBackground(color: number) {
@@ -186,7 +190,8 @@ function renderViewFullVert() {
     }
     // assert(framePtr === colPtr + top * frameStride);
 
-    // const wallSliceHeight = bottom - top + 1;
+    const wallSliceHeight = bottom - top + 1;
+
     // frameLimitPtr = framePtr + wallSliceHeight * frameStride;
     // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
     frameLimitPtr = frameRowPtrs[bottom + 1] + x;
@@ -232,13 +237,19 @@ function renderViewFullVert() {
       //   texY += texStepY;
       // }
 
-      // wall alg2 dda vers 2
+      // // wall alg2 dda vers 2
       let offs = mipRowOffs + texY;
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
         const color = mipPixels[offs | 0];
         frameBuf32[framePtr] = color;
         offs += texStepY;
       }
+
+      // const offsets = texOffsetsArrays[projHeight];
+      // // assert(offsets !== undefined);
+      // for (let offIdx = 0; framePtr < frameLimitPtr; framePtr += frameStride) {
+      //   frameBuf32[framePtr] = mipPixels[offsets[offIdx++]];
+      // }
 
       // // wall alg3: fixed
       // const FIX = 16;
@@ -292,6 +303,25 @@ function renderViewFullVert() {
       //   // //   }
       //   // //   framePtr += frameStride;
       //   // // }
+      // }
+
+      // // // wall alg5
+      // let offsets = texOffsetsArrays[projHeight];
+      // if (!offsets) {
+      //   offsets = new Uint32Array(projHeight);
+      //   let yOffs = texY;
+      //   for (let i = 0; i !== projHeight; ++i) {
+      //     offsets[i] = yOffs | 0;
+      //     yOffs += texStepY;
+      //   }
+      //   texOffsetsArrays[projHeight] = offsets;
+      // }
+      // for (
+      //   let offIdx = 0;
+      //   framePtr < frameLimitPtr;
+      //   framePtr += frameStride, offIdx++
+      // ) {
+      //   frameBuf32[framePtr] = mipPixels[mipRowOffs + offsets[offIdx]];
       // }
     } else {
       // no hit untextured wall
@@ -558,8 +588,8 @@ const renderFloorSpan = (y: number, x1: number, x2: number) => {
     spansFloorLY,
     frameRowPtrs,
     raycaster,
-    texturedFloor,
     textures,
+    texturedFloor,
   } = renderParams;
 
   const { FloorMap: floorMap, MapWidth: mapWidth } = raycaster;
