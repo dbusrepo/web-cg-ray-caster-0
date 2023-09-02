@@ -7,8 +7,10 @@ import { logi, logf } from './importVars';
 import { FONT_X_SIZE, FONT_Y_SIZE, FONT_SPACING } from './importVars';
 import { stringsDataPtr, fontCharsPtr } from './importVars';
 
-const FRAME_STRIDE = rgbaSurface0width * BPP_RGBA;
-const LIMIT = rgbaSurface0ptr + rgbaSurface0height * FRAME_STRIDE;
+const FRAME_WIDTH = rgbaSurface0width as SIZE_T;
+const FRAME_HEIGHT = rgbaSurface0height as SIZE_T;
+const FRAME_STRIDE: SIZE_T = FRAME_WIDTH * BPP_RGBA;
+const LIMIT = rgbaSurface0ptr + FRAME_HEIGHT * FRAME_STRIDE;
 
 function clearBg(
   start: usize,
