@@ -14,13 +14,7 @@ import { WasmRun } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { WallSlice, getWasmWallSlicesView } from './wallslice';
-import {
-  RenderParams,
-  initRenderParams,
-  renderBorders,
-  renderBackground,
-  renderView,
-} from './render';
+import Renderer from './renderer';
 import { Key, keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
 import { Texture, initTextureWasmView } from '../wasmEngine/texture';
@@ -101,7 +95,7 @@ class Raycaster {
 
   private backgroundColor: number;
 
-  private renderParams: RenderParams;
+  private renderer: Renderer;
 
   public async init(params: RaycasterParams) {
     this.params = params;
@@ -161,12 +155,12 @@ class Raycaster {
     this.initTextures();
     this.initMap();
 
-    this.initRender();
+    this.initRenderer();
 
-    renderBorders(this.BorderColor);
+    this.renderer.renderBorders(this.BorderColor);
   }
 
-  private initRender() {
+  private initRenderer() {
     const { rgbaSurface0: frameBuf8 } = this.wasmRun.WasmViews;
 
     const frameBuf32 = new Uint32Array(
@@ -177,7 +171,7 @@ class Raycaster {
 
     const frameStride = this.params.wasmRun.FrameStride;
 
-    this.renderParams = initRenderParams(this, frameBuf32, frameStride);
+    this.renderer = new Renderer(this, frameBuf32, frameStride);
   }
 
   private initViewport() {
@@ -613,9 +607,8 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    this.renderParams.setTexturedFloor(false);
-    renderView();
-
+    this.renderer.TexturedFloor = false;
+    this.renderer.render();
     // this.wasmEngineModule.render();
   }
 
