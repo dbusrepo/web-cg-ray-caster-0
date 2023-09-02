@@ -6,6 +6,8 @@ import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
 import { Map, newMap } from './map';
 import { WallSlice, newWallSlice } from './wallslice';
+import { Texture } from '../texture';
+import { BitImageRGBA } from '../bitImageRGBA';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -36,11 +38,17 @@ import {
   getGreenFogTablePtr,
   getBlueFogTablePtr,
 } from '../frameColorRGBA';
+import { 
+  Renderer,
+  newRenderer, 
+} from './renderer';
 
 @final @unmanaged class Raycaster {
+  private textures: SArray<Texture>;
+  private mipmaps: SArray<BitImageRGBA>;
   private borderColor: u32;
   private viewport: Viewport;
-  private projYCenter: i32;
+  private projYCenter: u32;
   private player: Player;
   private map: Map;
   private wallSlices: SArray<WallSlice>;
@@ -50,14 +58,27 @@ import {
   private maxWallTop: u32;
   private minWallBottom: u32;
   private maxWallBottom: u32;
+  private renderer: Renderer;
 
-  init(): void {
+  init(textures: SArray<Texture>, mipmaps: SArray<BitImageRGBA>): void {
+    this.textures = textures;
+    this.mipmaps = mipmaps;
     this.initBuffers();
+    this.initRenderer();
   }
 
   initBuffers(): void {
     this.allocZBuffer();
     this.allocWallSlices();
+  }
+
+  initRenderer(): void {
+    this.renderer = newRenderer();
+    this.renderer.init(this.viewport, this.textures, this.mipmaps);
+  }
+
+  render(): void {
+    this.renderer.render(this.wallSlices, this.player, this.map, this.projYCenter);
   }
 
   allocZBuffer(): void {
@@ -66,6 +87,14 @@ import {
 
   allocWallSlices(): void {
     this.wallSlices = newSArray<WallSlice>(this.Viewport.Width);
+  }
+
+  get Textures(): SArray<Texture> {
+    return this.textures;
+  }
+
+  get Mipmaps(): SArray<BitImageRGBA> {
+    return this.mipmaps;
   }
 
   get WallSliceObjSizeLg2(): SIZE_T {
@@ -80,11 +109,11 @@ import {
     this.viewport = viewport;
   }
 
-  get ProjYCenter(): i32 {
+  get ProjYCenter(): u32 {
     return this.projYCenter;
   }
 
-  set ProjYCenter(projYCenter: i32) {
+  set ProjYCenter(projYCenter: u32) {
     this.projYCenter = projYCenter;
   }
 
@@ -162,6 +191,14 @@ import {
 
   set MaxWallDistance(maxWallDistance: f32) {
     this.maxWallDistance = maxWallDistance;
+  }
+
+  get Renderer(): Renderer {
+    return this.renderer;
+  }
+
+  get FrameColorRGBAPtr(): PTR_T {
+    return changetype<PTR_T>(this.renderer.FrameColorRGBA);
   }
 }
 

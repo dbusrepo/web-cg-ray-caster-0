@@ -591,7 +591,7 @@ class Raycaster {
     this.MaxWallBottom = maxWallBottom;
 
     this.renderer.TexturedFloor = true;
-    this.renderer.UseWasm = false;
+    this.renderer.UseWasm = true;
     this.renderer.render();
   }
 

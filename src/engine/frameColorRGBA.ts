@@ -51,7 +51,7 @@ abstract class FrameColorRGBA {
   ): void;
 }
 
-export { 
+export {
   FrameColorRGBA,
   RGBA_RED_SHIFT,
   RGBA_GREEN_SHIFT,

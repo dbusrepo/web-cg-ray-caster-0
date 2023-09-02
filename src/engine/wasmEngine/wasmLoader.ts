@@ -52,11 +52,10 @@ type WasmImports = {
   FONT_Y_SIZE: number;
   FONT_SPACING: number;
 
+  raycasterPtr: number;
+
   logi: (v: number) => void;
   logf: (v: number) => void;
-
-  raycasterPtr: number;
-  frameColorRGBAPtr: number;
 };
 
 type WasmModules = {

@@ -26,7 +26,6 @@ type WasmRunParams = {
   surface0sizes: [number, number];
   surface1sizes: [number, number];
   raycasterPtr: number;
-  frameColorRGBAPtr: number;
 };
 
 let gWasmRun: WasmRun;
@@ -60,7 +59,6 @@ class WasmRun {
       numTextures,
       workerIdx,
       raycasterPtr,
-      frameColorRGBAPtr,
     } = this.params;
 
     const logf = (f: number) =>
@@ -104,15 +102,14 @@ class WasmRun {
       inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
       hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
 
-      FONT_X_SIZE,
+      FONT_X_SIZE, // TODO:
       FONT_Y_SIZE,
       FONT_SPACING,
 
+      raycasterPtr,
+
       logi,
       logf,
-
-      raycasterPtr,
-      frameColorRGBAPtr,
     };
 
     return wasmImports;

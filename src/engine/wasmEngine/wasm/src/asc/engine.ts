@@ -24,7 +24,6 @@ import {
   inputKeysPtr,
   hrTimerPtr,
   raycasterPtr,
-  frameColorRGBAPtr,
 } from './importVars';
 import { GREYSTONE } from './gen_importImages';
 import { Texture, initTextures, textures, mipmaps } from './texture';
@@ -100,10 +99,6 @@ import {
   getGreenFogTablePtr,
   getBlueFogTablePtr,
 } from './frameColorRGBA';
-import {
-  initRender,
-  renderViewVert,
-} from './raycaster/render';
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -113,11 +108,6 @@ const MAIN_THREAD_IDX = mainWorkerIdx;
 // let map = changetype<Map>(NULL_PTR);
 let raycaster = changetype<Raycaster>(NULL_PTR);
 
-let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
-
-function getFrameColorRGBAPtr(): PTR_T {
-  return changetype<PTR_T>(frameColorRGBA);
-}
 
 function initMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
@@ -126,9 +116,7 @@ function initMap(mapWidth: i32, mapHeight: i32): void {
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
-
-    frameColorRGBA = newFrameColorRGBA();
-
+    myAssert(raycasterPtr == NULL_PTR);
     raycaster = newRaycaster();
 
     const viewport = newViewport();
@@ -138,7 +126,7 @@ function initData(): void {
     raycaster.Player = player;
 
   } else {
-    frameColorRGBA = changetype<FrameColorRGBA>(frameColorRGBAPtr);
+    myAssert(raycasterPtr != NULL_PTR);
     raycaster = changetype<Raycaster>(raycasterPtr);
   }
 
@@ -156,7 +144,6 @@ function init(): void {
     // store<u64>(hrTimerPtr, t1 - t0);
   }
 
-  // logi(workerIdx as i32);
   initMemManager();
   initData();
 }
@@ -166,12 +153,15 @@ function getRaycasterPtr(): PTR_T {
 }
 
 function initRaycaster(): void {
-  raycaster.init();
-  initRender(raycaster, frameColorRGBA, textures, mipmaps);
+  raycaster.init(textures, mipmaps);
 }
 
 function render(): void {
-  renderViewVert(raycaster);
+  raycaster.render();
+}
+
+function getFrameColorRGBAPtr(): PTR_T {
+  return raycaster.FrameColorRGBAPtr;
 }
 
 function run(): void {
