@@ -132,7 +132,7 @@ class WasmRun {
   }
 
   get FrameStride(): number {
-    return this.FrameWidth * BPP_RGBA;
+    return this.FrameWidth; // * BPP_RGBA;
   }
 
   get WasmViews(): WasmViews {

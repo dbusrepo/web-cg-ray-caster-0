@@ -1,4 +1,6 @@
 // import assert from 'assert';
+import { WasmRun } from '../wasmEngine/wasmRun';
+import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
@@ -8,25 +10,22 @@ const CEIL_COLOR = 0xffbbbbbb;
 const FLOOR_COLOR = 0xff555555;
 
 class Renderer {
-  public startFramePtr: number;
+  private wasmRun: WasmRun;
+  private wasmEngineModule: WasmEngineModule;
+  private frameBuf32: Uint32Array;
+  private frameStride: number;
+  private startFramePtr: number;
+  private frameRowPtrs: Uint32Array;
+  private textures: Texture[];
+  private spansX1: Int32Array;
+  private spansStepX: Float32Array;
+  private spansStepY: Float32Array;
+  private spansFloorLX: Float32Array;
+  private spansFloorLY: Float32Array;
+  private texturedFloor = false;
+  private useWasm = false;
 
-  public frameRowPtrs: Uint32Array;
-
-  public textures: Texture[];
-
-  public spansX1: Int32Array;
-  public spansStepX: Float32Array;
-  public spansStepY: Float32Array;
-  public spansFloorLX: Float32Array;
-  public spansFloorLY: Float32Array;
-
-  public texturedFloor = false;
-
-  constructor(
-    public raycaster: Raycaster,
-    public frameBuf32: Uint32Array,
-    public frameStride: number,
-  ) {
+  constructor(public raycaster: Raycaster) {
     const viewport = raycaster.Viewport;
     const {
       StartX: vpStartX,
@@ -35,7 +34,19 @@ class Renderer {
       Height: vpHeight,
     } = viewport;
 
-    this.frameStride /= BPP_RGBA;
+    this.wasmRun = raycaster.WasmRun;
+    this.wasmEngineModule = this.wasmRun.WasmModules.engine;
+
+    this.frameStride = this.wasmRun.FrameStride;
+
+    const { rgbaSurface0: frameBuf8 } = this.wasmRun.WasmViews;
+
+    this.frameBuf32 = new Uint32Array(
+      frameBuf8.buffer,
+      0,
+      frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
+    );
+
     this.startFramePtr = vpStartY * this.frameStride + vpStartX;
 
     this.frameRowPtrs = new Uint32Array(vpHeight + 1);
@@ -54,6 +65,10 @@ class Renderer {
 
   public set TexturedFloor(texturedFloor: boolean) {
     this.texturedFloor = texturedFloor;
+  }
+
+  public set UseWasm(useWasm: boolean) {
+    this.useWasm = useWasm;
   }
 
   public renderBackground(color: number) {
@@ -895,10 +910,14 @@ class Renderer {
   }
 
   public render() {
-    // this.renderViewFullVert();
-    // this.renderViewFullVert2();
-    this.renderViewWallsVertFloorsHorz();
-    // this.renderViewFullHorz(); // TODO:
+    if (this.useWasm) {
+      this.wasmEngineModule.render();
+    } else {
+      // this.renderViewFullVert();
+      // this.renderViewFullVert2();
+      this.renderViewWallsVertFloorsHorz();
+      // this.renderViewFullHorz(); // TODO:
+    }
   }
 }
 

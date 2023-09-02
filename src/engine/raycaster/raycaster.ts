@@ -155,23 +155,8 @@ class Raycaster {
     this.initTextures();
     this.initMap();
 
-    this.initRenderer();
-
+    this.renderer = new Renderer(this);
     this.renderer.renderBorders(this.BorderColor);
-  }
-
-  private initRenderer() {
-    const { rgbaSurface0: frameBuf8 } = this.wasmRun.WasmViews;
-
-    const frameBuf32 = new Uint32Array(
-      frameBuf8.buffer,
-      0,
-      frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
-    );
-
-    const frameStride = this.params.wasmRun.FrameStride;
-
-    this.renderer = new Renderer(this, frameBuf32, frameStride);
   }
 
   private initViewport() {
@@ -360,9 +345,7 @@ class Raycaster {
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
-  renderView() {
-    // renderBackground(this.backgroundColor);
-
+  render() {
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
@@ -607,9 +590,9 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
-    this.renderer.TexturedFloor = false;
+    this.renderer.TexturedFloor = true;
+    this.renderer.UseWasm = false;
     this.renderer.render();
-    // this.wasmEngineModule.render();
   }
 
   update(time: number) {
@@ -779,6 +762,10 @@ class Raycaster {
 
   get Textures() {
     return this.textures;
+  }
+
+  get WasmRun() {
+    return this.wasmRun;
   }
 }
 

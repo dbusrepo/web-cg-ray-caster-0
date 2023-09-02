@@ -209,7 +209,6 @@ function getYWallMapPtr(raycasterPtr: PTR_T): PTR_T {
 
 function getXWallMapWidth(raycasterPtr: PTR_T): u32 {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  logi(raycaster.Map.XWallMapWidth);
   return raycaster.Map.XWallMapWidth;
 }
 

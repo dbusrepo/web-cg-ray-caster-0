@@ -41,7 +41,7 @@ const WALL_COLOR_SIDE_1 = FrameColorRGBA.colorABGR(0xff, 0, 0, 0x88);
 const CEIL_COLOR = FrameColorRGBA.colorABGR(0xff, 0xbb, 0xbb, 0xbb);
 const FLOOR_COLOR = FrameColorRGBA.colorABGR(0xff, 0x55, 0x55, 0x55);
 
-const TEXTURED_FLOOR = false;
+const TEXTURED_FLOOR = true;
 
 let raycaster: Raycaster = changetype<Raycaster>(NULL_PTR);
 let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
@@ -114,7 +114,6 @@ function renderViewVert(raycaster: Raycaster): void {
       store<u32>(framePtr, CEIL_COLOR);
     }
 
-
     frameLimitPtr = frameRowPtrs.at(bottom + 1) + xcolOffs;
 
     if (hit) {
@@ -179,8 +178,11 @@ function renderViewVert(raycaster: Raycaster): void {
       const floorMap = map.FloorMap;
       const floorMapLength = map.FloorMap.Length as u32;
 
-      let floorMip: Texture = changetype<Texture>(NULL_PTR);
+      let floorMip = changetype<BitImageRGBA>(NULL_PTR);
       let prevFloorMapIdx = -1 as u32;
+      let floorMipWidth = 0 as f32;
+      let floorMipHeight = 0 as f32;
+      let floorMipLg2Pitch = 0 as SIZE_T;
 
       for (let y = bottom + 1; y < viewport.Height; y++, framePtr += FRAME_STRIDE) {
         const sDist = posZ / ((y - projYCenter) as f32);
@@ -193,19 +195,24 @@ function renderViewVert(raycaster: Raycaster): void {
         const sameFloorTexIdx = floorMapIdx === prevFloorMapIdx;
         if (sameFloorTexIdx || (floorMapIdx < floorMapLength)) {
           if (!sameFloorTexIdx) {
-            // const texIdx = floorMap.at(floorMapIdx);
-            // floorMip = textures.at(texIdx).getMipmap(0);
-            // prevFloorMapIdx = floorMapIdx;
+            const floorTexIdx = floorMap.at(floorMapIdx);
+            const floorMipIdx = textures.at(floorTexIdx).gMipIdx(0);
+            floorMip = mipmaps.at(floorMipIdx);
+            prevFloorMapIdx = floorMapIdx;
+            floorMipWidth = floorMip.Width as f32;
+            floorMipHeight = floorMip.Height as f32;
+            floorMipLg2Pitch = floorMip.Lg2Pitch as SIZE_T;
           }
-          // const u = floorX - (floorXidx as f32);
-          // const v = floorY - (floorYidx as f32);
-        }
-
+          const u = floorX - (floorXidx as f32);
+          const v = floorY - (floorYidx as f32);
+          const floorMipX = u32(u * floorMipWidth);
+          const floorMipY = u32(v * floorMipHeight);
+          const floorMipOffs = ((floorMipX as SIZE_T) << floorMipLg2Pitch) | floorMipY;
+          const color = load<u32>(floorMip.Ptr + floorMipOffs * BPP_RGBA);
+          store<u32>(framePtr, color);
         // const texIdx = floorYidx * mapWidth + floorXidx;
         // assert(floorTexMapIdx >= 0 && floorTexMapIdx < floorTexturesMap.length, `floorTexMapIdx: ${floorTexMapIdx}, floorXidx: ${floorXidx}, floorYidx: ${floorYidx}, mapWidth: ${mapWidth}, mapHeight: ${mapHeight}`);
         // const sameFloorTexMapIdx = texIdx === prevTexIdx;
-
-
         // const u = floorX - (floorXidx as f32);
         // const v = floorY - (floorYidx as f32);
         // // assert(floorX >= 0 && floorX < 1);
@@ -220,7 +227,7 @@ function renderViewVert(raycaster: Raycaster): void {
         // // console.log(colorOffset);
         // // console.log('color: ', color);
         // store<u32>(framePtr, color);
-
+        }
       }
     }
   }

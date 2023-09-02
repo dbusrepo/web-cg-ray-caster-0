@@ -69,7 +69,7 @@ class AppWorker {
     await this.initAssetManager();
     await this.initWasmEngine();
     await this.initRaycaster();
-    // this.raycaster.renderView();
+    // this.raycaster.render();
     await this.runAuxWorkers();
   }
 
@@ -318,7 +318,7 @@ class AppWorker {
     const render = () => {
       this.wasmEngine.syncWorkers(this.auxWorkers);
       // this.wasmEngineModule.render();
-      this.raycaster.renderView();
+      this.raycaster.render();
       this.wasmEngine.waitWorkers(this.auxWorkers);
       this.drawWasmFrame();
       saveFrameTime();
