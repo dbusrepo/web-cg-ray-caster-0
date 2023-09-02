@@ -88,24 +88,29 @@ function deleteTexture(tex: Texture): void {
   textureAllocator.delete(changetype<Texture>(tex));
 }
 
-let textures = changetype<SArray<Texture>>(NULL_PTR);
-let mipmaps = changetype<SArray<BitImageRGBA>>(NULL_PTR);
 
-function initTextures(): void {
-  textures = newSArray<Texture>(numTextures);
-  let numMips = 0 as SIZE_T;
+function initTextures(): SArray<Texture> {
+  let textures = newSArray<Texture>(numTextures);
   for (let i: SIZE_T = 0; i < numTextures; i++) {
     const tex = textures.at(i);
     tex.init(i);
-    numMips += tex.NumMipMaps;
   }
-  mipmaps = newSArray<BitImageRGBA>(numMips);
-  numMips = 0 as SIZE_T;
-  for (let i: SIZE_T = 0; i < numTextures; i++) {
-    const tex = textures.at(i);
-    tex.initMipMaps(mipmaps, numMips);
-    numMips += tex.NumMipMaps;
-  }
+  return textures;
 }
 
-export { Texture, initTextures, textures, mipmaps };
+function initMipMaps(textures: SArray<Texture>): SArray<BitImageRGBA> {
+  let numMips: SIZE_T = 0;
+  for (let i: SIZE_T = 0; i < textures.Length; i++) {
+    numMips += textures.at(i).NumMipMaps;
+  }
+  let mipmaps = newSArray<BitImageRGBA>(numMips);
+  let mipMapIdx: SIZE_T = 0;
+  for (let i: SIZE_T = 0; i < textures.Length; i++) {
+    const tex = textures.at(i);
+    tex.initMipMaps(mipmaps, mipMapIdx);
+    mipMapIdx += tex.NumMipMaps;
+  }
+  return mipmaps;
+}
+
+export { Texture, initTextures, initMipMaps };

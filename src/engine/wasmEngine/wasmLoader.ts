@@ -53,6 +53,8 @@ type WasmImports = {
   FONT_SPACING: number;
 
   raycasterPtr: number;
+  texturesPtr: number;
+  mipmapsPtr: number;
 
   logi: (v: number) => void;
   logf: (v: number) => void;

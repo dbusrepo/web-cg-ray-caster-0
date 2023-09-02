@@ -23,7 +23,6 @@ import {
   inputKeysPtr,
   hrTimerPtr,
   raycasterPtr,
-  frameColorRGBAPtr,
 } from '../importVars';
 import {
   FrameColorRGBA, 

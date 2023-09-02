@@ -24,9 +24,12 @@ import {
   inputKeysPtr,
   hrTimerPtr,
   raycasterPtr,
+  texturesPtr,
+  mipmapsPtr,
 } from './importVars';
 import { GREYSTONE } from './gen_importImages';
-import { Texture, initTextures, textures, mipmaps } from './texture';
+import { Texture, initTextures, initMipMaps } from './texture';
+import { BitImageRGBA } from './bitImageRGBA';
 // import { DArray, newDArray, deleteDArray } from './darray';
 import { Pointer } from './pointer';
 import { SArray, newSArray } from './sarray';
@@ -107,15 +110,20 @@ const MAIN_THREAD_IDX = mainWorkerIdx;
 
 // let map = changetype<Map>(NULL_PTR);
 let raycaster = changetype<Raycaster>(NULL_PTR);
-
+let textures = changetype<SArray<Texture>>(NULL_PTR);
+let mipmaps = changetype<SArray<BitImageRGBA>>(NULL_PTR);
 
 function initMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
   raycaster.Map = map;
 }
 
+
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
+    textures = initTextures();
+    mipmaps = initMipMaps(textures);
+
     myAssert(raycasterPtr == NULL_PTR);
     raycaster = newRaycaster();
 
@@ -124,13 +132,12 @@ function initData(): void {
 
     const player = newPlayer();
     raycaster.Player = player;
-
   } else {
+    textures = changetype<SArray<Texture>>(texturesPtr);
+    mipmaps = changetype<SArray<BitImageRGBA>>(mipmapsPtr);
     myAssert(raycasterPtr != NULL_PTR);
     raycaster = changetype<Raycaster>(raycasterPtr);
   }
-
-  initTextures();
 }
 
 function init(): void {
@@ -146,6 +153,14 @@ function init(): void {
 
   initMemManager();
   initData();
+}
+
+function getTexturesPtr(): PTR_T {
+  return changetype<PTR_T>(textures);
+}
+
+function getMipMapsPtr(): PTR_T {
+  return changetype<PTR_T>(mipmaps);
 }
 
 function getRaycasterPtr(): PTR_T {
@@ -244,4 +259,7 @@ export {
   getRedFogTablePtr,
   getGreenFogTablePtr,
   getBlueFogTablePtr,
+
+  getTexturesPtr,
+  getMipMapsPtr,
 };
