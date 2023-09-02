@@ -121,6 +121,8 @@ function initMap(mapWidth: i32, mapHeight: i32): void {
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
+    myAssert(texturesPtr == NULL_PTR);
+    myAssert(mipmapsPtr == NULL_PTR);
     textures = initTextures();
     mipmaps = initMipMaps(textures);
 
@@ -133,8 +135,11 @@ function initData(): void {
     const player = newPlayer();
     raycaster.Player = player;
   } else {
+    myAssert(texturesPtr != NULL_PTR);
+    myAssert(mipmapsPtr != NULL_PTR);
     textures = changetype<SArray<Texture>>(texturesPtr);
     mipmaps = changetype<SArray<BitImageRGBA>>(mipmapsPtr);
+
     myAssert(raycasterPtr != NULL_PTR);
     raycaster = changetype<Raycaster>(raycasterPtr);
   }
