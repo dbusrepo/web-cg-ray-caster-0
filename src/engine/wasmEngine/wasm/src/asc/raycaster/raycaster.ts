@@ -197,35 +197,35 @@ function getWallSlicesPtr(raycasterPtr: PTR_T): PTR_T {
   return raycaster.WallSlices.DataPtr;
 }
 
-function getXmapPtr(raycasterPtr: PTR_T): PTR_T {
+function getXWallMapPtr(raycasterPtr: PTR_T): PTR_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.Xmap.DataPtr;
+  return raycaster.Map.XWallMap.DataPtr;
 }
 
-function getYmapPtr(raycasterPtr: PTR_T): PTR_T {
+function getYWallMapPtr(raycasterPtr: PTR_T): PTR_T {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.Ymap.DataPtr;
+  return raycaster.Map.YWallMap.DataPtr;
 }
 
-function getXmapWidth(raycasterPtr: PTR_T): u32 {
+function getXWallMapWidth(raycasterPtr: PTR_T): u32 {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  logi(raycaster.Map.XmapWidth);
-  return raycaster.Map.XmapWidth;
+  logi(raycaster.Map.XWallMapWidth);
+  return raycaster.Map.XWallMapWidth;
 }
 
-function getXmapHeight(raycasterPtr: PTR_T): u32 {
+function getXWallMapHeight(raycasterPtr: PTR_T): u32 {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.XmapHeight;
+  return raycaster.Map.XWallMapHeight;
 }
 
-function getYmapWidth(raycasterPtr: PTR_T): u32 {
+function getYWallMapWidth(raycasterPtr: PTR_T): u32 {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.YmapWidth;
+  return raycaster.Map.YWallMapWidth;
 }
 
-function getYmapHeight(raycasterPtr: PTR_T): u32 {
+function getYWallMapHeight(raycasterPtr: PTR_T): u32 {
   const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.Map.YmapHeight;
+  return raycaster.Map.YWallMapHeight;
 }
 
 function getFloorMapPtr(raycasterPtr: PTR_T): PTR_T {
@@ -274,12 +274,12 @@ export {
   getBorderColorPtr,
   getProjYCenterPtr,
   getZBufferPtr,
-  getXmapPtr,
-  getXmapWidth,
-  getXmapHeight,
-  getYmapPtr,
-  getYmapWidth,
-  getYmapHeight,
+  getXWallMapPtr,
+  getXWallMapWidth,
+  getXWallMapHeight,
+  getYWallMapPtr,
+  getYWallMapWidth,
+  getYWallMapHeight,
   getFloorMapPtr,
   getWallSlicesPtr,
   getWallSliceObjSizeLg2,

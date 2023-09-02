@@ -73,18 +73,16 @@ class Raycaster {
 
   private textures: Texture[];
 
-  // maps with tex indices into wallTextures
-  private xMap: Uint8Array;
-  private yMap: Uint8Array;
+  // wall maps with tex indices in wallTextures
+  private xWallMap: Uint8Array;
+  private yWallMap: Uint8Array;
 
-  private xMapWidth: number;
-  private xMapHeight: number;
-  private yMapWidth: number;
-  private yMapHeight: number;
+  private xWallMapWidth: number;
+  private xWallMapHeight: number;
+  private yWallMapWidth: number;
+  private yWallMapHeight: number;
 
   private floorMap: Uint8Array;
-  // private ceilingMap: Uint8Array;
-  // private floorMap: Uint8Array;
 
   private wallSlices: WallSlice[];
 
@@ -142,6 +140,10 @@ class Raycaster {
       this.wasmRaycasterPtr,
     );
     this.maxWallBottomPtr = this.wasmEngineModule.getMaxWallBottomPtr(
+      this.wasmRaycasterPtr,
+    );
+
+    this.maxWallDistancePtr = this.wasmEngineModule.getMaxWallDistancePtr(
       this.wasmRaycasterPtr,
     );
 
@@ -289,50 +291,56 @@ class Raycaster {
   }
 
   private initWallMap() {
-    const xMapPtr = this.wasmEngineModule.getXmapPtr(this.wasmRaycasterPtr);
-    const yMapPtr = this.wasmEngineModule.getYmapPtr(this.wasmRaycasterPtr);
-
-    this.xMapWidth = this.wasmEngineModule.getXmapWidth(this.wasmRaycasterPtr);
-    this.xMapHeight = this.wasmEngineModule.getXmapHeight(
+    const xMapPtr = this.wasmEngineModule.getXWallMapPtr(this.wasmRaycasterPtr);
+    this.xWallMapWidth = this.wasmEngineModule.getXWallMapWidth(
       this.wasmRaycasterPtr,
     );
-    this.yMapWidth = this.wasmEngineModule.getYmapWidth(this.wasmRaycasterPtr);
-    this.yMapHeight = this.wasmEngineModule.getYmapHeight(
+    this.xWallMapHeight = this.wasmEngineModule.getXWallMapHeight(
       this.wasmRaycasterPtr,
     );
 
-    this.xMap = new Uint8Array(
+    const yMapPtr = this.wasmEngineModule.getYWallMapPtr(this.wasmRaycasterPtr);
+    this.yWallMapWidth = this.wasmEngineModule.getYWallMapWidth(
+      this.wasmRaycasterPtr,
+    );
+    this.yWallMapHeight = this.wasmEngineModule.getYWallMapHeight(
+      this.wasmRaycasterPtr,
+    );
+
+    this.xWallMap = new Uint8Array(
       this.wasmRun.WasmMem.buffer,
       xMapPtr,
-      this.xMapWidth * this.xMapHeight,
+      this.xWallMapWidth * this.xWallMapHeight,
     );
 
-    this.yMap = new Uint8Array(
+    this.yWallMap = new Uint8Array(
       this.wasmRun.WasmMem.buffer,
       yMapPtr,
-      this.yMapWidth * this.yMapHeight,
+      this.yWallMapWidth * this.yWallMapHeight,
     );
 
     let tex = this.findTex(wallTexKeys.GREYSTONE);
-    for (let i = 0; i < this.xMapHeight; i++) {
-      this.xMap[i * this.xMapWidth] = tex.WallMapIdx;
-      this.xMap[i * this.xMapWidth + (this.xMapWidth - 1)] = tex.WallMapIdx;
+    for (let i = 0; i < this.xWallMapHeight; i++) {
+      this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
+      this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
+        tex.WallMapIdx;
     }
 
     tex = this.findTex(wallTexKeys.REDBRICK);
-    this.xMap[4] = tex.WallMapIdx;
-    this.xMap[4 + this.xMapWidth * 2] = tex.WallMapIdx;
+    this.xWallMap[4] = tex.WallMapIdx;
+    this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
 
     tex = this.findTex(darkWallTexKeys.GREYSTONE);
-    for (let i = 0; i < this.yMapWidth; i++) {
-      this.yMap[i] = tex.WallMapIdx;
-      this.yMap[i + (this.yMapHeight - 1) * this.yMapWidth] = tex.WallMapIdx;
+    for (let i = 0; i < this.yWallMapWidth; i++) {
+      this.yWallMap[i] = tex.WallMapIdx;
+      this.yWallMap[i + (this.yWallMapHeight - 1) * this.yWallMapWidth] =
+        tex.WallMapIdx;
     }
     // this.yMap[2] = 0; // test hole
 
     tex = this.findTex(darkWallTexKeys.REDBRICK);
-    this.yMap[4 + this.yMapWidth * 2] = tex.WallMapIdx;
-    this.yMap[5 + this.yMapWidth * 2] = tex.WallMapIdx;
+    this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+    this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
   }
 
   private initFloorMap() {
@@ -362,7 +370,7 @@ class Raycaster {
     // renderBackground(this.backgroundColor);
 
     const { mapWidth, mapHeight } = this;
-    const { xMap, yMap } = this;
+    const { xWallMap: xMap, yWallMap: yMap } = this;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
     const {
       PosX: posX,
@@ -421,16 +429,16 @@ class Raycaster {
 
       if (rayDirY < 0) {
         stepY = -1;
-        xStepYOffs = -this.xMapWidth;
-        yStepYOffs = -this.yMapWidth;
+        xStepYOffs = -this.xWallMapWidth;
+        yStepYOffs = -this.yWallMapWidth;
         yChkOff = 0;
         yChkIdx = 0;
         sideDistY = cellY * deltaDistY;
       } else {
         stepY = 1;
-        xStepYOffs = this.xMapWidth;
-        yStepYOffs = this.yMapWidth;
-        yChkOff = this.yMapWidth;
+        xStepYOffs = this.xWallMapWidth;
+        yStepYOffs = this.yWallMapWidth;
+        yChkOff = this.yWallMapWidth;
         yChkIdx = 1;
         sideDistY = (1.0 - cellY) * deltaDistY;
       }
@@ -440,8 +448,8 @@ class Raycaster {
       let curMapY = mapY;
       let nextMapX, nextMapY;
 
-      let xMapOffs = curMapY * this.xMapWidth + curMapX;
-      let yMapOffs = curMapY * this.yMapWidth + curMapX;
+      let xMapOffs = curMapY * this.xWallMapWidth + curMapX;
+      let yMapOffs = curMapY * this.yWallMapWidth + curMapX;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;

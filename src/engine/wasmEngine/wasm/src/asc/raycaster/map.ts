@@ -7,24 +7,24 @@ import { SArray, newSArray } from '../sarray';
 @final @unmanaged class Map {
   private width: u32;
   private height: u32;
-  // maps with tex indices
-  private xMap: SArray<u8>;
-  private yMap: SArray<u8>;
-  private xMapWidth: u32;
-  private xMapHeight: u32;
-  private yMapWidth: u32;
-  private yMapHeight: u32;
+
+  private xWallMap: SArray<u8>;
+  private yWallMap: SArray<u8>;
+  private xWallMapWidth: u32;
+  private xWallMapHeight: u32;
+  private yWallMapWidth: u32;
+  private yWallMapHeight: u32;
   private floorMap: SArray<u8>;
 
   init(mapWidth: u32, mapHeight: u32): void {
     this.width = mapWidth;
     this.height = mapHeight;
-    this.xMapWidth = mapWidth + 1;
-    this.xMapHeight = mapHeight;
-    this.yMapWidth = mapWidth + 1;
-    this.yMapHeight = mapHeight + 1;
-    this.xMap = newSArray<u8>(this.xMapWidth * this.xMapHeight);
-    this.yMap = newSArray<u8>(this.yMapWidth * this.yMapHeight);
+    this.xWallMapWidth = mapWidth + 1;
+    this.xWallMapHeight = mapHeight;
+    this.yWallMapWidth = mapWidth + 1;
+    this.yWallMapHeight = mapHeight + 1;
+    this.xWallMap = newSArray<u8>(this.xWallMapWidth * this.xWallMapHeight);
+    this.yWallMap = newSArray<u8>(this.yWallMapWidth * this.yWallMapHeight);
     this.floorMap = newSArray<u8>(mapWidth * mapHeight);
   }
 
@@ -36,28 +36,28 @@ import { SArray, newSArray } from '../sarray';
     return this.height;
   }
 
-  get Xmap(): SArray<u8> {
-    return this.xMap;
+  get XWallMap(): SArray<u8> {
+    return this.xWallMap;
   }
 
-  get Ymap(): SArray<u8> {
-    return this.yMap;
+  get YWallMap(): SArray<u8> {
+    return this.yWallMap;
   }
 
-  get XmapWidth(): u32 {
-    return this.xMapWidth;
+  get XWallMapWidth(): u32 {
+    return this.xWallMapWidth;
   }
 
-  get XmapHeight(): u32 {
-    return this.xMapHeight;
+  get XWallMapHeight(): u32 {
+    return this.xWallMapHeight;
   }
 
-  get YmapWidth(): u32 {
-    return this.yMapWidth;
+  get YWallMapWidth(): u32 {
+    return this.yWallMapWidth;
   }
 
-  get YmapHeight(): u32 {
-    return this.yMapHeight;
+  get YWallMapHeight(): u32 {
+    return this.yWallMapHeight;
   }
 
   get FloorMap(): SArray<u8> {
