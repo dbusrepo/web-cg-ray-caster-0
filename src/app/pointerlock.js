@@ -31,13 +31,13 @@ async function requestPointerLockWithUnadjustedMovement(element) {
     await promise;
     // console.log('pointer is locked with unadjusted movement');
   } catch (error) {
-    // console.log(
-    //   `pointer can't be locked with unadjusted movement: "${error.message}"`,
-    // );
+    console.log(
+      `pointer can't be locked with unadjusted movement: "${error.message}"`,
+    );
     if (error.name === 'NotSupportedError') {
       // Some platforms may not support unadjusted movement.
       // You can request again a regular pointer lock.
-      await requestPointerLockWithoutUnadjustedMovement();
+      await requestPointerLockWithoutUnadjustedMovement(element);
     }
     if (error.name === 'SecurityError') {
       throw error;
