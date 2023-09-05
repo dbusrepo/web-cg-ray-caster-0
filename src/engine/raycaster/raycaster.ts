@@ -31,6 +31,8 @@ const wallTexKeys = {
   GREYSTONE: imageKeys.GREYSTONE,
   BLUESTONE: imageKeys.BLUESTONE,
   REDBRICK: imageKeys.REDBRICK,
+  EAGLE: imageKeys.EAGLE,
+  BRICK1: imageKeys.BRICK1,
 };
 
 const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
@@ -43,9 +45,8 @@ const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
 );
 
 const floorTexKeys = {
-  GREYSTONE: imageKeys.GREYSTONE,
-  BLUESTONE: imageKeys.BLUESTONE,
-  REDBRICK: imageKeys.REDBRICK,
+  FLOOR0: imageKeys.FLOOR0,
+  FLOOR1: imageKeys.FLOOR1,
 };
 
 class Raycaster {
@@ -305,7 +306,7 @@ class Raycaster {
         tex.WallMapIdx;
     }
 
-    tex = this.findTex(wallTexKeys.REDBRICK);
+    tex = this.findTex(wallTexKeys.BRICK1);
     this.xWallMap[4] = tex.WallMapIdx;
     this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
 
@@ -333,7 +334,7 @@ class Raycaster {
       this.mapWidth * this.mapHeight,
     );
 
-    let tex = this.findTex(floorTexKeys.GREYSTONE);
+    let tex = this.findTex(floorTexKeys.FLOOR0);
 
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
@@ -341,7 +342,7 @@ class Raycaster {
       }
     }
 
-    tex = this.findTex(floorTexKeys.REDBRICK);
+    tex = this.findTex(floorTexKeys.FLOOR1);
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
