@@ -201,9 +201,10 @@ class WasmEngine {
       surface0sizes: [imageWidth, imageHeight],
       surface1sizes: [0, 0], // not used
       // main thread init this vars here in wasm engine
-      raycasterPtr: 0,
+      frameColorRGBAPtr: 0,
       texturesPtr: 0,
       mipmapsPtr: 0,
+      raycasterPtr: 0,
     };
 
     await this.wasmRun.init(this.wasmRunParams, this.wasmViews);

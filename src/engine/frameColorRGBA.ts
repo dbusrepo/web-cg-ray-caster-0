@@ -38,12 +38,15 @@ abstract class FrameColorRGBA {
   }
 
   abstract lightColorABGR(colorABGR: number, intensity: number): number;
+
   abstract fogColorABGR(colorABGR: number, intensity: number): number;
+
   abstract lightPixel(
     frameBuffer: Uint32Array,
     pColor: number,
     intensity: number,
   ): void;
+
   abstract fogPixel(
     frameBuffer: Uint32Array,
     pColor: number,

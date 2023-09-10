@@ -36,6 +36,10 @@ import { logi } from '../importVars';
   get Height(): u32 {
     return this.height;
   }
+
+  set Height(height: u32) {
+    this.height = height;
+  }
 }
 
 let viewportAlloc = changetype<ObjectAllocator<Viewport>>(NULL_PTR);

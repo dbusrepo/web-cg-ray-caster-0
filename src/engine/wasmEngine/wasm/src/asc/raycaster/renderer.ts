@@ -22,8 +22,6 @@ import {
 } from '../importVars';
 import {
   FrameColorRGBA, 
-  newFrameColorRGBA,
-  // deleteFrameColorRGBA, 
   MAX_LIGHT_LEVELS,
   BPP_RGBA,
   getRedLightTablePtr,
@@ -59,12 +57,12 @@ const TEXTURED_FLOOR = true;
   private floorStepX: SArray<f32> = changetype<SArray<f32>>(NULL_PTR);
   private floorStepY: SArray<f32> = changetype<SArray<f32>>(NULL_PTR);
 
-  init(viewport: Viewport, textures: SArray<Texture>, mipmaps: SArray<BitImageRGBA>): void {
+  init(frameColorRGBA: FrameColorRGBA, viewport: Viewport, textures: SArray<Texture>, mipmaps: SArray<BitImageRGBA>): void {
     this.viewport = viewport;
     this.textures = textures;
     this.mipmaps = mipmaps;
 
-    this.frameColorRGBA = newFrameColorRGBA();
+    this.frameColorRGBA = frameColorRGBA;
 
     this.startFramePtr = rgbaSurface0ptr + this.viewport.StartY * FRAME_STRIDE + this.viewport.StartX * BPP_RGBA;
     this.frameRowPtrs = newSArray<PTR_T>(viewport.Height + 1);

@@ -23,9 +23,10 @@ import {
   sleepArrayPtr,
   inputKeysPtr,
   hrTimerPtr,
-  raycasterPtr,
+  frameColorRGBAPtr,
   texturesPtr,
   mipmapsPtr,
+  raycasterPtr,
 } from './importVars';
 import { GREYSTONE } from './gen_importImages';
 import { Texture, initTextures, initMipMaps } from './texture';
@@ -108,10 +109,12 @@ const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
 
 const MAIN_THREAD_IDX = mainWorkerIdx;
 
-// let map = changetype<Map>(NULL_PTR);
-let raycaster = changetype<Raycaster>(NULL_PTR);
+let frameColorRGBA = changetype<FrameColorRGBA>(NULL_PTR);
 let textures = changetype<SArray<Texture>>(NULL_PTR);
 let mipmaps = changetype<SArray<BitImageRGBA>>(NULL_PTR);
+
+// let map = changetype<Map>(NULL_PTR);
+let raycaster = changetype<Raycaster>(NULL_PTR);
 
 function initMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
@@ -121,23 +124,26 @@ function initMap(mapWidth: i32, mapHeight: i32): void {
 
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
+    myAssert(frameColorRGBAPtr == NULL_PTR);
+    frameColorRGBA = newFrameColorRGBA();
+
     myAssert(texturesPtr == NULL_PTR);
-    myAssert(mipmapsPtr == NULL_PTR);
     textures = initTextures();
+
+    myAssert(mipmapsPtr == NULL_PTR);
     mipmaps = initMipMaps(textures);
 
     myAssert(raycasterPtr == NULL_PTR);
     raycaster = newRaycaster();
-
-    const viewport = newViewport();
-    raycaster.Viewport = viewport;
-
-    const player = newPlayer();
-    raycaster.Player = player;
+    raycaster.init(frameColorRGBA, textures, mipmaps);
   } else {
+    myAssert(frameColorRGBAPtr != NULL_PTR);
+    frameColorRGBA = changetype<FrameColorRGBA>(frameColorRGBAPtr);
+
     myAssert(texturesPtr != NULL_PTR);
-    myAssert(mipmapsPtr != NULL_PTR);
     textures = changetype<SArray<Texture>>(texturesPtr);
+
+    myAssert(mipmapsPtr != NULL_PTR);
     mipmaps = changetype<SArray<BitImageRGBA>>(mipmapsPtr);
 
     myAssert(raycasterPtr != NULL_PTR);
@@ -172,16 +178,12 @@ function getRaycasterPtr(): PTR_T {
   return changetype<PTR_T>(raycaster);
 }
 
-function initRaycaster(): void {
-  raycaster.init(textures, mipmaps);
-}
-
 function render(): void {
   raycaster.render();
 }
 
 function getFrameColorRGBAPtr(): PTR_T {
-  return raycaster.FrameColorRGBAPtr;
+  return changetype<PTR_T>(frameColorRGBA);
 }
 
 function run(): void {
@@ -206,8 +208,6 @@ export {
   run,
 
   initMap,
-
-  initRaycaster,
 
   getRaycasterPtr,
   getBorderColorPtr,

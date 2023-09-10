@@ -26,16 +26,16 @@ import {
 } from '../importVars';
 import {
   FrameColorRGBA, 
-  newFrameColorRGBA,
+  // newFrameColorRGBA,
   // deleteFrameColorRGBA, 
-  MAX_LIGHT_LEVELS,
-  BPP_RGBA,
-  getRedLightTablePtr,
-  getGreenLightTablePtr,
-  getBlueLightTablePtr,
-  getRedFogTablePtr,
-  getGreenFogTablePtr,
-  getBlueFogTablePtr,
+  // MAX_LIGHT_LEVELS,
+  // BPP_RGBA,
+  // getRedLightTablePtr,
+  // getGreenLightTablePtr,
+  // getBlueLightTablePtr,
+  // getRedFogTablePtr,
+  // getGreenFogTablePtr,
+  // getBlueFogTablePtr,
 } from '../frameColorRGBA';
 import { 
   Renderer,
@@ -43,8 +43,10 @@ import {
 } from './renderer';
 
 @final @unmanaged class Raycaster {
+  private frameColorRGBA: FrameColorRGBA;
   private textures: SArray<Texture>;
   private mipmaps: SArray<BitImageRGBA>;
+  private borderWidth: u32;
   private borderColor: u32;
   private viewport: Viewport;
   private projYCenter: u32;
@@ -59,11 +61,46 @@ import {
   private maxWallBottom: u32;
   private renderer: Renderer;
 
-  init(textures: SArray<Texture>, mipmaps: SArray<BitImageRGBA>): void {
+  init(
+    frameColorRGBA: FrameColorRGBA,
+    textures: SArray<Texture>,
+    mipmaps: SArray<BitImageRGBA>
+  ): void {
+    this.frameColorRGBA = frameColorRGBA;
     this.textures = textures;
     this.mipmaps = mipmaps;
+    this.initPlayer();
+    this.initViewPort();
     this.initBuffers();
     this.initRenderer();
+  }
+
+  initPlayer(): void {
+    this.player = newPlayer();
+    this.player.PosX = 0.5;
+    this.player.PosY = 0.5;
+    // rotated east
+    this.player.DirX = 1;
+    this.player.DirY = 0;
+    this.player.PlaneX = 0;
+    this.player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
+    // rotated north
+    // player.DirX = 0;
+    // player.DirY = -1;
+    // player.PlaneX = 0.66;
+    // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
+    this.player.PosZ = 0.0;
+  }
+
+  initViewPort(): void {
+    this.borderWidth = 0;
+    this.borderColor = FrameColorRGBA.colorRGBAtoABGR(0xffff00ff);
+
+    this.viewport = newViewport();
+    this.viewport.StartX = this.borderWidth;
+    this.viewport.StartY = this.borderWidth;
+    this.viewport.Width = rgbaSurface0width - this.borderWidth * 2;
+    this.viewport.Height = rgbaSurface0height - this.borderWidth * 2;
   }
 
   initBuffers(): void {
@@ -73,7 +110,7 @@ import {
 
   initRenderer(): void {
     this.renderer = newRenderer();
-    this.renderer.init(this.viewport, this.textures, this.mipmaps);
+    this.renderer.init(this.frameColorRGBA, this.viewport, this.textures, this.mipmaps);
   }
 
   render(): void {
@@ -194,10 +231,6 @@ import {
 
   get Renderer(): Renderer {
     return this.renderer;
-  }
-
-  get FrameColorRGBAPtr(): PTR_T {
-    return changetype<PTR_T>(this.renderer.FrameColorRGBA);
   }
 }
 
@@ -326,3 +359,4 @@ export {
   getPlayerPtr,
   getMaxWallDistancePtr,
 };
+

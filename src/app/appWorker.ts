@@ -176,9 +176,10 @@ class AppWorker {
             wasmRunParams: {
               ...this.wasmEngine.WasmRunParams,
               workerIdx: workerIndex,
-              raycasterPtr: this.wasmRaycasterPtr,
+              frameColorRGBAPtr: this.wasmEngineModule.getFrameColorRGBAPtr(),
               texturesPtr: this.wasmEngineModule.getTexturesPtr(),
               mipmapsPtr: this.wasmEngineModule.getMipMapsPtr(),
+              raycasterPtr: this.wasmRaycasterPtr,
             },
           };
           engineWorker.worker.postMessage({
