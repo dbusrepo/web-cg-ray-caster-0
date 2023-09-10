@@ -68,7 +68,6 @@ class Raycaster {
 
   private textures: Texture[];
 
-  // wall maps with tex indices in wallTextures
   private xWallMap: Uint8Array;
   private yWallMap: Uint8Array;
 
