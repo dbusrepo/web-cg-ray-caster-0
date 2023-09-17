@@ -1,6 +1,5 @@
 import assert from 'assert';
 import { MILLI_IN_SEC } from '../common';
-
 import { mainConfig } from '../config/mainConfig';
 import type { StatsValues } from '../ui/stats/stats';
 import { StatsNameEnum } from '../ui/stats/stats';
