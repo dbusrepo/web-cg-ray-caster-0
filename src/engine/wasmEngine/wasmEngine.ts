@@ -16,7 +16,6 @@ import type { WasmViews } from './wasmViews';
 import { buildWasmMemViews } from './wasmViews';
 import { FONT_Y_SIZE, fontChars } from '../../../assets/fonts/font';
 import { stringsArrayData } from '../../../assets/build/strings';
-import { AuxAppWorkerDesc } from '../../app/auxAppWorker';
 import { mainConfig } from '../../config/mainConfig';
 import {
   // BPP_PAL,
@@ -71,7 +70,11 @@ class WasmEngine {
   private async initWasm(): Promise<void> {
     this.initWasmMemRegions();
     this.allocWasmMem();
-    this.initMemViews();
+    this.wasmViews = buildWasmMemViews(
+      this.wasmMem,
+      this.wasmRegionsOffsets,
+      this.wasmRegionsSizes,
+    );
     this.initWasmAssets();
     await this.initWasmRun();
   }
@@ -154,29 +157,9 @@ class WasmEngine {
     );
   }
 
-  private initMemViews(): void {
-    this.wasmViews = buildWasmMemViews(
-      this.wasmMem,
-      this.wasmRegionsOffsets,
-      this.wasmRegionsSizes,
-    );
-  }
-
   private initWasmAssets(): void {
-    this.initWasmFontChars();
-    this.initWasmStrings();
-    this.initWasmTextures();
-  }
-
-  private initWasmFontChars() {
     wasmFontChars.copyFontChars2WasmMem(this.wasmViews.fontChars);
-  }
-
-  private initWasmStrings() {
     wasmStrings.copyStrings2WasmMem(this.wasmViews.strings);
-  }
-
-  private initWasmTextures(): void {
     wasmImages.copyTextures2WasmMem(
       this.params.assetManager.Textures,
       this.wasmViews.texturesIndex,
@@ -189,12 +172,14 @@ class WasmEngine {
 
     const { imageWidth, imageHeight } = this.params;
 
+    const MAIN_WORKER_IDX = 0;
+
     this.wasmRunParams = {
       wasmMem: this.wasmMem,
       wasmMemRegionsSizes: this.wasmRegionsSizes,
       wasmMemRegionsOffsets: this.wasmRegionsOffsets,
       wasmWorkerHeapSize: mainConfig.wasmWorkerHeapPages * PAGE_SIZE_BYTES,
-      mainWorkerIdx: 0, // main worker idx 0
+      mainWorkerIdx: MAIN_WORKER_IDX,
       workerIdx: 0,
       numWorkers: this.NumTotalWorkers,
       numTextures: this.params.assetManager.NumTextures, // TODO: rename
@@ -208,6 +193,7 @@ class WasmEngine {
     };
 
     await this.wasmRun.init(this.wasmRunParams, this.wasmViews);
+
     this.wasmModules = this.wasmRun.WasmModules;
 
     Atomics.store(this.wasmViews.sleepArr, 0, 0); // main worker idx 0
@@ -227,20 +213,6 @@ class WasmEngine {
   //   // console.log(views.hrTimer[0]);
   // }
 
-  public syncWorkers(auxWorkers: AuxAppWorkerDesc[]) {
-    for (let i = 0; i < auxWorkers.length; ++i) {
-      const { index: workerIdx } = auxWorkers[i];
-      Atomics.store(this.wasmViews.syncArr, workerIdx, 1);
-      Atomics.notify(this.wasmViews.syncArr, workerIdx);
-    }
-  }
-
-  public waitWorkers(auxWorkers: AuxAppWorkerDesc[]) {
-    for (let i = 0; i < auxWorkers.length; ++i) {
-      const { index: workerIdx } = auxWorkers[i];
-      Atomics.wait(this.wasmViews.syncArr, workerIdx, 1);
-    }
-  }
 
   public get WasmRun(): WasmRun {
     return this.wasmRun;

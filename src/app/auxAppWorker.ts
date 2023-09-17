@@ -1,8 +1,17 @@
 import assert from 'assert';
 import type { WasmViews } from '../engine/wasmEngine/wasmViews';
+import type {
+  WasmModules,
+  WasmEngineModule,
+} from '../engine/wasmEngine/wasmLoader';
 import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
 import type { WasmRunParams } from '../engine/wasmEngine/wasmRun';
 import { WasmRun, gWasmRun } from '../engine/wasmEngine/wasmRun';
+import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
+import {
+  FrameColorRGBAWasm,
+  getFrameColorRGBAWasmView,
+} from '../engine/wasmEngine/frameColorRGBAWasm';
 
 const enum AuxAppWorkerCommandEnum {
   INIT = 'aux_app_worker_init',
@@ -10,44 +19,76 @@ const enum AuxAppWorkerCommandEnum {
 }
 
 type AuxAppWorkerParams = {
-  workerIndex: number;
+  workerIdx: number;
   numWorkers: number;
   wasmRunParams: WasmRunParams;
-  syncArray: Int32Array;
-  sleepArray: Int32Array;
 };
 
 class AuxAppWorker {
   private params: AuxAppWorkerParams;
   private wasmRun: WasmRun;
+  private wasmViews: WasmViews;
+  private wasmEngineModule: WasmEngineModule;
+  private frameColorRGBAWasm: FrameColorRGBAWasm;
+  private frameBuf32: Uint32Array;
+  private frameStrideBytes: number;
+  private raycaster: Raycaster;
 
   async init(params: AuxAppWorkerParams): Promise<void> {
-    const { workerIndex, wasmRunParams } = params;
-    console.log(`Aux app worker ${workerIndex} initializing...`);
+    const { workerIdx } = params;
+    console.log(`Aux app worker ${workerIdx} initializing...`);
     this.params = params;
+    await this.initWasmRun();
+    this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
+    await this.initRaycaster();
+    await this.initFrameBuf();
+  }
+
+  private async initWasmRun() {
+    const { wasmRunParams } = this.params;
     this.wasmRun = new WasmRun();
-    const wasmViews = buildWasmMemViews(
+    this.wasmViews = buildWasmMemViews(
       wasmRunParams.wasmMem,
       wasmRunParams.wasmMemRegionsOffsets,
       wasmRunParams.wasmMemRegionsSizes,
     );
-    await this.wasmRun.init(wasmRunParams, wasmViews);
+    await this.wasmRun.init(wasmRunParams, this.wasmViews);
+    this.wasmEngineModule = this.wasmRun.WasmModules.engine;
+  }
+
+  private initFrameBuf() {
+    const { rgbaSurface0: frameBuf8 } = this.wasmViews;
+    this.frameBuf32 = new Uint32Array(
+      frameBuf8.buffer,
+      0,
+      frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
+    );
+    this.frameStrideBytes = this.wasmRun.FrameStrideBytes;
+  }
+
+  private async initRaycaster() {
+    this.raycaster = new Raycaster();
+    await this.raycaster.init({
+      wasmRun: this.wasmRun,
+      frameColorRGBAWasm: this.frameColorRGBAWasm,
+    });
   }
 
   async run() {
-    const { syncArray, workerIndex } = this.params;
-    console.log(`Aux app worker ${workerIndex} running`);
+    const { workerIdx } = this.params;
+    console.log(`Aux app worker ${workerIdx} running`);
+    const { wasmViews } = this;
     try {
       for (;;) {
-        Atomics.wait(syncArray, workerIndex, 0);
-        this.wasmRun.WasmModules.engine.render();
-        // TODO:
-        Atomics.store(syncArray, workerIndex, 0);
-        Atomics.notify(syncArray, workerIndex);
+        Atomics.wait(wasmViews.syncArr, workerIdx, 0);
+        // this.wasmEngineModule.render();
+        // this.raycaster.render();
+        Atomics.store(wasmViews.syncArr, workerIdx, 0);
+        Atomics.notify(wasmViews.syncArr, workerIdx);
       }
     } catch (ex) {
       console.log(
-        `Error while running aux app worker ${this.params.workerIndex}`,
+        `Error while running aux app worker ${this.params.workerIdx}`,
       );
       console.error(ex);
     }
@@ -61,7 +102,7 @@ const commands = {
     auxAppWorker = new AuxAppWorker();
     await auxAppWorker.init(params);
     postMessage({
-      status: `Aux app worker ${params.workerIndex} init completed`,
+      status: `Aux app worker ${params.workerIdx} init completed`,
     });
   },
   [AuxAppWorkerCommandEnum.RUN]: async () => {
@@ -77,10 +118,10 @@ self.addEventListener('message', async ({ data: { command, params } }) => {
   }
 });
 
-class AuxAppWorkerDesc {
-  index: number;
+type AuxAppWorkerDesc = {
+  workerIdx: number;
   worker: Worker;
-}
+};
 
-export type { AuxAppWorkerParams };
-export { AuxAppWorker, AuxAppWorkerDesc, AuxAppWorkerCommandEnum };
+export type { AuxAppWorkerParams, AuxAppWorkerDesc };
+export { AuxAppWorkerCommandEnum };

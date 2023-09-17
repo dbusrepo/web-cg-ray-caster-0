@@ -25,6 +25,7 @@ import {
 
 type RaycasterParams = {
   wasmRun: WasmRun;
+  frameColorRGBAWasm: FrameColorRGBAWasm;
 };
 
 const wallTexKeys = {
@@ -53,15 +54,15 @@ class Raycaster {
   private params: RaycasterParams;
   private wasmRun: WasmRun;
   private wasmViews: WasmViews;
-  private inputKeys: Uint8Array;
-
-  private viewport: Viewport;
-  private player: Player;
-
   private wasmEngineModule: WasmEngineModule;
   private frameColorRGBAWasm: FrameColorRGBAWasm;
 
+  private inputKeys: Uint8Array;
+
   private wasmRaycasterPtr: number;
+
+  private viewport: Viewport;
+  private player: Player;
 
   private mapWidth: number;
   private mapHeight: number;
@@ -106,7 +107,7 @@ class Raycaster {
 
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
 
-    this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
+    this.frameColorRGBAWasm = params.frameColorRGBAWasm;
 
     this.initTextures();
 
@@ -172,8 +173,8 @@ class Raycaster {
     this.renderer.renderBorders(this.BorderColor);
   }
 
-  private initBorderColor() {
-  }
+  // private initBorderColor() {
+  // }
 
   private initZBufferView() {
     const zBufferPtr = this.wasmEngineModule.getZBufferPtr(
@@ -195,6 +196,11 @@ class Raycaster {
     );
   }
 
+  private initTextures() {
+    this.initTexturesViews();
+    this.genDarkWallTextures();
+  }
+
   // TODO:
   private initTexturesViews() {
     const wasmTexturesImport = Object.entries(ascImportImages);
@@ -205,11 +211,6 @@ class Raycaster {
       this.textures.push(texture);
       wasmMipIdx += texture.NumMipmaps;
     });
-  }
-
-  private initTextures() {
-    this.initTexturesViews();
-    this.genDarkWallTextures();
   }
 
   private findTex(texKey: string): Texture {

@@ -14,8 +14,8 @@ import {
 } from './appTypes';
 import type { KeyHandler, Key } from '../input/inputManager';
 import { InputManager, keys, keyOffsets } from '../input/inputManager';
-import type { AuxAppWorkerParams } from './auxAppWorker';
-import { AuxAppWorkerCommandEnum, AuxAppWorkerDesc } from './auxAppWorker';
+import type { AuxAppWorkerParams, AuxAppWorkerDesc } from './auxAppWorker';
+import { AuxAppWorkerCommandEnum } from './auxAppWorker';
 import type {
   WasmModules,
   WasmEngineModule,
@@ -23,6 +23,11 @@ import type {
 import { WasmRun } from '../engine/wasmEngine/wasmRun';
 import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
 import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
+import type { WasmViews } from '../engine/wasmEngine/wasmViews';
+import {
+  FrameColorRGBAWasm,
+  getFrameColorRGBAWasmView,
+} from '../engine/wasmEngine/frameColorRGBAWasm';
 import { arrAvg, sleep } from '../engine/utils';
 import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
@@ -52,13 +57,19 @@ class AppWorker {
   private wasmEngine: WasmEngine;
   private wasmRun: WasmRun;
   private wasmEngineModule: WasmEngineModule;
+  private wasmViews: WasmViews;
 
-  private wasmRaycasterPtr: number;
+  private raycasterPtr: number;
 
+  private numWorkers: number; // 1 main + N aux
   private auxWorkers: AuxAppWorkerDesc[];
 
   private ctx2d: OffscreenCanvasRenderingContext2D;
   private imageData: ImageData;
+
+  private frameColorRGBAWasm: FrameColorRGBAWasm;
+  private frameBuf32: Uint32Array;
+  private frameStrideBytes: number;
 
   private raycaster: Raycaster;
 
@@ -68,9 +79,38 @@ class AppWorker {
     this.initInputManager();
     await this.initAssetManager();
     await this.initWasmEngine();
+    await this.initAuxWorkers();
     await this.initRaycaster();
-    // this.raycaster.render();
-    await this.runAuxWorkers();
+    this.initFrameBuf();
+    // this.clearBg();
+    // this.wasmEngineModule.render();
+    this.raycaster.render();
+  }
+
+  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
+    const ctx = <OffscreenCanvasRenderingContext2D>canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true, // TODO:
+    });
+    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
+    return ctx;
+  }
+
+  private initGfx() {
+    const { engineCanvas } = this.params;
+    this.ctx2d = this.get2dCtxFromCanvas(engineCanvas);
+    const { width, height } = engineCanvas;
+    this.imageData = this.ctx2d.createImageData(width, height);
+  }
+
+  private initFrameBuf() {
+    const { rgbaSurface0: frameBuf8 } = this.wasmViews;
+    this.frameBuf32 = new Uint32Array(
+      frameBuf8.buffer,
+      0,
+      frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
+    );
+    this.frameStrideBytes = this.wasmRun.FrameStrideBytes;
   }
 
   private initInputManager() {
@@ -106,80 +146,56 @@ class AppWorker {
     await this.wasmEngine.init(wasmEngineParams);
     this.wasmRun = this.wasmEngine.WasmRun;
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
-    this.wasmRaycasterPtr = this.wasmEngineModule.getRaycasterPtr();
-  }
-
-  private initGfx() {
-    this.ctx2d = this.get2dCtxFromCanvas(this.params.engineCanvas);
-    const { width, height } = this.params.engineCanvas;
-    this.imageData = this.ctx2d.createImageData(width, height);
-  }
-
-  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
-    const ctx = <OffscreenCanvasRenderingContext2D>canvas.getContext('2d', {
-      alpha: false,
-      desynchronized: true, // TODO:
-    });
-    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
-    return ctx;
+    this.wasmViews = this.wasmRun.WasmViews;
+    this.raycasterPtr = this.wasmEngineModule.getRaycasterPtr();
+    this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
   }
 
   private async initRaycaster() {
     this.raycaster = new Raycaster();
-    const raycasterParams: RaycasterParams = {
+    await this.raycaster.init({
       wasmRun: this.wasmRun,
-    };
-    await this.raycaster.init(raycasterParams);
+      frameColorRGBAWasm: this.frameColorRGBAWasm,
+    });
   }
 
-  private async runAuxWorkers() {
-    const numWorkers = mainConfig.numAuxWorkers;
-    console.log(`num aux workers: ${numWorkers}`);
-    this.auxWorkers = [];
-    if (numWorkers) {
-      await this.initAuxWorkers(numWorkers);
-      this.auxWorkers.forEach(({ worker }) => {
-        worker.postMessage({
-          command: AuxWorkerCommandEnum.RUN,
-        });
-      });
-    }
-  }
-
-  private async initAuxWorkers(numAuxWorkers: number) {
-    assert(numAuxWorkers > 0);
-    assert(this.wasmEngine);
-    assert(this.wasmRaycasterPtr);
-    const initStart = Date.now();
+  private async initAuxWorkers() {
     try {
-      let nextWorkerIdx = 1; // start from 1, 0 is for the main worker
-      const genWorkerIdx = () => nextWorkerIdx++;
-      let remWorkers = numAuxWorkers;
+      const numAuxAppWorkers = mainConfig.numAuxWorkers;
+      this.numWorkers = 1 + numAuxAppWorkers;
+      console.log(`num total workers: ${this.numWorkers}`);
+      const genWorkerIdx = (() => {
+        let nextWorkerIdx = 1;
+        return () => nextWorkerIdx++;
+      })();
+      this.auxWorkers = new Array<AuxAppWorkerDesc>(numAuxAppWorkers);
+      let remWorkers = numAuxAppWorkers;
+      const initStart = Date.now();
       await new Promise<void>((resolve, reject) => {
-        for (let i = 0; i < numAuxWorkers; ++i) {
-          const workerIndex = genWorkerIdx();
+        if (numAuxAppWorkers === 0) {
+          resolve();
+          return;
+        }
+        for (let i = 0; i < numAuxAppWorkers; ++i) {
+          const workerIdx = genWorkerIdx();
           const engineWorker = {
-            index: workerIndex,
-            worker: new Worker(
-              // new URL('../../app/appWorker.ts', import.meta.url),
-              new URL('../engine/auxWorker.ts', import.meta.url),
-              {
-                name: `aux-app-worker-${workerIndex}`,
-                type: 'module',
-              },
-            ),
+            workerIdx,
+            worker: new Worker(new URL('./auxAppWorker.ts', import.meta.url), {
+              name: `aux-app-worker-${workerIdx}`,
+              type: 'module',
+            }),
           };
-          this.auxWorkers.push(engineWorker);
-          const workerParams: AuxWorkerParams = {
-            workerIndex,
-            numWorkers: numAuxWorkers,
+          this.auxWorkers[i] = engineWorker;
+          const workerParams: AuxAppWorkerParams = {
+            workerIdx,
+            numWorkers: numAuxAppWorkers,
             wasmRunParams: {
               ...this.wasmEngine.WasmRunParams,
-              workerIdx: workerIndex,
+              workerIdx,
               frameColorRGBAPtr: this.wasmEngineModule.getFrameColorRGBAPtr(),
               texturesPtr: this.wasmEngineModule.getTexturesPtr(),
               mipmapsPtr: this.wasmEngineModule.getMipMapsPtr(),
-              raycasterPtr: this.wasmRaycasterPtr,
+              raycasterPtr: this.raycasterPtr,
             },
           };
           engineWorker.worker.postMessage({
@@ -189,7 +205,7 @@ class AppWorker {
           engineWorker.worker.onmessage = ({ data }) => {
             --remWorkers;
             console.log(
-              `Aux app worker id=${workerIndex} init,
+              `Aux app worker id=${workerIdx} initd,
                left count=${remWorkers}, time=${
                  Date.now() - initStart
                }ms with data = ${JSON.stringify(data)}`,
@@ -203,7 +219,7 @@ class AppWorker {
           };
           engineWorker.worker.onerror = (error) => {
             console.log(
-              `Aux app worker id=${workerIndex} error: ${error.message}\n`,
+              `Aux app worker id=${workerIdx} error: ${error.message}\n`,
             );
             reject(error);
           };
@@ -216,7 +232,15 @@ class AppWorker {
     }
   }
 
-  public run(): void {
+  private async runAuxWorkers() {
+    this.auxWorkers.forEach(({ worker }) => {
+      worker.postMessage({
+        command: AuxAppWorkerCommandEnum.RUN,
+      });
+    });
+  }
+
+  public async run(): Promise<void> {
     let lastFrameStartTime: number;
     // let last_render_t: number;
     let updTimeAcc: number;
@@ -268,8 +292,6 @@ class AppWorker {
       requestAnimationFrame(frame);
     };
 
-    requestAnimationFrame(mainLoopInit);
-
     const begin = () => {
       frameStartTime = performance.now();
       timeSinceLastFrame = frameStartTime - lastFrameStartTime;
@@ -318,10 +340,11 @@ class AppWorker {
     };
 
     const render = () => {
-      this.wasmEngine.syncWorkers(this.auxWorkers);
+      this.syncWorkers();
+      // this.clearBg();
       // this.wasmEngineModule.render();
       this.raycaster.render();
-      this.wasmEngine.waitWorkers(this.auxWorkers);
+      this.waitWorkers();
       this.drawWasmFrame();
       saveFrameTime();
       renderCnt++;
@@ -364,6 +387,9 @@ class AppWorker {
       }
     };
 
+    await this.runAuxWorkers();
+    requestAnimationFrame(mainLoopInit);
+
     // TODO: test events
     // setInterval(() => {
     //   // console.log('sending...');
@@ -374,8 +400,29 @@ class AppWorker {
     // }, 2000);
   }
 
-  private drawWasmFrame() {
-    this.imageData.data.set(this.wasmEngine.WasmRun.WasmViews.rgbaSurface0);
+  private syncWorkers() {
+    for (let i = 0; i < this.auxWorkers.length; ++i) {
+      const { workerIdx } = this.auxWorkers[i];
+      Atomics.store(this.wasmViews.syncArr, workerIdx, 1);
+      Atomics.notify(this.wasmViews.syncArr, workerIdx);
+    }
+  }
+
+  private waitWorkers() {
+    for (let i = 0; i < this.auxWorkers.length; ++i) {
+      Atomics.wait(this.wasmViews.syncArr, this.auxWorkers[i].workerIdx, 1);
+    }
+  }
+
+  // private clearBg() {
+  //   this.frameBuf32.fill(0xff_00_00_00);
+  //   // for (let i = 0; i < this.frameBuf32.length; ++i) {
+  //   //   this.frameBuf32[i] = 0xff_00_00_00;
+  //   // }
+  // }
+
+  public drawWasmFrame() {
+    this.imageData.data.set(this.wasmViews.rgbaSurface0);
     this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
@@ -444,8 +491,8 @@ const commands = {
       },
     });
   },
-  [AppWorkerCommandEnum.RUN]: () => {
-    appWorker.run();
+  [AppWorkerCommandEnum.RUN]: async () => {
+    await appWorker.run();
   },
   // not used
   // [AppWorkerCommandEnum.KEY_DOWN]: (inputEvent: InputEvent) => {

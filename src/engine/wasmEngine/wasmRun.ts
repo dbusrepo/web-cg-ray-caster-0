@@ -1,6 +1,7 @@
 // import assert from 'assert';
 import * as WasmUtils from './wasmMemUtils';
 import type { WasmViews } from './wasmViews';
+import { buildWasmMemViews } from './wasmViews';
 import type { WasmModules, WasmImports } from './wasmLoader';
 import { loadWasmModules } from './wasmLoader';
 import { BPP_RGBA } from '../assets/images/bitImageRGBA';
@@ -139,7 +140,11 @@ class WasmRun {
   }
 
   get FrameStride(): number {
-    return this.FrameWidth; // * BPP_RGBA;
+    return this.FrameWidth;
+  }
+
+  get FrameStrideBytes(): number {
+    return this.FrameWidth * BPP_RGBA;
   }
 
   get WasmViews(): WasmViews {
