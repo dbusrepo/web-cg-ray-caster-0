@@ -29,9 +29,7 @@ import {
   getFrameColorRGBAWasmView,
 } from '../engine/wasmEngine/frameColorRGBAWasm';
 import { arrAvg, sleep } from '../engine/utils';
-import { AuxWorkerCommandEnum } from '../engine/auxWorker';
 import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
-import type { AuxWorkerParams } from '../engine/auxWorker';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -84,7 +82,7 @@ class AppWorker {
     this.initFrameBuf();
     // this.clearBg();
     // this.wasmEngineModule.render();
-    this.raycaster.render();
+    // this.raycaster.render();
   }
 
   private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
@@ -199,7 +197,7 @@ class AppWorker {
             },
           };
           engineWorker.worker.postMessage({
-            command: AuxWorkerCommandEnum.INIT,
+            command: AuxAppWorkerCommandEnum.INIT,
             params: workerParams,
           });
           engineWorker.worker.onmessage = ({ data }) => {
