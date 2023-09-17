@@ -84,13 +84,14 @@ class AppWorker {
     // this.raycaster.render();
   }
 
-  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
-    const ctx = <OffscreenCanvasRenderingContext2D>canvas.getContext('2d', {
-      alpha: false,
-      desynchronized: true, // TODO:
-    });
-    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
-    return ctx;
+  private initFrameBuf() {
+    const { rgbaSurface0: frameBuf8 } = this.wasmViews;
+    this.frameBuf32 = new Uint32Array(
+      frameBuf8.buffer,
+      0,
+      frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
+    );
+    this.frameStrideBytes = this.wasmRun.FrameStrideBytes;
   }
 
   private initGfx() {
@@ -100,14 +101,13 @@ class AppWorker {
     this.imageData = this.ctx2d.createImageData(width, height);
   }
 
-  private initFrameBuf() {
-    const { rgbaSurface0: frameBuf8 } = this.wasmViews;
-    this.frameBuf32 = new Uint32Array(
-      frameBuf8.buffer,
-      0,
-      frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
-    );
-    this.frameStrideBytes = this.wasmRun.FrameStrideBytes;
+  private get2dCtxFromCanvas(canvas: OffscreenCanvas) {
+    const ctx = <OffscreenCanvasRenderingContext2D>canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true,
+    });
+    ctx.imageSmoothingEnabled = false; // no blur, keep the pixels sharpness
+    return ctx;
   }
 
   private initInputManager() {
