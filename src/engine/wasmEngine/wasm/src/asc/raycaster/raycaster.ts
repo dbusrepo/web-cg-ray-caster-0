@@ -4,6 +4,7 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { SArray, newSArray } from '../sarray';
 import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
+import { Sprite, newSprite } from './sprite';
 import { Map, newMap } from './map';
 import { WallSlice, newWallSlice } from './wallslice';
 import { Texture } from '../texture';
@@ -37,23 +38,22 @@ import {
   // getGreenFogTablePtr,
   // getBlueFogTablePtr,
 } from '../frameColorRGBA';
-import { 
-  Renderer,
-  newRenderer, 
-} from './renderer';
+import { Renderer, newRenderer, } from './renderer';
+import { RaycasterParams } from './raycasterParams';
 
 @final @unmanaged class Raycaster {
   private frameColorRGBA: FrameColorRGBA;
   private textures: SArray<Texture>;
   private mipmaps: SArray<BitImageRGBA>;
-  private borderWidth: u32;
-  private borderColor: u32;
-  private viewport: Viewport;
-  private projYCenter: u32;
-  private player: Player;
-  private map: Map;
+  private sprites: SArray<Sprite>;
   private wallSlices: SArray<WallSlice>;
   private zBuffer: SArray<f32>;
+  private player: Player;
+  private map: Map;
+  private viewport: Viewport;
+  private borderWidth: u32;
+  private borderColor: u32;
+  private projYCenter: u32;
   private maxWallDistance: f32;
   private minWallTop: u32;
   private maxWallTop: u32;
@@ -61,68 +61,33 @@ import {
   private maxWallBottom: u32;
   private renderer: Renderer;
 
-  init(
-    frameColorRGBA: FrameColorRGBA,
-    textures: SArray<Texture>,
-    mipmaps: SArray<BitImageRGBA>
-  ): void {
-    this.frameColorRGBA = frameColorRGBA;
-    this.textures = textures;
-    this.mipmaps = mipmaps;
+  public init(params: RaycasterParams): void {
+    this.frameColorRGBA = params.frameColorRGBA;
+    this.textures = params.textures;
+    this.mipmaps = params.mipmaps;
     this.initPlayer();
     this.initViewPort();
-    this.initBuffers();
-    this.initRenderer();
   }
 
-  initPlayer(): void {
+  private initPlayer(): void {
     this.player = newPlayer();
-    this.player.PosX = 0.5;
-    this.player.PosY = 0.5;
-    // rotated east
-    this.player.DirX = 1;
-    this.player.DirY = 0;
-    this.player.PlaneX = 0;
-    this.player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
-    // rotated north
-    // player.DirX = 0;
-    // player.DirY = -1;
-    // player.PlaneX = 0.66;
-    // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
-    this.player.PosZ = 0.0;
   }
 
-  initViewPort(): void {
-    this.borderWidth = 0;
-    this.borderColor = FrameColorRGBA.colorRGBAtoABGR(0xffff00ff);
-
+  private initViewPort(): void {
     this.viewport = newViewport();
-    this.viewport.StartX = this.borderWidth;
-    this.viewport.StartY = this.borderWidth;
-    this.viewport.Width = rgbaSurface0width - this.borderWidth * 2;
-    this.viewport.Height = rgbaSurface0height - this.borderWidth * 2;
   }
 
-  initBuffers(): void {
-    this.allocZBuffer();
-    this.allocWallSlices();
-  }
-
-  initRenderer(): void {
+  private initRenderer(): void { // TODO:
     this.renderer = newRenderer();
     this.renderer.init(this.frameColorRGBA, this.viewport, this.textures, this.mipmaps);
   }
 
-  render(): void {
+  public render(): void {
     this.renderer.render(this.wallSlices, this.player, this.map, this.projYCenter);
   }
 
-  allocZBuffer(): void {
-    this.zBuffer = newSArray<f32>(this.Viewport.Width);
-  }
-
-  allocWallSlices(): void {
-    this.wallSlices = newSArray<WallSlice>(this.Viewport.Width);
+  public allocSpritesArr(numSprites: SIZE_T): void {
+    this.sprites = newSArray<Sprite>(numSprites);
   }
 
   get Textures(): SArray<Texture> {
@@ -131,10 +96,6 @@ import {
 
   get Mipmaps(): SArray<BitImageRGBA> {
     return this.mipmaps;
-  }
-
-  get WallSliceObjSizeLg2(): SIZE_T {
-    return this.wallSlices.ObjSizeLg2;
   }
 
   get Viewport(): Viewport {
@@ -173,8 +134,20 @@ import {
     return this.zBuffer;
   }
 
+  set ZBuffer(zBuffer: SArray<f32>) {
+    this.zBuffer = zBuffer;
+  }
+
+  get Sprites(): SArray<Sprite> {
+    return this.sprites;
+  }
+
   get WallSlices(): SArray<WallSlice> {
     return this.wallSlices;
+  }
+
+  set WallSlices(wallSlices: SArray<WallSlice>) {
+    this.wallSlices = wallSlices;
   }
 
   get ViewportPtr(): PTR_T {
@@ -248,62 +221,112 @@ function newRaycaster(): Raycaster {
   return raycaster;
 }
 
+function getBorderWidthPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("borderWidth");
+}
+
 function getBorderColorPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("borderColor");
 }
 
-function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+function getRaycaster(raycasterPtr: PTR_T): Raycaster {
+  return changetype<Raycaster>(raycasterPtr);
+}
+
+function allocZBuffer(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  raycaster.ZBuffer = newSArray<f32>(raycaster.Viewport.Width);
   return raycaster.ZBuffer.DataPtr;
+}
+
+// function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
+//   const raycaster = getRaycaster(raycasterPtr);
+//   return raycaster.ZBuffer.DataPtr;
+// }
+
+function allocWallSlices(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  raycaster.WallSlices = newSArray<WallSlice>(raycaster.Viewport.Width);
+  return raycaster.WallSlices.DataPtr;
+}
+
+function getWallSlicesLength(raycasterPtr: PTR_T): SIZE_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.WallSlices.Length;
 }
 
 function getProjYCenterPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("projYCenter");
 }
 
+function getSpritesLength(raycasterPtr: PTR_T): SIZE_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.Sprites.Length;
+}
+
+function getSpritesPtr(raycasterPtr: PTR_T): PTR_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.Sprites.DataPtr;
+}
+
+function getSpritePtr(raycasterPtr: PTR_T, spriteIdx: SIZE_T): PTR_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.Sprites.ptrAt(spriteIdx);
+}
+
+function getSpriteObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.Sprites.ObjSizeLg2;
+}
+
 function getWallSlicesPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.WallSlices.DataPtr;
 }
 
+function getWallSlicePtr(raycasterPtr: PTR_T, wallSliceIdx: SIZE_T): PTR_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.WallSlices.ptrAt(wallSliceIdx);
+}
+
+function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
+  const raycaster = getRaycaster(raycasterPtr);
+  return raycaster.WallSlices.ObjSizeLg2;
+}
+
 function getXWallMapPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.XWallMap.DataPtr;
 }
 
 function getYWallMapPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.YWallMap.DataPtr;
 }
 
 function getXWallMapWidth(raycasterPtr: PTR_T): u32 {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.XWallMapWidth;
 }
 
 function getXWallMapHeight(raycasterPtr: PTR_T): u32 {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.XWallMapHeight;
 }
 
 function getYWallMapWidth(raycasterPtr: PTR_T): u32 {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.YWallMapWidth;
 }
 
 function getYWallMapHeight(raycasterPtr: PTR_T): u32 {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.YWallMapHeight;
 }
 
 function getFloorMapPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.Map.FloorMap.DataPtr;
-}
-
-function getWallSliceObjSizeLg2(raycasterPtr: PTR_T): SIZE_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
-  return raycaster.WallSliceObjSizeLg2;
 }
 
 function getMinWallTopPtr(raycasterPtr: PTR_T): PTR_T {
@@ -323,12 +346,12 @@ function getMaxWallBottomPtr(raycasterPtr: PTR_T): PTR_T {
 }
 
 function getViewportPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.ViewportPtr;
 }
 
 function getPlayerPtr(raycasterPtr: PTR_T): PTR_T {
-  const raycaster = changetype<Raycaster>(raycasterPtr);
+  const raycaster = getRaycaster(raycasterPtr);
   return raycaster.PlayerPtr;
 }
 
@@ -336,12 +359,18 @@ function getMaxWallDistancePtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("maxWallDistance");
 }
 
+function allocSpritesArr(raycasterPtr: PTR_T, numSprites: SIZE_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  raycaster.allocSpritesArr(numSprites);
+}
+
 export {
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
+  getBorderWidthPtr,
   getProjYCenterPtr,
-  getZBufferPtr,
+  allocZBuffer,
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,
@@ -349,8 +378,16 @@ export {
   getYWallMapWidth,
   getYWallMapHeight,
   getFloorMapPtr,
+  allocWallSlices,
+  getWallSlicesLength,
   getWallSlicesPtr,
+  getWallSlicePtr,
   getWallSliceObjSizeLg2,
+  getSpritesPtr,
+  getSpritesLength,
+  getSpritePtr,
+  getSpriteObjSizeLg2,
+  allocSpritesArr,
   getMinWallTopPtr,
   getMaxWallTopPtr,
   getMinWallBottomPtr,

@@ -40,7 +40,9 @@ import { Viewport, newViewport,
   getViewportStartXPtr, getViewportStartYPtr, 
   getViewportWidthPtr, getViewportHeightPtr,
 } from './raycaster/viewport';
-import { Player, newPlayer,
+import {
+  Player,
+  newPlayer,
   getPlayerPosXPtr,
   getPlayerPosYPtr,
   getPlayerDirXPtr,
@@ -49,13 +51,23 @@ import { Player, newPlayer,
   getPlayerPlaneYPtr,
   getPlayerPosZPtr,
 } from './raycaster/player';
+import {
+  Sprite,
+  newSprite,
+  getSpritePosXPtr,
+  getSpritePosYPtr,
+  getSpriteTexIdxPtr,
+} from './raycaster/sprite';
 import { Map, newMap } from './raycaster/map';
 import { 
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
+  getBorderWidthPtr,
   getProjYCenterPtr,
-  getZBufferPtr,
+  allocZBuffer,
+  allocWallSlices,
+  getWallSlicesLength,
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,
@@ -63,7 +75,13 @@ import {
   getYWallMapWidth,
   getYWallMapHeight,
   getFloorMapPtr,
+  getSpritesPtr,
+  getSpritesLength,
+  getSpritePtr,
+  getSpriteObjSizeLg2,
+  allocSpritesArr,
   getWallSlicesPtr,
+  getWallSlicePtr,
   getWallSliceObjSizeLg2,
   getMinWallTopPtr,
   getMaxWallTopPtr,
@@ -103,6 +121,12 @@ import {
   getGreenFogTablePtr,
   getBlueFogTablePtr,
 } from './frameColorRGBA';
+import { 
+  RaycasterParams,
+  newRaycasterParams,
+  deleteRaycasterParams,
+} from './raycaster/raycasterParams';
+
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -116,26 +140,24 @@ let mipmaps = changetype<SArray<BitImageRGBA>>(NULL_PTR);
 // let map = changetype<Map>(NULL_PTR);
 let raycaster = changetype<Raycaster>(NULL_PTR);
 
-function initMap(mapWidth: i32, mapHeight: i32): void {
-  const map = newMap(mapWidth, mapHeight);
-  raycaster.Map = map;
-}
-
-
 function initData(): void {
   if (workerIdx == MAIN_THREAD_IDX) {
     myAssert(frameColorRGBAPtr == NULL_PTR);
-    frameColorRGBA = newFrameColorRGBA();
-
     myAssert(texturesPtr == NULL_PTR);
-    textures = initTextures();
-
     myAssert(mipmapsPtr == NULL_PTR);
-    mipmaps = initMipMaps(textures);
-
     myAssert(raycasterPtr == NULL_PTR);
+
+    frameColorRGBA = newFrameColorRGBA();
+    textures = initTextures();
+    mipmaps = initMipMaps(textures);
     raycaster = newRaycaster();
-    raycaster.init(frameColorRGBA, textures, mipmaps);
+
+    const raycasterParams = newRaycasterParams();
+    raycasterParams.frameColorRGBA = frameColorRGBA;
+    raycasterParams.textures = textures;
+    raycasterParams.mipmaps = mipmaps;
+    raycaster.init(raycasterParams);
+    deleteRaycasterParams(raycasterParams);
   } else {
     myAssert(frameColorRGBAPtr != NULL_PTR);
     frameColorRGBA = changetype<FrameColorRGBA>(frameColorRGBAPtr);
@@ -149,6 +171,11 @@ function initData(): void {
     myAssert(raycasterPtr != NULL_PTR);
     raycaster = changetype<Raycaster>(raycasterPtr);
   }
+}
+
+function initMap(mapWidth: i32, mapHeight: i32): void {
+  const map = newMap(mapWidth, mapHeight);
+  raycaster.Map = map;
 }
 
 function init(): void {
@@ -211,9 +238,21 @@ export {
 
   getRaycasterPtr,
   getBorderColorPtr,
+  getBorderWidthPtr,
   getProjYCenterPtr,
-  getZBufferPtr,
+  allocZBuffer,
+  allocWallSlices,
+  getWallSlicesLength,
   getWallSlicesPtr,
+  getWallSlicePtr,
+  getSpritesPtr,
+  getSpritesLength,
+  getSpritePtr,
+  getSpriteObjSizeLg2,
+  allocSpritesArr,
+  getSpritePosXPtr,
+  getSpritePosYPtr,
+  getSpriteTexIdxPtr,
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,

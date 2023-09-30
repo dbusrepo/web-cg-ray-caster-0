@@ -213,7 +213,6 @@ class WasmEngine {
   //   // console.log(views.hrTimer[0]);
   // }
 
-
   public get WasmRun(): WasmRun {
     return this.wasmRun;
   }

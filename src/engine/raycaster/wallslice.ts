@@ -142,14 +142,11 @@ class WallSlice {
 function getWasmWallSlicesView(
   wasmEngineModule: WasmEngineModule,
   wasmRaycasterPtr: number,
-  numColumns: number,
 ): WallSlice[] {
-  const wallSlicesPtr = wasmEngineModule.getWallSlicesPtr(wasmRaycasterPtr);
-  const wallSliceObjSizeLg2 =
-    wasmEngineModule.getWallSliceObjSizeLg2(wasmRaycasterPtr);
-  const wallSlices = new Array<WallSlice>(numColumns);
-  for (let i = 0; i < numColumns; i++) {
-    const wallSlicePtr = wallSlicesPtr + (i << wallSliceObjSizeLg2);
+  const numWallSlices = wasmEngineModule.getWallSlicesLength(wasmRaycasterPtr);
+  const wallSlices = new Array<WallSlice>(numWallSlices);
+  for (let i = 0; i < numWallSlices; i++) {
+    const wallSlicePtr = wasmEngineModule.getWallSlicePtr(wasmRaycasterPtr, i);
     wallSlices[i] = new WallSlice(
       // wallSlicePtr,
       wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
