@@ -9,6 +9,7 @@ import { logi } from '../importVars';
   private posZ: f32; // height wrt floor (0 on floor level)
   private texIdx: u32;
 
+  private visible: u8; // 0: invisible, 1: visible
   private distance: f32;
   private startX: u32;
   private endX: u32;
@@ -52,6 +53,14 @@ import { logi } from '../importVars';
 
   set TexIdx(texIdx: u32) {
     this.texIdx = texIdx;
+  }
+
+  get Visible(): u8 {
+    return this.visible;
+  }
+
+  set Visible(visible: u8) {
+    this.visible = visible;
   }
 
   get Distance(): f32 {
@@ -157,6 +166,10 @@ function getSpriteTexIdxPtr(spritePtr: PTR_T): PTR_T {
   return spritePtr + offsetof<Sprite>("texIdx");
 }
 
+function getSpriteVisiblePtr(spritePtr: PTR_T): PTR_T {
+  return spritePtr + offsetof<Sprite>("visible");
+}
+
 function getSpriteDistancePtr(spritePtr: PTR_T): PTR_T {
   return spritePtr + offsetof<Sprite>("distance");
 }
@@ -200,6 +213,7 @@ export {
   getSpritePosYPtr,
   getSpritePosZPtr,
   getSpriteTexIdxPtr,
+  getSpriteVisiblePtr,
   getSpriteDistancePtr,
   getSpriteStartXPtr,
   getSpriteEndXPtr,

@@ -75,8 +75,8 @@ class Raycaster {
   private player: Player;
   private sprites: Sprite[];
 
-  private visibleSprites: Sprite[];
-  private numVisibleSprites: number;
+  private viewSprites: Sprite[];
+  private numViewSprites: number;
 
   private wallSlices: WallSlice[];
   private zBuffer: Float32Array;
@@ -220,8 +220,8 @@ class Raycaster {
     const NUM_SPRITES = 1;
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
-    this.visibleSprites = new Array<Sprite>(this.sprites.length);
-    this.numVisibleSprites = 0;
+    this.viewSprites = new Array<Sprite>(this.sprites.length);
+    this.numViewSprites = 0;
 
     // TODO: init sprites
 
@@ -230,6 +230,7 @@ class Raycaster {
     sprite.PosY = 0.5;
     sprite.PosZ = 0.0;
     sprite.TexIdx = 0;
+    sprite.Visible = 1;
   }
 
   // private initBorderColor() {
@@ -617,11 +618,11 @@ class Raycaster {
   }
 
   private processSprites() {
-    this.findVisSprites();
-    this.sortVisSprites();
+    this.findViewSprites();
+    this.sortViewSprites();
   }
 
-  private findVisSprites(): void {
+  private findViewSprites(): void {
     const { sprites } = this;
     const { player } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
@@ -636,9 +637,13 @@ class Raycaster {
     const minDist = MIN_SPRITE_DIST;
     const maxDist = Math.min(this.MaxWallDistance, MAX_SPRITE_DIST);
 
-    this.numVisibleSprites = 0;
+    this.numViewSprites = 0;
     for (let i = 0; i < sprites.length; i++) {
       const sprite = sprites[i];
+
+      if (!sprite.Visible) {
+        continue;
+      }
 
       const spriteX = sprite.PosX - playerX;
       const spriteY = sprite.PosY - playerY;
@@ -712,8 +717,6 @@ class Raycaster {
         continue;
       }
 
-      // sprite is visible
-
       const texIdx = sprite.TexIdx;
       const tex = this.textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
@@ -739,22 +742,22 @@ class Raycaster {
       sprite.TexY = texY;
       sprite.TexStepY = texStepY;
 
-      this.visibleSprites[this.numVisibleSprites++] = sprite;
+      this.viewSprites[this.numViewSprites++] = sprite;
     }
   }
 
-  private sortVisSprites() {
-    const { visibleSprites, numVisibleSprites } = this;
+  private sortViewSprites() {
+    const { viewSprites, numViewSprites } = this;
 
-    // insertion sort on visibleSprites[0..numVisibleSprites) on descending distance
-    for (let i = 1; i < numVisibleSprites; i++) {
-      const sprite = visibleSprites[i];
+    // insertion sort on viewSprites[0..numViewSprites) on descending distance
+    for (let i = 1; i < numViewSprites; i++) {
+      const sprite = viewSprites[i];
       const dist = sprite.Distance;
       let j = i - 1;
-      for (; j >= 0 && visibleSprites[j].Distance < dist; j--) {
-        visibleSprites[j + 1] = visibleSprites[j];
+      for (; j >= 0 && viewSprites[j].Distance < dist; j--) {
+        viewSprites[j + 1] = viewSprites[j];
       }
-      visibleSprites[j + 1] = sprite;
+      viewSprites[j + 1] = sprite;
     }
   }
 

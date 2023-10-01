@@ -9,6 +9,7 @@ class Sprite {
     private posZPtr: number,
     private texIdxPtr: number,
     //
+    private visiblePtr: number,
     private distancePtr: number,
     private startXPtr: number,
     private endXPtr: number,
@@ -61,6 +62,15 @@ class Sprite {
 
   set TexIdx(value: number) {
     gWasmView.setUint32(this.texIdxPtr, value, true);
+  }
+
+  get Visible(): number {
+    // u8 (asc) -> i32 (wasm)
+    return gWasmView.getInt32(this.visiblePtr, true);
+  }
+
+  set Visible(value: number) {
+    gWasmView.setInt32(this.visiblePtr, value, true);
   }
 
   get Distance(): number {
@@ -148,6 +158,7 @@ function getWasmSpritesView(
     const posYPtr = wasmEngineMod.getSpritePosYPtr(spritePtr);
     const posZPtr = wasmEngineMod.getSpritePosZPtr(spritePtr);
     const texIdxPtr = wasmEngineMod.getSpriteTexIdxPtr(spritePtr);
+    const visiblePtr = wasmEngineMod.getSpriteVisiblePtr(spritePtr);
     const distancePtr = wasmEngineMod.getSpriteDistancePtr(spritePtr);
     const startXPtr = wasmEngineMod.getSpriteStartXPtr(spritePtr);
     const endXPtr = wasmEngineMod.getSpriteEndXPtr(spritePtr);
@@ -162,6 +173,7 @@ function getWasmSpritesView(
       posYPtr,
       posZPtr,
       texIdxPtr,
+      visiblePtr,
       distancePtr,
       startXPtr,
       endXPtr,
