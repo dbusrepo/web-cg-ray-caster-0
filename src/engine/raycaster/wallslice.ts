@@ -8,7 +8,7 @@ class WallSlice {
   constructor(
     // private wallSlicePtr: number,
     private distancePtr: number,
-    private projHeightPtr: number,
+    private heightPtr: number,
     private clipTopPtr: number,
     private hitPtr: number,
     private sidePtr: number,
@@ -122,12 +122,12 @@ class WallSlice {
     gWasmView.setFloat32(this.floorWallYPtr, floorWallY, true);
   }
 
-  get ProjHeight(): number {
-    return gWasmView.getUint32(this.projHeightPtr, true);
+  get Height(): number {
+    return gWasmView.getUint32(this.heightPtr, true);
   }
 
-  set ProjHeight(projHeight: number) {
-    gWasmView.setUint32(this.projHeightPtr, projHeight, true);
+  set Height(projHeight: number) {
+    gWasmView.setUint32(this.heightPtr, projHeight, true);
   }
 
   get ClipTop(): number {
@@ -150,7 +150,7 @@ function getWasmWallSlicesView(
     wallSlices[i] = new WallSlice(
       // wallSlicePtr,
       wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceProjHeightPtr(wallSlicePtr),
+      wasmEngineModule.getWallSliceHeightPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceClipTopPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceHitPtr(wallSlicePtr),
       wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),

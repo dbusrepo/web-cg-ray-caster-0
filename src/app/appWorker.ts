@@ -451,6 +451,7 @@ class AppWorker {
   }
 
   onCanvasDisplayResize(displayWidth: number, displayHeight: number) {
+    // TODO:
     // console.log('onCanvasDisplayResize', displayWidth, displayHeight);
   }
 

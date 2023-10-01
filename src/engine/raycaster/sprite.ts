@@ -6,8 +6,26 @@ class Sprite {
     // private spritePtr: number,
     private posXPtr: number,
     private posYPtr: number,
+    private posZPtr: number,
     private texIdxPtr: number,
+    //
+    private distancePtr: number,
+    private startXPtr: number,
+    private endXPtr: number,
+    private texXPtr: number,
+    private texStepXPtr: number,
+    private startYPtr: number,
+    private endYPtr: number,
+    private texYPtr: number,
+    private texStepYPtr: number,
   ) {}
+
+  // init(posX: number, posY: number, posZ: number, texIdx: number): void {
+  //   this.PosX = posX;
+  //   this.PosY = posY;
+  //   this.PosZ = posZ;
+  //   this.TexIdx = texIdx;
+  // }
 
   // get WasmPtr(): number {
   //   return this.spritePtr;
@@ -29,12 +47,92 @@ class Sprite {
     gWasmView.setFloat32(this.posYPtr, value, true);
   }
 
+  get PosZ(): number {
+    return gWasmView.getFloat32(this.posZPtr, true);
+  }
+
+  set PosZ(value: number) {
+    gWasmView.setFloat32(this.posZPtr, value, true);
+  }
+
   get TexIdx(): number {
     return gWasmView.getUint32(this.texIdxPtr, true);
   }
 
   set TexIdx(value: number) {
     gWasmView.setUint32(this.texIdxPtr, value, true);
+  }
+
+  get Distance(): number {
+    return gWasmView.getFloat32(this.distancePtr, true);
+  }
+
+  set Distance(value: number) {
+    gWasmView.setFloat32(this.distancePtr, value, true);
+  }
+
+  get StartX(): number {
+    return gWasmView.getUint32(this.startXPtr, true);
+  }
+
+  set StartX(value: number) {
+    gWasmView.setUint32(this.startXPtr, value, true);
+  }
+
+  get EndX(): number {
+    return gWasmView.getUint32(this.endXPtr, true);
+  }
+
+  set EndX(value: number) {
+    gWasmView.setUint32(this.endXPtr, value, true);
+  }
+
+  get TexX(): number {
+    return gWasmView.getUint32(this.texXPtr, true);
+  }
+
+  set TexX(value: number) {
+    gWasmView.setUint32(this.texXPtr, value, true);
+  }
+
+  get TexStepX(): number {
+    return gWasmView.getFloat32(this.texStepXPtr, true);
+  }
+
+  set TexStepX(value: number) {
+    gWasmView.setFloat32(this.texStepXPtr, value, true);
+  }
+
+  get StartY(): number {
+    return gWasmView.getUint32(this.startYPtr, true);
+  }
+
+  set StartY(value: number) {
+    gWasmView.setUint32(this.startYPtr, value, true);
+  }
+
+  get EndY(): number {
+    return gWasmView.getUint32(this.endYPtr, true);
+  }
+
+  set EndY(value: number) {
+    gWasmView.setUint32(this.endYPtr, value, true);
+  }
+
+  get TexY(): number {
+    return gWasmView.getUint32(this.texYPtr, true);
+  }
+
+  set TexY(value: number) {
+    gWasmView.setUint32(this.texYPtr, value, true);
+  }
+
+  get TexStepY(): number {
+    return gWasmView.getFloat32(this.texStepYPtr, true);
+  }
+
+  set TexStepY(value: number) {
+    gWasmView.setFloat32(this.texStepYPtr, value, true);
   }
 }
 
@@ -48,8 +146,32 @@ function getWasmSpritesView(
     const spritePtr = wasmEngineMod.getSpritePtr(wasmRaycasterPtr, i);
     const posXPtr = wasmEngineMod.getSpritePosXPtr(spritePtr);
     const posYPtr = wasmEngineMod.getSpritePosYPtr(spritePtr);
+    const posZPtr = wasmEngineMod.getSpritePosZPtr(spritePtr);
     const texIdxPtr = wasmEngineMod.getSpriteTexIdxPtr(spritePtr);
-    sprites[i] = new Sprite(posXPtr, posYPtr, texIdxPtr);
+    const distancePtr = wasmEngineMod.getSpriteDistancePtr(spritePtr);
+    const startXPtr = wasmEngineMod.getSpriteStartXPtr(spritePtr);
+    const endXPtr = wasmEngineMod.getSpriteEndXPtr(spritePtr);
+    const texXPtr = wasmEngineMod.getSpriteTexXPtr(spritePtr);
+    const texStepXPtr = wasmEngineMod.getSpriteTexStepXPtr(spritePtr);
+    const startYPtr = wasmEngineMod.getSpriteStartYPtr(spritePtr);
+    const endYPtr = wasmEngineMod.getSpriteEndYPtr(spritePtr);
+    const texYPtr = wasmEngineMod.getSpriteTexYPtr(spritePtr);
+    const texStepYPtr = wasmEngineMod.getSpriteTexStepYPtr(spritePtr);
+    sprites[i] = new Sprite(
+      posXPtr,
+      posYPtr,
+      posZPtr,
+      texIdxPtr,
+      distancePtr,
+      startXPtr,
+      endXPtr,
+      texXPtr,
+      texStepXPtr,
+      startYPtr,
+      endYPtr,
+      texYPtr,
+      texStepYPtr,
+    );
   }
   return sprites;
 }

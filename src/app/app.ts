@@ -44,7 +44,7 @@ class App {
 
   private initEventListeners() {
     this.initKeyListeners(this.enginePanel);
-    // this.initPointerLock(this.enginePanel);
+    this.initPointerLock(this.enginePanel);
   }
 
   private initKeyListeners(panel: Panel) {
@@ -156,6 +156,7 @@ class App {
   }
 
   private onResize(entry: ResizeObserverEntry): [number, number] {
+    // console.log('onResize', entry);
     let width;
     let height;
     let dpr = window.devicePixelRatio;

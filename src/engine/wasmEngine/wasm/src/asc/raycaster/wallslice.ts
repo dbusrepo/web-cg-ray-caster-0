@@ -8,7 +8,7 @@ import { logi } from '../importVars';
   private top: u32;
   private bottom: u32;
 
-  private projHeight: u32;
+  private height: u32;
   private clipTop: u32;
 
   private hit: u8;
@@ -112,12 +112,12 @@ import { logi } from '../importVars';
     this.floorWallY = floorWallY;
   }
 
-  get ProjHeight(): u32 {
-    return this.projHeight;
+  get Height(): u32 {
+    return this.height;
   }
 
-  set ProjHeight(projHeight: u32) {
-    this.projHeight = projHeight;
+  set Height(height: u32) {
+    this.height = height;
   }
 
   get ClipTop(): u32 {
@@ -187,8 +187,8 @@ function getWallSliceMipMapIdxPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('mipMapIdx');
 }
 
-function getWallSliceProjHeightPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('projHeight');
+function getWallSliceHeightPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('height');
 }
 
 function getWallSliceClipTopPtr(wallSlicePtr: PTR_T): PTR_T {
@@ -209,7 +209,7 @@ export {
   getWallSliceFloorWallXPtr,
   getWallSliceFloorWallYPtr,
   getWallSliceMipMapIdxPtr,
-  getWallSliceProjHeightPtr,
+  getWallSliceHeightPtr,
   getWallSliceClipTopPtr,
 };
   

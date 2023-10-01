@@ -162,7 +162,7 @@ class Renderer {
         FloorWallX: floorWallX,
         FloorWallY: floorWallY,
         Mipmap: mipmap,
-        ProjHeight: projHeight,
+        Height: projHeight,
         ClipTop: clipTop,
       } = wallSlices[x];
 

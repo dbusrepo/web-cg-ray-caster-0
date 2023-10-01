@@ -56,7 +56,17 @@ import {
   newSprite,
   getSpritePosXPtr,
   getSpritePosYPtr,
+  getSpritePosZPtr,
   getSpriteTexIdxPtr,
+  getSpriteDistancePtr,
+  getSpriteStartXPtr,
+  getSpriteEndXPtr,
+  getSpriteTexXPtr,
+  getSpriteTexStepXPtr,
+  getSpriteStartYPtr,
+  getSpriteEndYPtr,
+  getSpriteTexYPtr,
+  getSpriteTexStepYPtr,
 } from './raycaster/sprite';
 import { Map, newMap } from './raycaster/map';
 import { 
@@ -105,7 +115,7 @@ import {
   getWallSliceMipMapIdxPtr,
   getWallSliceFloorWallXPtr,
   getWallSliceFloorWallYPtr,
-  getWallSliceProjHeightPtr,
+  getWallSliceHeightPtr,
   getWallSliceClipTopPtr,
 } from './raycaster/wallslice';
 import {
@@ -252,7 +262,17 @@ export {
   allocSpritesArr,
   getSpritePosXPtr,
   getSpritePosYPtr,
+  getSpritePosZPtr,
   getSpriteTexIdxPtr,
+  getSpriteDistancePtr,
+  getSpriteStartXPtr,
+  getSpriteEndXPtr,
+  getSpriteTexXPtr,
+  getSpriteTexStepXPtr,
+  getSpriteStartYPtr,
+  getSpriteEndYPtr,
+  getSpriteTexYPtr,
+  getSpriteTexStepYPtr,
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,
@@ -293,7 +313,7 @@ export {
   getWallSliceFloorWallXPtr,
   getWallSliceFloorWallYPtr,
   getWallSliceMipMapIdxPtr,
-  getWallSliceProjHeightPtr,
+  getWallSliceHeightPtr,
   getWallSliceClipTopPtr,
 
   getFrameColorRGBAPtr,

@@ -75,6 +75,9 @@ class Raycaster {
   private player: Player;
   private sprites: Sprite[];
 
+  private visibleSprites: Sprite[];
+  private numVisibleSprites: number;
+
   private wallSlices: WallSlice[];
   private zBuffer: Float32Array;
 
@@ -214,9 +217,19 @@ class Raycaster {
   }
 
   private initSprites(): void {
-    const NUM_SPRITES = 10;
+    const NUM_SPRITES = 1;
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
+    this.visibleSprites = new Array<Sprite>(this.sprites.length);
+    this.numVisibleSprites = 0;
+
+    // TODO: init sprites
+
+    const sprite = this.sprites[0];
+    sprite.PosX = 7.5;
+    sprite.PosY = 0.5;
+    sprite.PosZ = 0.0;
+    sprite.TexIdx = 0;
   }
 
   // private initBorderColor() {
@@ -398,8 +411,10 @@ class Raycaster {
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
-      // TODO: horz floor casting gives out bounds with rayDirX
+
+      // TODO: horz floor casting gives out bounds with rayDirX. check
       // const cameraX = (2 * x) / (vpWidth - 1) - 1;
+
       const rayDirX = dirX + planeX * cameraX;
       const rayDirY = dirY + planeY * cameraX;
       const deltaDistX = 1 / Math.abs(rayDirX);
@@ -492,27 +507,20 @@ class Raycaster {
       } while (--MAX_STEPS);
 
       this.zBuffer[x] = perpWallDist;
+
       if (perpWallDist > maxWallDistance) {
         maxWallDistance = perpWallDist;
       }
 
       const ratio = 1 / perpWallDist;
-      const projWallBottom = (projYcenter + posZ * ratio) | 0;
+      let wallBottom = (projYcenter + posZ * ratio) | 0;
       const wallSliceProjHeight = (this.wallHeight * ratio) | 0;
-      const projWallTop = projWallBottom - wallSliceProjHeight + 1;
-      // const sliceHeight = projWallBottom - projWallTop + 1;
+      let wallTop = wallBottom - wallSliceProjHeight + 1;
+      // const sliceHeight = wallBottom - wallTop + 1;
 
-      let wallTop = projWallTop;
-      let clipTop = 0;
-      if (projWallTop < 0) {
-        clipTop = -projWallTop;
-        wallTop = 0;
-      }
-
-      let wallBottom = projWallBottom;
-      if (projWallBottom >= vpHeight) {
-        wallBottom = vpHeight - 1;
-      }
+      const clipTop = Math.max(0, -wallTop);
+      wallTop += clipTop; // wallTop = Math.max(0, wallTop);
+      wallBottom = Math.min(wallBottom, vpHeight - 1);
 
       // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
@@ -522,19 +530,12 @@ class Raycaster {
       wallSlice.Bottom = wallBottom;
       wallSlice.Side = side;
 
-      if (wallTop < minWallTop) {
-        minWallTop = wallTop;
-      } else if (wallTop > maxWallTop) {
-        maxWallTop = wallTop;
-      }
+      minWallTop = Math.min(minWallTop, wallTop);
+      maxWallTop = Math.max(maxWallTop, wallTop);
+      minWallBottom = Math.min(minWallBottom, wallBottom);
+      maxWallBottom = Math.max(maxWallBottom, wallBottom);
 
-      if (wallBottom > maxWallBottom) {
-        maxWallBottom = wallBottom;
-      } else if (wallBottom < minWallBottom) {
-        minWallBottom = wallBottom;
-      }
-
-      // used only for vert floor/ceil rend
+      // floorWallX, floorWallY are used only for vert floor/ceil rend
       let floorWallX;
       let floorWallY;
 
@@ -592,7 +593,7 @@ class Raycaster {
 
       const texY = clipTop * texStepY;
 
-      wallSlice.ProjHeight = wallSliceProjHeight;
+      wallSlice.Height = wallSliceProjHeight;
       wallSlice.ClipTop = clipTop;
 
       wallSlice.TexX = texX;
@@ -600,7 +601,7 @@ class Raycaster {
       wallSlice.TexY = texY;
       wallSlice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
       wallSlice.Mipmap = mipmap.Image; // used in render ts
-    } // end col loop
+    }
 
     this.MaxWallDistance = maxWallDistance;
     this.MinWallTop = minWallTop;
@@ -608,35 +609,172 @@ class Raycaster {
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
 
+    this.processSprites();
+
     this.renderer.TexturedFloor = true;
     this.renderer.UseWasm = false;
     this.renderer.render();
   }
 
-  update(time: number) {
+  private processSprites() {
+    this.findVisSprites();
+    this.sortVisSprites();
+  }
+
+  private findVisSprites(): void {
+    const { sprites } = this;
+    const { player } = this;
+    const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
+    const { DirX: playerDirX, DirY: playerDirY } = player;
+    const { PlaneX: playerPlaneX, PlaneY: playerPlaneY } = player;
+    const { Width: vpWidth, Height: vpHeight } = this.viewport;
+    const { wallHeight } = this;
+
+    const MIN_SPRITE_DIST = 0.1;
+    const MAX_SPRITE_DIST = 1000; // TODO:
+
+    const minDist = MIN_SPRITE_DIST;
+    const maxDist = Math.min(this.MaxWallDistance, MAX_SPRITE_DIST);
+
+    this.numVisibleSprites = 0;
+    for (let i = 0; i < sprites.length; i++) {
+      const sprite = sprites[i];
+
+      const spriteX = sprite.PosX - playerX;
+      const spriteY = sprite.PosY - playerY;
+
+      const invDet =
+        1.0 / (playerPlaneX * playerDirY - playerDirX * playerPlaneY);
+      const tY = invDet * (-playerPlaneY * spriteX + playerPlaneX * spriteY);
+
+      if (tY < minDist || tY > maxDist) {
+        // console.log('tY behind or too far'); // behind or occluded by max (wall) distance
+        continue;
+      }
+
+      const tX = invDet * (playerDirY * spriteX - playerDirX * spriteY);
+      const invTy = 1.0 / tY;
+
+      const spriteHeight = (wallHeight * invTy) | 0;
+      const spriteWidth = spriteHeight;
+
+      const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;
+      let startX = spriteScreenX - (spriteWidth >> 1);
+
+      if (startX >= vpWidth) {
+        continue;
+      }
+
+      let endX = startX + spriteWidth;
+
+      if (endX < 0) {
+        continue;
+      }
+
+      // clip startX
+      const clipX = Math.max(0, -startX);
+      startX += clipX;
+
+      // clip endX
+      endX = Math.min(endX, vpWidth);
+
+      // sprite cols in [startX, endX)
+
+      const dy = (playerZ - sprite.PosZ) * invTy;
+      let endY = (this.ProjYCenter + dy) | 0;
+
+      if (endY < 0) {
+        continue;
+      }
+
+      let startY = endY - spriteHeight + 1;
+
+      if (startY >= vpHeight) {
+        continue;
+      }
+
+      // vertical clip
+      const clipY = Math.max(0, -startY);
+      startY += clipY;
+      endY = Math.min(endY, vpHeight - 1);
+
+      // assert(startY <= endY, `invalid startY ${startY} and endY ${endY}`);
+      // sprite rows in [startY, endY]
+
+      // sprite cols in [startX, endX)
+
+      // occlusion test
+      let x = startX;
+      for (; x < endX && this.zBuffer[x] < tY; x++);
+
+      if (x === endX) {
+        // sprite is occluded
+        continue;
+      }
+
+      // sprite is visible
+
+      const texIdx = sprite.TexIdx;
+      const tex = this.textures[texIdx];
+      const mipmap = tex.getMipmap(0); // TODO:
+      const {
+        Width: texWidth,
+        Height: texHeight,
+        // Lg2Pitch: lg2Pitch,
+      } = mipmap.Image;
+
+      const texStepX = texWidth / spriteWidth;
+      const texX = (clipX * texStepX) | 0;
+
+      const texStepY = texHeight / spriteHeight;
+      const texY = (clipY * texStepY) | 0;
+
+      sprite.Distance = tY;
+      sprite.StartX = startX;
+      sprite.EndX = endX;
+      sprite.TexX = texX;
+      sprite.TexStepX = texStepX;
+      sprite.StartY = startY;
+      sprite.EndY = endY;
+      sprite.TexY = texY;
+      sprite.TexStepY = texStepY;
+
+      this.visibleSprites[this.numVisibleSprites++] = sprite;
+    }
+  }
+
+  private sortVisSprites() {
+    const { visibleSprites, numVisibleSprites } = this;
+
+    // insertion sort on visibleSprites[0..numVisibleSprites) on descending distance
+    for (let i = 1; i < numVisibleSprites; i++) {
+      const sprite = visibleSprites[i];
+      const dist = sprite.Distance;
+      let j = i - 1;
+      for (; j >= 0 && visibleSprites[j].Distance < dist; j--) {
+        visibleSprites[j + 1] = visibleSprites[j];
+      }
+      visibleSprites[j + 1] = sprite;
+    }
+  }
+
+  public update(time: number) {
     this.updateLookUpDown(time);
     this.updatePlayer(time);
   }
 
+  // TODO:
   private updateLookUpDown(time: number) {
     const OFFS = 15 * time;
     if (this.isKeyDown(keys.KEY_E)) {
-      this.lookUp(OFFS);
+      const yCenter = this.ProjYCenter + OFFS;
+      this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
     }
 
     if (this.isKeyDown(keys.KEY_C)) {
-      this.lookDown(OFFS);
+      const yCenter = this.ProjYCenter - OFFS;
+      this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
     }
-  }
-
-  public lookUp(upOffs: number) {
-    const yCenter = this.ProjYCenter + upOffs;
-    this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
-  }
-
-  public lookDown(downOffs: number) {
-    const yCenter = this.ProjYCenter - downOffs;
-    this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
   }
 
   private isKeyDown(key: Key): boolean {
