@@ -5,11 +5,13 @@ import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 import { Raycaster } from './raycaster';
+import { Sprite } from './sprite';
 
 const CEIL_COLOR = 0xffbbbbbb;
 const FLOOR_COLOR = 0xff555555;
 
 class Renderer {
+  private raycaster: Raycaster;
   private wasmRun: WasmRun;
   private wasmEngineModule: WasmEngineModule;
   private frameBuf32: Uint32Array;
@@ -25,7 +27,8 @@ class Renderer {
   private texturedFloor = false;
   private useWasm = false;
 
-  constructor(public raycaster: Raycaster) {
+  constructor(raycaster: Raycaster) {
+    this.raycaster = raycaster;
     const viewport = raycaster.Viewport;
     const {
       StartX: vpStartX,
@@ -909,6 +912,19 @@ class Renderer {
     }
   }
 
+  private renderSprites() {
+    const viewSprites = this.raycaster.ViewSprites();
+    const numViewSprites = this.raycaster.NumViewSprites();
+
+    for (let i = 0; i < numViewSprites; ++i) {
+      this.renderSprite(viewSprites[i]);
+    }
+  }
+
+  private renderSprite(sprite: Sprite) {
+    // TODO:
+  }
+
   public render() {
     if (this.useWasm) {
       this.wasmEngineModule.render();
@@ -917,6 +933,7 @@ class Renderer {
       // this.renderViewFullVert2();
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
+      this.renderSprites();
     }
   }
 }

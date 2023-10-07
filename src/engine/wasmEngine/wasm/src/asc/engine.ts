@@ -74,6 +74,7 @@ import {
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
+  getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
   allocZBuffer,
@@ -249,6 +250,7 @@ export {
 
   getRaycasterPtr,
   getBorderColorPtr,
+  getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
   allocZBuffer,

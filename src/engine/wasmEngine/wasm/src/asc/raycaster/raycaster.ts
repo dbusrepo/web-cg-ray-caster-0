@@ -48,6 +48,7 @@ import { RaycasterParams } from './raycasterParams';
   private sprites: SArray<Sprite>;
   private wallSlices: SArray<WallSlice>;
   private zBuffer: SArray<f32>;
+  private wallHeight: u32;
   private player: Player;
   private map: Map;
   private viewport: Viewport;
@@ -128,6 +129,14 @@ import { RaycasterParams } from './raycasterParams';
 
   set Map(map: Map) {
     this.map = map;
+  }
+
+  get WallHeight(): u32 {
+    return this.wallHeight;
+  }
+
+  set WallHeight(wallHeight: u32) {
+    this.wallHeight = wallHeight;
   }
 
   get ZBuffer(): SArray<f32> {
@@ -227,6 +236,10 @@ function getBorderWidthPtr(raycasterPtr: PTR_T): PTR_T {
 
 function getBorderColorPtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("borderColor");
+}
+
+function getWallHeightPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("wallHeight");
 }
 
 function getRaycaster(raycasterPtr: PTR_T): Raycaster {
@@ -368,6 +381,7 @@ export {
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
+  getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
   allocZBuffer,

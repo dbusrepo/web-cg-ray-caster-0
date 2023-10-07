@@ -63,6 +63,7 @@ class Raycaster {
 
   private borderWidthPtr: number;
   private borderColorPtr: number;
+  private wallHeightPtr: number;
   private maxWallDistancePtr: number;
   private projYCenterPtr: number;
   private minWallTopPtr: number;
@@ -85,8 +86,6 @@ class Raycaster {
   private mapHeight: number;
 
   private textures: Texture[];
-
-  private wallHeight: number;
 
   private xWallMap: Uint8Array;
   private yWallMap: Uint8Array;
@@ -124,6 +123,8 @@ class Raycaster {
 
   private initRenderer() {
     this.renderer = new Renderer(this);
+    this.renderer.TexturedFloor = true;
+    this.renderer.UseWasm = false;
   }
 
   private initData() {
@@ -132,20 +133,14 @@ class Raycaster {
     this.initViewport();
     this.initZBuffer();
     this.initWallSlices();
-    this.initPlayer();
-    this.initSprites();
-
-    this.ProjYCenter = this.viewport.Height / 2;
-
-    // TODO:
-    // this.wallHeight = this.cfg.canvas.height;
-    this.wallHeight = this.viewport.Height; // TODO:
-
-    // TODO: player height
-    this.player.PosZ = this.wallHeight / 2;
 
     this.backgroundColor = FrameColorRGBAWasm.colorRGBAtoABGR(0x000000ff);
+    this.ProjYCenter = this.viewport.Height / 2;
+    // this.wallHeight = this.cfg.canvas.height;
+    this.WallHeight = this.viewport.Height; // TODO:
 
+    this.initPlayer();
+    this.initSprites();
     this.initMap();
   }
 
@@ -155,6 +150,10 @@ class Raycaster {
   }
 
   private initPtrs() {
+    this.wallHeightPtr = this.wasmEngineModule.getWallHeightPtr(
+      this.raycasterPtr,
+    );
+
     this.borderWidthPtr = this.wasmEngineModule.getBorderWidthPtr(
       this.raycasterPtr,
     );
@@ -203,6 +202,8 @@ class Raycaster {
     this.player = getWasmPlayerView(this.wasmEngineModule, this.raycasterPtr);
     this.player.PosX = 0.5;
     this.player.PosY = 0.5;
+    assert(this.WallHeight);
+    this.player.PosZ = this.WallHeight / 2; // TODO:
     // rotated east
     this.player.DirX = 1;
     this.player.DirY = 0;
@@ -213,24 +214,23 @@ class Raycaster {
     // player.DirY = -1;
     // player.PlaneX = 0.66;
     // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
-    this.player.PosZ = 0.0;
   }
 
   private initSprites(): void {
     const NUM_SPRITES = 1;
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
-    this.viewSprites = new Array<Sprite>(this.sprites.length);
-    this.numViewSprites = 0;
+    if (this.sprites.length) {
+      this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
 
-    // TODO: init sprites
-
-    const sprite = this.sprites[0];
-    sprite.PosX = 7.5;
-    sprite.PosY = 0.5;
-    sprite.PosZ = 0.0;
-    sprite.TexIdx = 0;
-    sprite.Visible = 1;
+      // TODO: init sprites
+      const sprite = this.sprites[0];
+      sprite.PosX = 7.5;
+      sprite.PosY = 0.5;
+      sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      sprite.TexIdx = 0;
+      sprite.Visible = 1;
+    }
   }
 
   // private initBorderColor() {
@@ -401,14 +401,13 @@ class Raycaster {
 
     const projYcenter = this.ProjYCenter;
 
+    let maxWallDistance = 0;
     let minWallTop = projYcenter;
     let maxWallTop = -1;
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
 
-    let maxWallDistance = 0;
-
-    const { wallSlices } = this;
+    const { wallSlices, WallHeight: wallHeight } = this;
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
@@ -515,7 +514,7 @@ class Raycaster {
 
       const ratio = 1 / perpWallDist;
       let wallBottom = (projYcenter + posZ * ratio) | 0;
-      const wallSliceProjHeight = (this.wallHeight * ratio) | 0;
+      const wallSliceProjHeight = (wallHeight * ratio) | 0;
       let wallTop = wallBottom - wallSliceProjHeight + 1;
       // const sliceHeight = wallBottom - wallTop + 1;
 
@@ -612,24 +611,16 @@ class Raycaster {
 
     this.processSprites();
 
-    this.renderer.TexturedFloor = true;
-    this.renderer.UseWasm = false;
     this.renderer.render();
   }
 
-  private processSprites() {
-    this.findViewSprites();
-    this.sortViewSprites();
-  }
-
-  private findViewSprites(): void {
+  private processSprites(): void {
     const { sprites } = this;
     const { player } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
     const { PlaneX: playerPlaneX, PlaneY: playerPlaneY } = player;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
-    const { wallHeight } = this;
 
     const MIN_SPRITE_DIST = 0.1;
     const MAX_SPRITE_DIST = 1000; // TODO:
@@ -638,6 +629,7 @@ class Raycaster {
     const maxDist = Math.min(this.MaxWallDistance, MAX_SPRITE_DIST);
 
     this.numViewSprites = 0;
+
     for (let i = 0; i < sprites.length; i++) {
       const sprite = sprites[i];
 
@@ -660,7 +652,7 @@ class Raycaster {
       const tX = invDet * (playerDirY * spriteX - playerDirX * spriteY);
       const invTy = 1.0 / tY;
 
-      const spriteHeight = (wallHeight * invTy) | 0;
+      const spriteHeight = (this.WallHeight * invTy) | 0;
       const spriteWidth = spriteHeight;
 
       const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;
@@ -742,22 +734,13 @@ class Raycaster {
       sprite.TexY = texY;
       sprite.TexStepY = texStepY;
 
-      this.viewSprites[this.numViewSprites++] = sprite;
-    }
-  }
-
-  private sortViewSprites() {
-    const { viewSprites, numViewSprites } = this;
-
-    // insertion sort on viewSprites[0..numViewSprites) on descending distance
-    for (let i = 1; i < numViewSprites; i++) {
-      const sprite = viewSprites[i];
-      const dist = sprite.Distance;
-      let j = i - 1;
-      for (; j >= 0 && viewSprites[j].Distance < dist; j--) {
-        viewSprites[j + 1] = viewSprites[j];
+      // insertion sort on viewSprites[1..numViewSprites) on descending distance
+      let j = this.numViewSprites++;
+      this.viewSprites[0] = sprite; // sentinel
+      for (; this.viewSprites[j].Distance < tY; j--) {
+        this.viewSprites[j + 1] = this.viewSprites[j];
       }
-      viewSprites[j + 1] = sprite;
+      this.viewSprites[j + 1] = sprite;
     }
   }
 
@@ -816,8 +799,8 @@ class Raycaster {
     if (height < LIMIT) {
       height = LIMIT;
     }
-    if (height > this.wallHeight - LIMIT) {
-      height = this.wallHeight - LIMIT;
+    if (height > this.WallHeight - LIMIT) {
+      height = this.WallHeight - LIMIT;
     }
     this.player.PosZ = height;
   }
@@ -840,7 +823,15 @@ class Raycaster {
     player.PlaneY = oldPlaneX * sin + player.PlaneY * cos;
   }
 
-  get ProjYCenter(): number {
+  private get WallHeight(): number {
+    return this.wasmRun.WasmViews.view.getUint32(this.wallHeightPtr, true);
+  }
+
+  private set WallHeight(val: number) {
+    this.wasmRun.WasmViews.view.setUint32(this.wallHeightPtr, val, true);
+  }
+
+  public get ProjYCenter(): number {
     return this.wasmRun.WasmViews.view.getInt32(this.projYCenterPtr, true);
   }
 
@@ -848,7 +839,7 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setInt32(this.projYCenterPtr, val, true);
   }
 
-  get MaxWallDistance(): number {
+  private get MaxWallDistance(): number {
     return this.wasmRun.WasmViews.view.getFloat32(
       this.maxWallDistancePtr,
       true,
@@ -905,6 +896,14 @@ class Raycaster {
 
   private set BorderColor(value: number) {
     this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
+  }
+
+  get ViewSprites(): Sprite[] {
+    return this.viewSprites;
+  }
+
+  get NumViewSprites(): number {
+    return this.numViewSprites;
   }
 
   get Viewport() {
