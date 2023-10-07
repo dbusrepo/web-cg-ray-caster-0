@@ -898,11 +898,11 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
   }
 
-  get ViewSprites(): Sprite[] {
+  public get ViewSprites(): Sprite[] {
     return this.viewSprites;
   }
 
-  get NumViewSprites(): number {
+  public get NumViewSprites(): number {
     return this.numViewSprites;
   }
 

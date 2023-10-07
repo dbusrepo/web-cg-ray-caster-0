@@ -913,8 +913,8 @@ class Renderer {
   }
 
   private renderSprites() {
-    const viewSprites = this.raycaster.ViewSprites();
-    const numViewSprites = this.raycaster.NumViewSprites();
+    const viewSprites = this.raycaster.ViewSprites;
+    const numViewSprites = this.raycaster.NumViewSprites;
 
     for (let i = 0; i < numViewSprites; ++i) {
       this.renderSprite(viewSprites[i]);
