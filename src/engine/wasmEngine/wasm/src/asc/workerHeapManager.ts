@@ -1,12 +1,12 @@
 import { myAssert } from './myAssert';
-import { heapAlloc, heapFree } from './heapAlloc';
+import { sharedHeapAlloc, sharedHeapFree } from './sharedHeapAlloc';
 import { logi, workerIdx, workersHeapPtr, workerHeapSize, sharedHeapPtr } from './importVars';
 import { MEM_BLOCK_USAGE_BIT_MASK, SIZE_T, MAX_ALLOC_SIZE, PTR_T, NULL_PTR, getTypeSize, getTypeAlignMask, } from './memUtils';
 // import { memCountersPtr } from './importVars';
 
 // Mem mananger: worker (private) heap mem handling:
 // list of blocks
-// uses the shared heap (see heapAlloc) when no blocks are available
+// uses the shared heap (see sharedHeapAlloc) when no blocks are available
 
 // const MEM_COUNTER_PTR: PTR_T = memCountersPtr + workerIdx * Uint32Array.BYTES_PER_ELEMENT;
 
@@ -16,7 +16,7 @@ const WORKER_HEAP_LIMIT: PTR_T = WORKER_HEAP_BASE + workerHeapSize;
 myAssert(WORKER_HEAP_LIMIT <= sharedHeapPtr);
 
 let freeBlockPtr: PTR_T;
-let whmInitialized = false;
+let workerHeapManagerInitialized = false;
 
 // @ts-ignore: decorator
 @unmanaged class Block {
@@ -116,16 +116,16 @@ function removeOrReplaceFromFreeList(nodePtr: PTR_T, newNodePtr: PTR_T = NULL_PT
 }
 
 function alloc(reqSize: SIZE_T): PTR_T {
-  myAssert(whmInitialized);
+  myAssert(workerHeapManagerInitialized);
   // print();
   // logi(reqSize);
   myAssert(reqSize > 0);
   myAssert(reqSize <= MAX_ALLOC_SIZE);
-  // return heapAlloc(reqSize); // TODO REMOVE
+  // return sharedHeapAlloc(reqSize); // TODO REMOVE
   const headerPtr = searchFreeList(reqSize);
   if (headerPtr == NULL_PTR) {
     // if no empty blocks no compaction here but we alloc from the shared heap...
-    const sharedHeapAllocated = heapAlloc(reqSize);
+    const sharedHeapAllocated = sharedHeapAlloc(reqSize);
     // check allocatedHeapPtr ?
     return sharedHeapAllocated;
   }
@@ -166,10 +166,10 @@ function alloc(reqSize: SIZE_T): PTR_T {
 }
 
 function free(ptr: PTR_T): void {
-  myAssert(whmInitialized);
+  myAssert(workerHeapManagerInitialized);
   myAssert(ptr != NULL_PTR);
   if (ptr >= WORKER_HEAP_LIMIT) {
-    return heapFree(ptr);
+    return sharedHeapFree(ptr);
   }
   myAssert(ptr >= WORKER_HEAP_BASE + H_SIZE &&  ptr < WORKER_HEAP_LIMIT - F_SIZE);
   let headerPtr = ptr - H_SIZE;
@@ -285,7 +285,7 @@ function initMemManager(): void {
 
   freeBlockPtr = headerPtr;
 
-  whmInitialized = true;
+  workerHeapManagerInitialized = true;
 }
 
 // function print(): void {

@@ -1,5 +1,5 @@
 import { myAssert } from './myAssert';
-import { initSharedHeap, heapAlloc, heapFree } from './heapAlloc';
+import { initSharedHeap } from './sharedHeapAlloc';
 import {
   initMemManager,
   alloc,

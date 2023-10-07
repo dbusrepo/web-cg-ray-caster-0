@@ -7,7 +7,7 @@ import { PTR_SIZE, PTR_ALIGN_MASK, SIZE_T, MAX_ALLOC_SIZE, MEM_BLOCK_USAGE_BIT_M
 const LOCK_SIZE = getTypeSize<LOCK_T>();
 const MUTEX_ALIGN_MASK = getTypeAlignMask<LOCK_T>();
 
-let hmInitialized = false;
+let sharedHeapManagerInitialized = false;
 
 const HEAP_BASE: PTR_T = sharedHeapPtr;
 const MUTEX_PTR: PTR_T = (sharedHeapPtr + MUTEX_ALIGN_MASK) & ~MUTEX_ALIGN_MASK; // align to 4 bytes
@@ -131,8 +131,8 @@ function searchFreeList(reqSize: SIZE_T): PTR_T {
   return blockPtrPtr;
 }
 
-function heapAlloc(reqSize: SIZE_T): PTR_T {
-  myAssert(hmInitialized);
+function sharedHeapAlloc(reqSize: SIZE_T): PTR_T {
+  myAssert(sharedHeapManagerInitialized);
   myAssert(reqSize > 0);
   myAssert(reqSize <= MAX_ALLOC_SIZE);
   let dataPtr: PTR_T = NULL_PTR;
@@ -157,8 +157,8 @@ function heapAlloc(reqSize: SIZE_T): PTR_T {
   return dataPtr;
 }
 
-function heapFree(ptr: PTR_T): void {
-  myAssert(hmInitialized);
+function sharedHeapFree(ptr: PTR_T): void {
+  myAssert(sharedHeapManagerInitialized);
   myAssert(ptr >= START_ALLOC_PTR);
   lock(MUTEX_PTR);
   const blockPtr = ptr - HEADER_SIZE;
@@ -174,7 +174,7 @@ function initSharedHeap(): void {
   // logi(START_ALLOC_PTR);
   store<PTR_T>(ALLOC_PTR_PTR, START_ALLOC_PTR);
   store<PTR_T>(FREE_PTR_PTR, NULL_PTR);
-  hmInitialized = true;
+  sharedHeapManagerInitialized = true;
 }
 
-export { initSharedHeap, heapAlloc, heapFree };
+export { initSharedHeap, sharedHeapAlloc, sharedHeapFree };
