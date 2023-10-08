@@ -40,7 +40,6 @@ const buildDir = './build/asc';
 const wasmFile = out;
 const textFile = path.format({ ...path.parse(out), base: '', ext: '.wat' });
 
-
 console.log(`\nCompiling ${src} with asc ${asc.version}`);
 console.log(`Base dir: ${baseDir}`);
 console.log(`Build dir: ${buildDir}`);
