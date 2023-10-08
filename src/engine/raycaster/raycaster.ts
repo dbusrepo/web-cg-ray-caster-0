@@ -101,6 +101,8 @@ class Raycaster {
 
   private renderer: Renderer;
 
+  private double2FloatArr: Float32Array;
+
   public async init(params: RaycasterParams) {
     this.params = params;
 
@@ -119,6 +121,11 @@ class Raycaster {
 
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
+
+    this.double2FloatArr = new Float32Array(1);
+    // // example
+    // this.double2FloatArr[0] = tY; // convert tY to float
+    // const tYf = this.double2FloatArr[0];
   }
 
   private initRenderer() {
@@ -737,7 +744,8 @@ class Raycaster {
       // insertion sort on viewSprites[1..numViewSprites) on descending distance
       let j = this.numViewSprites++;
       this.viewSprites[0] = sprite; // sentinel
-      for (; this.viewSprites[j].Distance < tY; j--) {
+      const spriteDist = sprite.Distance; // get float dist value
+      for (; this.viewSprites[j].Distance < spriteDist; j--) {
         this.viewSprites[j + 1] = this.viewSprites[j];
       }
       this.viewSprites[j + 1] = sprite;
