@@ -4,9 +4,11 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 
 class WallSlice {
   private mipmap: BitImageRGBA; // ts cached fields
+  private next: WallSlice | null = null;
+  private prev: WallSlice | null = null;
 
   constructor(
-    // private wallSlicePtr: number,
+    private wallSlicePtr: number,
     private distancePtr: number,
     private heightPtr: number,
     private clipTopPtr: number,
@@ -20,7 +22,75 @@ class WallSlice {
     private texYPtr: number,
     private floorWallXPtr: number,
     private floorWallYPtr: number,
+    private prevPtrPtr: number, // WARN: ptr in wasm is 32 bits
+    private nextPtrPtr: number,
   ) {}
+
+  init(
+    wallSlicePtr: number,
+    distancePtr: number,
+    heightPtr: number,
+    clipTopPtr: number,
+    hitPtr: number,
+    sidePtr: number,
+    topPtr: number,
+    bottomPtr: number,
+    mipMapIdxPtr: number,
+    texXPtr: number,
+    texStepYPtr: number,
+    texYPtr: number,
+    floorWallXPtr: number,
+    floorWallYPtr: number,
+    prevPtrPtr: number,
+    nextPtrPtr: number,
+  ) {
+    this.wallSlicePtr = wallSlicePtr;
+    this.distancePtr = distancePtr;
+    this.heightPtr = heightPtr;
+    this.clipTopPtr = clipTopPtr;
+    this.hitPtr = hitPtr;
+    this.sidePtr = sidePtr;
+    this.topPtr = topPtr;
+    this.bottomPtr = bottomPtr;
+    this.mipMapIdxPtr = mipMapIdxPtr;
+    this.texXPtr = texXPtr;
+    this.texStepYPtr = texStepYPtr;
+    this.texYPtr = texYPtr;
+    this.floorWallXPtr = floorWallXPtr;
+    this.floorWallYPtr = floorWallYPtr;
+    this.prevPtrPtr = prevPtrPtr;
+    this.nextPtrPtr = nextPtrPtr;
+  }
+
+  get Prev(): WallSlice | null {
+    return this.prev;
+  }
+
+  set Prev(prev: WallSlice | null) {
+    this.prev = prev;
+    gWasmView.setUint32(
+      this.prevPtrPtr,
+      prev ? prev.WallSliceWasmPtr : 0,
+      true,
+    );
+  }
+
+  get Next(): WallSlice | null {
+    return this.next;
+  }
+
+  set Next(next: WallSlice | null) {
+    this.next = next;
+    gWasmView.setUint32(
+      this.nextPtrPtr,
+      next ? next.WallSliceWasmPtr : 0,
+      true,
+    );
+  }
+
+  get WallSliceWasmPtr(): number {
+    return this.wallSlicePtr;
+  }
 
   get Mipmap(): BitImageRGBA {
     return this.mipmap;
@@ -137,6 +207,56 @@ class WallSlice {
   set ClipTop(clipTop: number) {
     gWasmView.setUint32(this.clipTopPtr, clipTop, true);
   }
+
+  get PrevPtr(): number {
+    return gWasmView.getUint32(this.prevPtrPtr, true);
+  }
+
+  set PrevPtr(prevPtr: number) {
+    gWasmView.setUint32(this.prevPtrPtr, prevPtr, true);
+  }
+
+  get NextPtr(): number {
+    return gWasmView.getUint32(this.nextPtrPtr, true);
+  }
+
+  set NextPtr(nextPtr: number) {
+    gWasmView.setUint32(this.nextPtrPtr, nextPtr, true);
+  }
+}
+
+const freeList: WallSlice | null = null;
+
+const allocWallSliceView = (wasmEngineModule: WasmEngineModule) => {
+  // TODO:
+};
+
+const freeWallSliceView = (wallSlice: WallSlice) => {
+  // TODO:
+};
+
+function newWallSliceView(
+  wasmEngineModule: WasmEngineModule,
+  wallSlicePtr: number,
+) {
+  return new WallSlice(
+    wallSlicePtr,
+    wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceHeightPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceClipTopPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceHitPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceMipMapIdxPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceTexXPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceTexStepYPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceTexYPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceFloorWallXPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceFloorWallYPtr(wallSlicePtr),
+    wasmEngineModule.getWallSlicePrevPtrPtr(wallSlicePtr),
+    wasmEngineModule.getWallSliceNextPtrPtr(wallSlicePtr),
+  );
 }
 
 function getWasmWallSlicesView(
@@ -147,24 +267,9 @@ function getWasmWallSlicesView(
   const wallSlices = new Array<WallSlice>(numWallSlices);
   for (let i = 0; i < numWallSlices; i++) {
     const wallSlicePtr = wasmEngineModule.getWallSlicePtr(wasmRaycasterPtr, i);
-    wallSlices[i] = new WallSlice(
-      // wallSlicePtr,
-      wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceHeightPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceClipTopPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceHitPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceMipMapIdxPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceTexXPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceTexStepYPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceTexYPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceFloorWallXPtr(wallSlicePtr),
-      wasmEngineModule.getWallSliceFloorWallYPtr(wallSlicePtr),
-    );
+    wallSlices[i] = newWallSliceView(wasmEngineModule, wallSlicePtr);
   }
   return wallSlices;
 }
 
-export { WallSlice, getWasmWallSlicesView };
+export { WallSlice, getWasmWallSlicesView, newWallSliceView };

@@ -9,6 +9,7 @@ import { Map, newMap } from './map';
 import { WallSlice, newWallSlice } from './wallslice';
 import { Texture } from '../texture';
 import { BitImageRGBA } from '../bitImageRGBA';
+import { Ref } from '../ref';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -47,6 +48,7 @@ import { RaycasterParams } from './raycasterParams';
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
   private wallSlices: SArray<WallSlice>;
+  private transpWallSlices: SArray<Ref<WallSlice>>;
   private zBuffer: SArray<f32>;
   private wallHeight: u32;
   private player: Player;
@@ -159,6 +161,14 @@ import { RaycasterParams } from './raycasterParams';
     this.wallSlices = wallSlices;
   }
 
+  get TranspWallSlices(): SArray<Ref<WallSlice>> {
+    return this.transpWallSlices;
+  }
+
+  set TranspWallSlices(transpWallSlices: SArray<Ref<WallSlice>>) {
+    this.transpWallSlices = transpWallSlices;
+  }
+
   get ViewportPtr(): PTR_T {
     return changetype<PTR_T>(this.viewport);
   }
@@ -257,10 +267,10 @@ function allocZBuffer(raycasterPtr: PTR_T): PTR_T {
 //   return raycaster.ZBuffer.DataPtr;
 // }
 
-function allocWallSlices(raycasterPtr: PTR_T): PTR_T {
+function allocWallSlices(raycasterPtr: PTR_T): void {
   const raycaster = getRaycaster(raycasterPtr);
-  raycaster.WallSlices = newSArray<WallSlice>(raycaster.Viewport.Width);
-  return raycaster.WallSlices.DataPtr;
+  const wallSlices = newSArray<WallSlice>(raycaster.Viewport.Width);
+  raycaster.WallSlices = wallSlices;
 }
 
 function getWallSlicesLength(raycasterPtr: PTR_T): SIZE_T {
@@ -377,6 +387,31 @@ function allocSpritesArr(raycasterPtr: PTR_T, numSprites: SIZE_T): void {
   raycaster.allocSpritesArr(numSprites);
 }
 
+function allocTranspWallSlices(raycasterPtr: PTR_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  const transpWallSlices = newSArray<Ref<WallSlice>>(raycaster.Viewport.Width);
+  raycaster.TranspWallSlices = transpWallSlices;
+}
+
+function resetTranspWallSlicesPtrs(raycasterPtr: PTR_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  const startOffs = raycaster.TranspWallSlices.ptrAt(0);
+  const endOffs = raycaster.TranspWallSlices.ptrAt(raycaster.TranspWallSlices.Length);
+  const numBytes = endOffs - startOffs;
+  memory.fill(startOffs, NULL_PTR as u8, numBytes);
+}
+
+function setTranspWallSliceAtIdx(raycasterPtr: PTR_T, wallSliceIdx: SIZE_T, wallSlicePtr: PTR_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  raycaster.TranspWallSlices.at(wallSliceIdx).Ptr = wallSlicePtr;
+}
+
+function allocWallSlice(): PTR_T {
+  return changetype<PTR_T>(newWallSlice());
+}
+
+// TODO: release wall slice
+
 export {
   Raycaster,
   newRaycaster,
@@ -409,5 +444,9 @@ export {
   getViewportPtr,
   getPlayerPtr,
   getMaxWallDistancePtr,
-};
 
+  allocTranspWallSlices,
+  resetTranspWallSlicesPtrs,
+  allocWallSlice,
+  setTranspWallSliceAtIdx,
+};

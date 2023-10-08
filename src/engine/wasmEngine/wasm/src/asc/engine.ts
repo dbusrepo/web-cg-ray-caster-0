@@ -102,10 +102,13 @@ import {
   getViewportPtr,
   getPlayerPtr,
   getMaxWallDistancePtr,
+  allocTranspWallSlices,
+  resetTranspWallSlicesPtrs,
+  allocWallSlice,
+  setTranspWallSliceAtIdx,
 } from './raycaster/raycaster';
 import { 
   WallSlice,
-  newWallSlice,
   getWallSliceDistancePtr,
   getWallSliceHitPtr,
   getWallSliceSidePtr,
@@ -119,6 +122,8 @@ import {
   getWallSliceFloorWallYPtr,
   getWallSliceHeightPtr,
   getWallSliceClipTopPtr,
+  getWallSlicePrevPtrPtr,
+  getWallSliceNextPtrPtr,
 } from './raycaster/wallslice';
 import {
   FrameColorRGBA, 
@@ -138,7 +143,6 @@ import {
   newRaycasterParams,
   deleteRaycasterParams,
 } from './raycaster/raycasterParams';
-
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -319,6 +323,8 @@ export {
   getWallSliceMipMapIdxPtr,
   getWallSliceHeightPtr,
   getWallSliceClipTopPtr,
+  getWallSlicePrevPtrPtr,
+  getWallSliceNextPtrPtr,
 
   getFrameColorRGBAPtr,
   getRedLightTablePtr,
@@ -330,4 +336,9 @@ export {
 
   getTexturesPtr,
   getMipMapsPtr,
+
+  allocTranspWallSlices,
+  resetTranspWallSlicesPtrs,
+  allocWallSlice,
+  setTranspWallSliceAtIdx,
 };

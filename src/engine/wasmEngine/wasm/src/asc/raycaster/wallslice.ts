@@ -24,6 +24,9 @@ import { logi } from '../importVars';
   private floorWallX: f32;
   private floorWallY: f32;
 
+  private prevPtr: PTR_T = NULL_PTR;
+  private nextPtr: PTR_T = NULL_PTR;
+
   get Distance(): f32 {
     return this.distance;
   }
@@ -127,6 +130,22 @@ import { logi } from '../importVars';
   set ClipTop(clipTop: u32) {
     this.clipTop = clipTop;
   }
+
+  get PrevPtr(): PTR_T {
+    return this.prevPtr;
+  }
+
+  set PrevPtr(prevPtr: PTR_T) {
+    this.prevPtr = prevPtr;
+  }
+
+  get NextPtr(): PTR_T {
+    return this.nextPtr;
+  }
+
+  set NextPtr(nextPtr: PTR_T) {
+    this.nextPtr = nextPtr;
+  }
 }
 
 let wallSliceAllocator = changetype<ObjectAllocator<WallSlice>>(NULL_PTR);
@@ -195,6 +214,14 @@ function getWallSliceClipTopPtr(wallSlicePtr: PTR_T): PTR_T {
   return wallSlicePtr + offsetof<WallSlice>('clipTop');
 }
 
+function getWallSlicePrevPtrPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('prevPtr');
+}
+
+function getWallSliceNextPtrPtr(wallSlicePtr: PTR_T): PTR_T {
+  return wallSlicePtr + offsetof<WallSlice>('nextPtr');
+}
+
 export {
   WallSlice,
   newWallSlice,
@@ -211,5 +238,6 @@ export {
   getWallSliceMipMapIdxPtr,
   getWallSliceHeightPtr,
   getWallSliceClipTopPtr,
+  getWallSlicePrevPtrPtr,
+  getWallSliceNextPtrPtr,
 };
-  

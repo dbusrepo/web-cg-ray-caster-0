@@ -15,7 +15,7 @@ import { WasmRun } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { Sprite, getWasmSpritesView } from './sprite';
-import { WallSlice, getWasmWallSlicesView } from './wallslice';
+import { WallSlice, getWasmWallSlicesView, newWallSliceView } from './wallslice';
 import Renderer from './renderer';
 import { Key, keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
@@ -80,6 +80,9 @@ class Raycaster {
   private numViewSprites: number;
 
   private wallSlices: WallSlice[];
+  private transpWallSlices: (WallSlice | 0)[];
+  private numColsTranspWalls: number;
+
   private zBuffer: Float32Array;
 
   private mapWidth: number;
@@ -140,6 +143,7 @@ class Raycaster {
     this.initViewport();
     this.initZBuffer();
     this.initWallSlices();
+    this.initTranspWallSlices();
 
     this.backgroundColor = FrameColorRGBAWasm.colorRGBAtoABGR(0x000000ff);
     this.ProjYCenter = this.viewport.Height / 2;
@@ -260,6 +264,13 @@ class Raycaster {
       this.wasmEngineModule,
       this.raycasterPtr,
     );
+  }
+
+  private initTranspWallSlices() {
+    assert(this.viewport, 'viewport not initialized');
+    this.wasmEngineModule.allocTranspWallSlices(this.raycasterPtr);
+    this.transpWallSlices = new Array<WallSlice | 0>(this.viewport.Width);
+    this.resetTranspWallsPtrs();
   }
 
   private initTextures() {
@@ -383,7 +394,21 @@ class Raycaster {
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
+  private resetTranspWallsPtrs() {
+    this.wasmEngineModule.resetTranspWallSlicesPtrs(this.raycasterPtr);
+    for (let i = 0; i < this.transpWallSlices.length; i++) {
+      this.transpWallSlices[i] = 0;
+    }
+    this.numColsTranspWalls = 0;
+  }
+
+  private preRender() {
+    this.resetTranspWallsPtrs();
+  }
+
   render() {
+    this.preRender();
+
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
@@ -750,6 +775,20 @@ class Raycaster {
       }
       this.viewSprites[j + 1] = sprite;
     }
+  }
+
+  // TODO: handle free list slices and impl insert in list
+  private allocTranspWallSlice(idx: number) {
+    const slicePtr = this.wasmEngineModule.allocWallSlice();
+    this.wasmEngineModule.setTranspWallSliceAtIdx(
+      this.raycasterPtr,
+      idx,
+      slicePtr,
+    );
+    const sliceView = newWallSliceView(this.wasmEngineModule, slicePtr);
+    // TODO:
+    // insert the new slice in this.transpWallSlices[idx] list and update ptrs
+    this.numColsTranspWalls++;
   }
 
   public update(time: number) {
