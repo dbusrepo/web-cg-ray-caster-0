@@ -9,8 +9,8 @@ import { logi } from './importVars';
 @final @unmanaged class ObjectAllocator<T> {
   private arena: ArenaAlloc;
 
-  init(numObjPerBlock: SIZE_T): void {
-    this.arena = newArena(getTypeSize<T>(), numObjPerBlock);
+  init(numObjsBlock: SIZE_T): void {
+    this.arena = newArena(getTypeSize<T>(), numObjsBlock);
   }
 
   new(): T {
@@ -32,12 +32,12 @@ function initObjectAllocatorsArena(): void {
   objectAllocatorsArena = newArena(objSize, NUM_OBJ_ALLOC_PER_BLOCK);
 }
 
-function newObjectAllocator<T>(numObjPerBlock: SIZE_T): ObjectAllocator<T> {
+function newObjectAllocator<T>(numObjsBlock: SIZE_T): ObjectAllocator<T> {
   if (changetype<PTR_T>(objectAllocatorsArena) == NULL_PTR) {
     initObjectAllocatorsArena();
   }
   const objAlloc = changetype<ObjectAllocator<T>>(objectAllocatorsArena.alloc());
-  objAlloc.init(numObjPerBlock);
+  objAlloc.init(numObjsBlock);
   return objAlloc;
 }
 
