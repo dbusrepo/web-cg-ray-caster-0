@@ -21,7 +21,7 @@ import { SArray, newSArray } from '../sarray';
     this.height = mapHeight;
     this.xWallMapWidth = mapWidth + 1;
     this.xWallMapHeight = mapHeight;
-    this.yWallMapWidth = mapWidth + 1;
+    this.yWallMapWidth = mapWidth;
     this.yWallMapHeight = mapHeight + 1;
     this.xWallMap = newSArray<u8>(this.xWallMapWidth * this.xWallMapHeight);
     this.yWallMap = newSArray<u8>(this.yWallMapWidth * this.yWallMapHeight);
