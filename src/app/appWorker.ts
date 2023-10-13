@@ -150,10 +150,11 @@ class AppWorker {
 
   private async initRaycaster() {
     this.raycaster = new Raycaster();
-    await this.raycaster.init({
+    const raycasterParams: RaycasterParams = {
       wasmRun: this.wasmRun,
       frameColorRGBAWasm: this.frameColorRGBAWasm,
-    });
+    };
+    await this.raycaster.init(raycasterParams);
   }
 
   private async initAuxWorkers() {
@@ -521,4 +522,4 @@ self.onmessage = ({ data: { command, params } }) => {
 };
 
 export type { AppWorkerParams };
-export { AppWorkerCommandEnum };
+export { AppWorker, AppWorkerCommandEnum };

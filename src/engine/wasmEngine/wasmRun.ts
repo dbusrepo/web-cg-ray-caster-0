@@ -14,6 +14,9 @@ import {
   FONT_SPACING,
 } from '../../../assets/fonts/font';
 
+const WASM_NULL_PTR = 0;
+type WasmNullPtr = typeof WASM_NULL_PTR;
+
 type WasmRunParams = {
   // usePalette: boolean;
   wasmMem: WebAssembly.Memory;
@@ -160,5 +163,5 @@ class WasmRun {
   }
 }
 
-export type { WasmRunParams };
-export { WasmRun, gWasmRun, gWasmView, gWasmViews };
+export type { WasmRunParams, WasmNullPtr };
+export { WasmRun, gWasmRun, gWasmView, gWasmViews, WASM_NULL_PTR };

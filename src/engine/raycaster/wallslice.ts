@@ -1,6 +1,7 @@
+import assert from 'assert';
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
-import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
+import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 
 class WallSlice {
   private mipmap: BitImageRGBA; // ts cached fields
@@ -22,7 +23,7 @@ class WallSlice {
     private texYPtr: number,
     private floorWallXPtr: number,
     private floorWallYPtr: number,
-    private prevPtrPtr: number, // WARN: ptr in wasm is 32 bits
+    private prevPtrPtr: number,
     private nextPtrPtr: number,
   ) {}
 
@@ -70,7 +71,7 @@ class WallSlice {
     this.prev = prev;
     gWasmView.setUint32(
       this.prevPtrPtr,
-      prev ? prev.WallSliceWasmPtr : 0,
+      prev ? prev.WasmPtr : WASM_NULL_PTR,
       true,
     );
   }
@@ -83,12 +84,12 @@ class WallSlice {
     this.next = next;
     gWasmView.setUint32(
       this.nextPtrPtr,
-      next ? next.WallSliceWasmPtr : 0,
+      next ? next.WasmPtr : WASM_NULL_PTR,
       true,
     );
   }
 
-  get WallSliceWasmPtr(): number {
+  get WasmPtr(): number {
     return this.wallSlicePtr;
   }
 
@@ -225,17 +226,36 @@ class WallSlice {
   }
 }
 
-const freeList: WallSlice | null = null;
+let freeList: WallSlice | null = null;
 
-const allocWallSliceView = (wasmEngineModule: WasmEngineModule) => {
-  // TODO:
+const newWallSlice = (wasmEngineModule: WasmEngineModule) => {
+  let wallSliceView;
+  if (freeList) {
+    wallSliceView = freeList;
+    freeList = freeList.Next;
+  } else {
+    const wallSlicePtr = wasmEngineModule.allocWallSlice();
+    wallSliceView = createWallSliceView(wasmEngineModule, wallSlicePtr);
+  }
+  // wallSliceView.Next = null;
+  // wallSliceView.Prev = null;
+  return wallSliceView;
 };
 
 const freeWallSliceView = (wallSlice: WallSlice) => {
-  // TODO:
+  wallSlice.Next = freeList;
+  freeList = wallSlice;
 };
 
-function newWallSliceView(
+const freeTranspWallSliceViewList = (wallSlice: WallSlice) => {
+  // double linked list, add to free list in O(1)
+  const { Prev: prev } = wallSlice;
+  // assert(prev);
+  prev!.Next = freeList;
+  freeList = wallSlice;
+};
+
+function createWallSliceView(
   wasmEngineModule: WasmEngineModule,
   wallSlicePtr: number,
 ) {
@@ -267,9 +287,15 @@ function getWasmWallSlicesView(
   const wallSlices = new Array<WallSlice>(numWallSlices);
   for (let i = 0; i < numWallSlices; i++) {
     const wallSlicePtr = wasmEngineModule.getWallSlicePtr(wasmRaycasterPtr, i);
-    wallSlices[i] = newWallSliceView(wasmEngineModule, wallSlicePtr);
+    wallSlices[i] = createWallSliceView(wasmEngineModule, wallSlicePtr);
   }
   return wallSlices;
 }
 
-export { WallSlice, getWasmWallSlicesView, newWallSliceView };
+export {
+  WallSlice,
+  getWasmWallSlicesView,
+  newWallSlice,
+  freeWallSliceView,
+  freeTranspWallSliceViewList,
+};
