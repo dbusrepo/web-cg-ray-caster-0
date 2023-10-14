@@ -17,12 +17,12 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { Sprite, getWasmSpritesView } from './sprite';
 import {
-  WallSlice,
+  Slice,
   getWasmWallSlicesView,
-  newWallSlice,
-  // freeWallSliceView,
-  freeTranspWallSliceViewList,
-} from './wallslice';
+  newSliceView,
+  // freeSliceView,
+  freeTranspSliceViewsList,
+} from './slice';
 import Renderer from './renderer';
 import { Key, keys, keyOffsets } from '../../input/inputManager';
 import { ascImportImages, imageKeys } from '../../../assets/build/images';
@@ -86,9 +86,9 @@ class Raycaster {
   private viewSprites: Sprite[];
   private numViewSprites: number;
 
-  private wallSlices: WallSlice[];
-  private transpWallSlices: (WallSlice | WasmNullPtr)[]; // o or list ptr
-  private numTranspWallSlices: number;
+  private wallSlices: Slice[];
+  private transpSlices: (Slice | WasmNullPtr)[];
+  private numTranspSlices: number;
 
   private zBuffer: Float32Array;
 
@@ -107,7 +107,7 @@ class Raycaster {
 
   private floorMap: Uint8Array;
 
-  private backgroundColor: number;
+  private backgroundColor: number; // TODO:
 
   private frameIdx: number;
   private renderer: Renderer;
@@ -168,7 +168,7 @@ class Raycaster {
     this.initViewport();
     this.initZBuffer();
     this.initWallSlices();
-    this.initTranspWallSlices();
+    this.initTranspSlices();
 
     this.backgroundColor = FrameColorRGBAWasm.colorRGBAtoABGR(0x000000ff);
     this.ProjYCenter = this.viewport.Height / 2;
@@ -293,13 +293,11 @@ class Raycaster {
     );
   }
 
-  private initTranspWallSlices() {
+  private initTranspSlices() {
     assert(this.viewport, 'viewport not initialized');
-    this.wasmEngineModule.allocTranspWallSlices(this.raycasterPtr);
-    this.transpWallSlices = new Array<WallSlice | WasmNullPtr>(
-      this.viewport.Width,
-    );
-    this.resetTranspWallsPtrs();
+    this.wasmEngineModule.allocTranspSlices(this.raycasterPtr);
+    this.transpSlices = new Array<Slice | WasmNullPtr>(this.viewport.Width);
+    this.resetTranspSlices();
   }
 
   private initTextures() {
@@ -425,7 +423,7 @@ class Raycaster {
   }
 
   private preRender() {
-    this.freeTranspWallSlices();
+    this.freeTranspSlices();
     this.frameIdx++;
   }
 
@@ -781,25 +779,25 @@ class Raycaster {
     }
   }
 
-  private updateTranspWallSliceArrayIdx(
+  private updateTranspSliceArrayIdx(
     idx: number,
-    newSlice: WallSlice | WasmNullPtr,
+    newSlice: Slice | WasmNullPtr,
   ) {
-    this.transpWallSlices[idx] = newSlice;
+    this.transpSlices[idx] = newSlice;
     // set ptr to first slice in transp wall slice array in wasm mem
-    this.wasmEngineModule.setTranspWallSliceAtIdx(
+    this.wasmEngineModule.setTranspSliceAtIdx(
       this.raycasterPtr,
       idx,
       newSlice ? newSlice.WasmPtr : WASM_NULL_PTR,
     );
   }
 
-  private newTranspWallSlice(idx: number) {
-    this.numTranspWallSlices++;
-    const newSlice = newWallSlice(this.wasmEngineModule);
-    // insert at front in transpWallSlices[idx]
-    if (this.transpWallSlices[idx]) {
-      const frontSlice: WallSlice = this.transpWallSlices[idx] as WallSlice;
+  private newTranspSlice(idx: number) {
+    this.numTranspSlices++;
+    const newSlice = newSliceView(this.wasmEngineModule);
+    // insert at front in transpSlices[idx]
+    if (this.transpSlices[idx]) {
+      const frontSlice = this.transpSlices[idx] as Slice;
       newSlice.Prev = frontSlice.Prev;
       frontSlice.Prev = newSlice;
       newSlice.Next = frontSlice;
@@ -809,27 +807,27 @@ class Raycaster {
       newSlice.Prev = newSlice;
       newSlice.Next = newSlice;
     }
-    this.updateTranspWallSliceArrayIdx(idx, newSlice);
+    this.updateTranspSliceArrayIdx(idx, newSlice);
     return newSlice;
   }
 
-  private resetTranspWallsPtrs() {
-    this.numTranspWallSlices = 0;
-    this.wasmEngineModule.resetTranspWallSlicesPtrs(this.raycasterPtr);
-    for (let i = 0; i < this.transpWallSlices.length; i++) {
-      this.transpWallSlices[i] = 0;
+  private resetTranspSlices() {
+    this.numTranspSlices = 0;
+    this.wasmEngineModule.resetTranspSlicesPtrs(this.raycasterPtr);
+    for (let i = 0; i < this.transpSlices.length; i++) {
+      this.transpSlices[i] = 0;
     }
   }
 
-  private freeTranspWallSlices() {
-    if (this.numTranspWallSlices) {
-      for (let i = 0; i < this.transpWallSlices.length; i++) {
-        if (this.transpWallSlices[i]) {
-          const wallSlice = this.transpWallSlices[i] as WallSlice;
-          freeTranspWallSliceViewList(wallSlice);
+  private freeTranspSlices() {
+    if (this.numTranspSlices) {
+      for (let i = 0; i < this.transpSlices.length; i++) {
+        if (this.transpSlices[i]) {
+          const slice = this.transpSlices[i] as Slice;
+          freeTranspSliceViewsList(slice);
         }
       }
-      this.resetTranspWallsPtrs();
+      this.resetTranspSlices();
     }
   }
 

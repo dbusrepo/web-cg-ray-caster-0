@@ -6,7 +6,7 @@ import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
 import { Sprite, newSprite } from './sprite';
 import { Map, newMap } from './map';
-import { WallSlice, newWallSlice } from './wallslice';
+import { Slice, newSlice } from './slice';
 import { Texture } from '../texture';
 import { BitImageRGBA } from '../bitImageRGBA';
 import { Ref } from '../ref';
@@ -47,8 +47,8 @@ import { RaycasterParams } from './raycasterParams';
   private textures: SArray<Texture>;
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
-  private wallSlices: SArray<WallSlice>;
-  private transpWallSlices: SArray<Ref<WallSlice>>;
+  private wallSlices: SArray<Slice>;
+  private transpSlices: SArray<Ref<Slice>>;
   private zBuffer: SArray<f32>;
   private wallHeight: u32;
   private player: Player;
@@ -153,20 +153,20 @@ import { RaycasterParams } from './raycasterParams';
     return this.sprites;
   }
 
-  get WallSlices(): SArray<WallSlice> {
+  get WallSlices(): SArray<Slice> {
     return this.wallSlices;
   }
 
-  set WallSlices(wallSlices: SArray<WallSlice>) {
+  set WallSlices(wallSlices: SArray<Slice>) {
     this.wallSlices = wallSlices;
   }
 
-  get TranspWallSlices(): SArray<Ref<WallSlice>> {
-    return this.transpWallSlices;
+  get TranspSlices(): SArray<Ref<Slice>> {
+    return this.transpSlices;
   }
 
-  set TranspWallSlices(transpWallSlices: SArray<Ref<WallSlice>>) {
-    this.transpWallSlices = transpWallSlices;
+  set TranspSlices(transpSlices: SArray<Ref<Slice>>) {
+    this.transpSlices = transpSlices;
   }
 
   get ViewportPtr(): PTR_T {
@@ -269,7 +269,7 @@ function allocZBuffer(raycasterPtr: PTR_T): PTR_T {
 
 function allocWallSlices(raycasterPtr: PTR_T): void {
   const raycaster = getRaycaster(raycasterPtr);
-  const wallSlices = newSArray<WallSlice>(raycaster.Viewport.Width);
+  const wallSlices = newSArray<Slice>(raycaster.Viewport.Width);
   raycaster.WallSlices = wallSlices;
 }
 
@@ -387,30 +387,28 @@ function allocSpritesArr(raycasterPtr: PTR_T, numSprites: SIZE_T): void {
   raycaster.allocSpritesArr(numSprites);
 }
 
-function allocTranspWallSlices(raycasterPtr: PTR_T): void {
+function allocTranspSlices(raycasterPtr: PTR_T): void {
   const raycaster = getRaycaster(raycasterPtr);
-  const transpWallSlices = newSArray<Ref<WallSlice>>(raycaster.Viewport.Width);
-  raycaster.TranspWallSlices = transpWallSlices;
+  const transpWallSlices = newSArray<Ref<Slice>>(raycaster.Viewport.Width);
+  raycaster.TranspSlices = transpWallSlices;
 }
 
-function resetTranspWallSlicesPtrs(raycasterPtr: PTR_T): void {
+function resetTranspSlicesPtrs(raycasterPtr: PTR_T): void {
   const raycaster = getRaycaster(raycasterPtr);
-  const startOffs = raycaster.TranspWallSlices.ptrAt(0);
-  const endOffs = raycaster.TranspWallSlices.ptrAt(raycaster.TranspWallSlices.Length);
+  const startOffs = raycaster.TranspSlices.ptrAt(0);
+  const endOffs = raycaster.TranspSlices.ptrAt(raycaster.TranspSlices.Length);
   const numBytes = endOffs - startOffs;
   memory.fill(startOffs, NULL_PTR as u8, numBytes);
 }
 
-function setTranspWallSliceAtIdx(raycasterPtr: PTR_T, wallSliceIdx: SIZE_T, wallSlicePtr: PTR_T): void {
+function setTranspSliceAtIdx(raycasterPtr: PTR_T, wallSliceIdx: SIZE_T, wallSlicePtr: PTR_T): void {
   const raycaster = getRaycaster(raycasterPtr);
-  raycaster.TranspWallSlices.at(wallSliceIdx).Ptr = wallSlicePtr;
+  raycaster.TranspSlices.at(wallSliceIdx).Ptr = wallSlicePtr;
 }
 
-function allocWallSlice(): PTR_T {
-  return changetype<PTR_T>(newWallSlice());
+function allocSlice(): PTR_T {
+  return changetype<PTR_T>(newSlice());
 }
-
-// TODO: release wall slice
 
 export {
   Raycaster,
@@ -445,8 +443,8 @@ export {
   getPlayerPtr,
   getMaxWallDistancePtr,
 
-  allocTranspWallSlices,
-  resetTranspWallSlicesPtrs,
-  allocWallSlice,
-  setTranspWallSliceAtIdx,
+  allocTranspSlices,
+  resetTranspSlicesPtrs,
+  allocSlice,
+  setTranspSliceAtIdx,
 };

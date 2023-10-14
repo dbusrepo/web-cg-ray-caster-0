@@ -3,7 +3,7 @@ import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
 import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
-@final @unmanaged class WallSlice {
+@final @unmanaged class Slice {
 
   private top: u32;
   private bottom: u32;
@@ -148,96 +148,96 @@ import { logi } from '../importVars';
   }
 }
 
-let wallSliceAllocator = changetype<ObjectAllocator<WallSlice>>(NULL_PTR);
+let wallSliceAllocator = changetype<ObjectAllocator<Slice>>(NULL_PTR);
 
-function initWallSliceAllocator(): void {
-  wallSliceAllocator = newObjectAllocator<WallSlice>(1);
+function initSliceAllocator(): void {
+  wallSliceAllocator = newObjectAllocator<Slice>(1);
 }
 
-function newWallSlice(): WallSlice {
+function newSlice(): Slice {
   if (changetype<PTR_T>(wallSliceAllocator) === NULL_PTR) {
-    initWallSliceAllocator();
+    initSliceAllocator();
   }
   const wallSlice = wallSliceAllocator.new();
   return wallSlice;
 }
 
-function getWallSliceDistancePtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('distance');
+function getSliceDistancePtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('distance');
 }
 
-function getWallSliceHitPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('hit');
+function getSliceHitPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('hit');
 }
 
-function getWallSliceSidePtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('side');
+function getSliceSidePtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('side');
 }
 
-function getWallSliceTopPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('top');
+function getSliceTopPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('top');
 }
 
-function getWallSliceBottomPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('bottom');
+function getSliceBottomPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('bottom');
 }
 
-function getWallSliceTexXPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('texX');
+function getSliceTexXPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('texX');
 }
 
-function getWallSliceTexStepYPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('texStepY');
+function getSliceTexStepYPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('texStepY');
 }
 
-function getWallSliceTexYPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('texY');
+function getSliceTexYPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('texY');
 }
 
-function getWallSliceFloorWallXPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('floorWallX');
+function getSliceFloorWallXPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('floorWallX');
 }
 
-function getWallSliceFloorWallYPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('floorWallY');
+function getSliceFloorWallYPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('floorWallY');
 }
 
-function getWallSliceMipMapIdxPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('mipMapIdx');
+function getSliceMipMapIdxPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('mipMapIdx');
 }
 
-function getWallSliceHeightPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('height');
+function getSliceHeightPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('height');
 }
 
-function getWallSliceClipTopPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('clipTop');
+function getSliceClipTopPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('clipTop');
 }
 
-function getWallSlicePrevPtrPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('prevPtr');
+function getSlicePrevPtrPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('prevPtr');
 }
 
-function getWallSliceNextPtrPtr(wallSlicePtr: PTR_T): PTR_T {
-  return wallSlicePtr + offsetof<WallSlice>('nextPtr');
+function getSliceNextPtrPtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('nextPtr');
 }
 
 export {
-  WallSlice,
-  newWallSlice,
-  getWallSliceDistancePtr,
-  getWallSliceHitPtr,
-  getWallSliceSidePtr,
-  getWallSliceTopPtr,
-  getWallSliceBottomPtr,
-  getWallSliceTexXPtr,
-  getWallSliceTexStepYPtr,
-  getWallSliceTexYPtr,
-  getWallSliceFloorWallXPtr,
-  getWallSliceFloorWallYPtr,
-  getWallSliceMipMapIdxPtr,
-  getWallSliceHeightPtr,
-  getWallSliceClipTopPtr,
-  getWallSlicePrevPtrPtr,
-  getWallSliceNextPtrPtr,
+  Slice,
+  newSlice,
+  getSliceDistancePtr,
+  getSliceHitPtr,
+  getSliceSidePtr,
+  getSliceTopPtr,
+  getSliceBottomPtr,
+  getSliceTexXPtr,
+  getSliceTexStepYPtr,
+  getSliceTexYPtr,
+  getSliceFloorWallXPtr,
+  getSliceFloorWallYPtr,
+  getSliceMipMapIdxPtr,
+  getSliceHeightPtr,
+  getSliceClipTopPtr,
+  getSlicePrevPtrPtr,
+  getSliceNextPtrPtr,
 };

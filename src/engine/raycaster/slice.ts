@@ -3,13 +3,13 @@ import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 
-class WallSlice {
+class Slice {
   private mipmap: BitImageRGBA; // ts cached fields
-  private next: WallSlice | null = null;
-  private prev: WallSlice | null = null;
+  private next: Slice | null = null;
+  private prev: Slice | null = null;
 
   constructor(
-    private wallSlicePtr: number,
+    private slicePtr: number,
     private distancePtr: number,
     private heightPtr: number,
     private clipTopPtr: number,
@@ -28,7 +28,7 @@ class WallSlice {
   ) {}
 
   init(
-    wallSlicePtr: number,
+    slicePtr: number,
     distancePtr: number,
     heightPtr: number,
     clipTopPtr: number,
@@ -45,7 +45,7 @@ class WallSlice {
     prevPtrPtr: number,
     nextPtrPtr: number,
   ) {
-    this.wallSlicePtr = wallSlicePtr;
+    this.slicePtr = slicePtr;
     this.distancePtr = distancePtr;
     this.heightPtr = heightPtr;
     this.clipTopPtr = clipTopPtr;
@@ -63,11 +63,11 @@ class WallSlice {
     this.nextPtrPtr = nextPtrPtr;
   }
 
-  get Prev(): WallSlice | null {
+  get Prev(): Slice | null {
     return this.prev;
   }
 
-  set Prev(prev: WallSlice | null) {
+  set Prev(prev: Slice | null) {
     this.prev = prev;
     gWasmView.setUint32(
       this.prevPtrPtr,
@@ -76,11 +76,11 @@ class WallSlice {
     );
   }
 
-  get Next(): WallSlice | null {
+  get Next(): Slice | null {
     return this.next;
   }
 
-  set Next(next: WallSlice | null) {
+  set Next(next: Slice | null) {
     this.next = next;
     gWasmView.setUint32(
       this.nextPtrPtr,
@@ -90,7 +90,7 @@ class WallSlice {
   }
 
   get WasmPtr(): number {
-    return this.wallSlicePtr;
+    return this.slicePtr;
   }
 
   get Mipmap(): BitImageRGBA {
@@ -108,10 +108,6 @@ class WallSlice {
   set MipMapIdx(mipMapIdx: number) {
     gWasmView.setUint32(this.mipMapIdxPtr, mipMapIdx, true);
   }
-
-  // get WallSlicePtr(): number {
-  //   return this.wallSlicePtr;
-  // }
 
   get Distance(): number {
     return gWasmView.getFloat32(this.distancePtr, true);
@@ -226,76 +222,73 @@ class WallSlice {
   }
 }
 
-let freeList: WallSlice | null = null;
+let freeList: Slice | null = null;
 
-const newWallSlice = (wasmEngineModule: WasmEngineModule) => {
-  let wallSliceView;
+const newSliceView = (wasmEngineModule: WasmEngineModule) => {
+  let sliceView;
   if (freeList) {
-    wallSliceView = freeList;
+    sliceView = freeList;
     freeList = freeList.Next;
   } else {
-    const wallSlicePtr = wasmEngineModule.allocWallSlice();
-    wallSliceView = createWallSliceView(wasmEngineModule, wallSlicePtr);
+    const slicePtr = wasmEngineModule.allocSlice();
+    sliceView = createSliceView(wasmEngineModule, slicePtr);
   }
-  // wallSliceView.Next = null;
-  // wallSliceView.Prev = null;
-  return wallSliceView;
+  // wsliceView.Next = null;
+  // wsliceView.Prev = null;
+  return sliceView;
 };
 
-const freeWallSliceView = (wallSlice: WallSlice) => {
-  wallSlice.Next = freeList;
-  freeList = wallSlice;
+const freeSliceView = (slice: Slice) => {
+  slice.Next = freeList;
+  freeList = slice;
 };
 
-const freeTranspWallSliceViewList = (wallSlice: WallSlice) => {
+const freeTranspSliceViewsList = (slice: Slice) => {
   // double linked list, add to free list in O(1)
-  const { Prev: prev } = wallSlice;
+  const { Prev: prev } = slice;
   // assert(prev);
   prev!.Next = freeList;
-  freeList = wallSlice;
+  freeList = slice;
 };
 
-function createWallSliceView(
-  wasmEngineModule: WasmEngineModule,
-  wallSlicePtr: number,
-) {
-  return new WallSlice(
-    wallSlicePtr,
-    wasmEngineModule.getWallSliceDistancePtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceHeightPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceClipTopPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceHitPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceSidePtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceTopPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceBottomPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceMipMapIdxPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceTexXPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceTexStepYPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceTexYPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceFloorWallXPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceFloorWallYPtr(wallSlicePtr),
-    wasmEngineModule.getWallSlicePrevPtrPtr(wallSlicePtr),
-    wasmEngineModule.getWallSliceNextPtrPtr(wallSlicePtr),
+function createSliceView(wasmEngineModule: WasmEngineModule, slicePtr: number) {
+  return new Slice(
+    slicePtr,
+    wasmEngineModule.getSliceDistancePtr(slicePtr),
+    wasmEngineModule.getSliceHeightPtr(slicePtr),
+    wasmEngineModule.getSliceClipTopPtr(slicePtr),
+    wasmEngineModule.getSliceHitPtr(slicePtr),
+    wasmEngineModule.getSliceSidePtr(slicePtr),
+    wasmEngineModule.getSliceTopPtr(slicePtr),
+    wasmEngineModule.getSliceBottomPtr(slicePtr),
+    wasmEngineModule.getSliceMipMapIdxPtr(slicePtr),
+    wasmEngineModule.getSliceTexXPtr(slicePtr),
+    wasmEngineModule.getSliceTexStepYPtr(slicePtr),
+    wasmEngineModule.getSliceTexYPtr(slicePtr),
+    wasmEngineModule.getSliceFloorWallXPtr(slicePtr),
+    wasmEngineModule.getSliceFloorWallYPtr(slicePtr),
+    wasmEngineModule.getSlicePrevPtrPtr(slicePtr),
+    wasmEngineModule.getSliceNextPtrPtr(slicePtr),
   );
 }
 
 function getWasmWallSlicesView(
   wasmEngineModule: WasmEngineModule,
   wasmRaycasterPtr: number,
-): WallSlice[] {
+): Slice[] {
   const numWallSlices = wasmEngineModule.getWallSlicesLength(wasmRaycasterPtr);
-  const wallSlices = new Array<WallSlice>(numWallSlices);
+  const wallSlices = new Array<Slice>(numWallSlices);
   for (let i = 0; i < numWallSlices; i++) {
     const wallSlicePtr = wasmEngineModule.getWallSlicePtr(wasmRaycasterPtr, i);
-    wallSlices[i] = createWallSliceView(wasmEngineModule, wallSlicePtr);
+    wallSlices[i] = createSliceView(wasmEngineModule, wallSlicePtr);
   }
   return wallSlices;
 }
 
 export {
-  WallSlice,
+  Slice,
   getWasmWallSlicesView,
-  newWallSlice,
-  freeWallSliceView,
-  freeTranspWallSliceViewList,
+  newSliceView,
+  freeSliceView,
+  freeTranspSliceViewsList,
 };
