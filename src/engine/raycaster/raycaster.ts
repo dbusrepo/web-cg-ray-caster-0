@@ -112,7 +112,9 @@ class Raycaster {
   private frameIdx: number;
   private renderer: Renderer;
 
-  // vars used in raycasting
+  // vars used in main raycasting loop
+  private pos = new Float32Array(2);
+  private rayDir = new Float32Array(2);
   private sideDist = new Float32Array(2);
   private deltaDist = new Float32Array(2);
   private step = new Int32Array(2);
@@ -122,6 +124,7 @@ class Raycaster {
   private wallMaps = new Array<Uint8Array>(2);
   private mapLimits = new Int32Array(2);
   private mapIncOffs = new Int32Array(4);
+  private floorWall = new Int32Array(2);
 
   // private _2float: Float32Array;
   // private _2u32: Uint32Array;
@@ -155,6 +158,7 @@ class Raycaster {
     this.renderer = new Renderer(this);
     this.renderer.TexturedFloor = true;
     this.renderer.UseWasm = false;
+    this.renderer.VertFloor = true;
   }
 
   private initData() {
@@ -445,13 +449,16 @@ class Raycaster {
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
     assert(posY >= 0 && posY < mapHeight, 'posY out of map bounds');
 
+    const projYcenter = this.ProjYCenter;
+
     const mapX = posX | 0;
     const mapY = posY | 0;
 
+    const mapOffsX = mapY * this.xWallMapWidth + posX;
+    const mapOffsY = mapY * this.yWallMapWidth + posX;
+
     const cellX = posX - mapX;
     const cellY = posY - mapY;
-
-    const projYcenter = this.ProjYCenter;
 
     let maxWallDistance = 0;
     let minWallTop = projYcenter;
@@ -461,84 +468,64 @@ class Raycaster {
 
     const { wallSlices, WallHeight: wallHeight } = this;
 
+    this.pos[0] = posX;
+    this.pos[1] = posY;
+    this.wallMaps[0] = xMap;
+    this.wallMaps[1] = yMap;
+    this.mapLimits[0] = mapWidth;
+    this.mapLimits[1] = mapHeight;
+
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
 
       // TODO: horz floor casting gives out bounds with rayDirX. check
       // const cameraX = (2 * x) / (vpWidth - 1) - 1;
 
-      const rayDirX = dirX + planeX * cameraX;
-      const rayDirY = dirY + planeY * cameraX;
-      const deltaDistX = 1 / Math.abs(rayDirX);
-      const deltaDistY = 1 / Math.abs(rayDirY);
+      this.rayDir[0] = dirX + planeX * cameraX;
+      this.rayDir[1] = dirY + planeY * cameraX;
+      this.deltaDist[0] = 1 / Math.abs(this.rayDir[0]);
+      this.deltaDist[1] = 1 / Math.abs(this.rayDir[1]);
 
-      let sideDistX, sideDistY; // distances to next x/y line
-      let stepX, stepY; // +1 or -1, step in map
-      let xStepYOffs; // step y in x map
-      let yStepYOffs; // step y in y map
-      let xChkIdx, yChkOff, yChkIdx; // check offsets in x/y maps
-
-      if (rayDirX < 0) {
-        stepX = -1;
-        xChkIdx = 0;
-        sideDistX = cellX * deltaDistX;
+      if (this.rayDir[0] < 0) {
+        this.step[0] = -1;
+        this.checkWallIdxOffs[0] = 0;
+        this.sideDist[0] = cellX * this.deltaDist[0];
       } else {
-        stepX = 1;
-        xChkIdx = 1;
-        sideDistX = (1.0 - cellX) * deltaDistX;
+        this.step[0] = 1;
+        this.checkWallIdxOffs[0] = 1;
+        this.sideDist[0] = (1.0 - cellX) * this.deltaDist[0];
       }
 
-      if (rayDirY < 0) {
-        stepY = -1;
-        xStepYOffs = -this.xWallMapWidth;
-        yStepYOffs = -this.yWallMapWidth;
-        yChkOff = 0;
-        yChkIdx = 0;
-        sideDistY = cellY * deltaDistY;
+      this.mapIncOffs[0] = this.mapIncOffs[1] = this.step[0];
+
+      if (this.rayDir[1] < 0) {
+        this.step[1] = -1;
+        this.mapIncOffs[2] = -this.xWallMapWidth;
+        this.mapIncOffs[3] = -this.yWallMapWidth;
+        this.checkWallIdxOffs[1] = 0;
+        this.sideDist[1] = cellY * this.deltaDist[1];
       } else {
-        stepY = 1;
-        xStepYOffs = this.xWallMapWidth;
-        yStepYOffs = this.yWallMapWidth;
-        yChkOff = this.yWallMapWidth;
-        yChkIdx = 1;
-        sideDistY = (1.0 - cellY) * deltaDistY;
+        this.step[1] = 1;
+        this.mapIncOffs[2] = this.xWallMapWidth;
+        this.mapIncOffs[3] = this.yWallMapWidth;
+        this.checkWallIdxOffs[1] = this.yWallMapWidth;
+        this.sideDist[1] = (1.0 - cellY) * this.deltaDist[1];
       }
 
-      // ray map position
-      let curMapX = mapX;
-      let curMapY = mapY;
+      // const curMapX = mapX; // TODO: Remove
+      // const curMapY = mapY;
 
-      let xMapOffs = curMapY * this.xWallMapWidth + curMapX;
-      let yMapOffs = curMapY * this.yWallMapWidth + curMapX;
+      this.curMapPos[0] = mapX;
+      this.curMapPos[1] = mapY;
+      this.mapOffs[0] = mapOffsX;
+      this.mapOffs[1] = mapOffsY;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
-      let flipTexX = false;
       let outOfMap = false;
 
       let checkWallIdx;
       let side;
-
-      this.sideDist[0] = sideDistX;
-      this.sideDist[1] = sideDistY;
-      this.deltaDist[0] = deltaDistX;
-      this.deltaDist[1] = deltaDistY;
-      this.step[0] = stepX;
-      this.step[1] = stepY;
-      this.mapOffs[0] = xMapOffs;
-      this.mapOffs[1] = yMapOffs;
-      this.checkWallIdxOffs[0] = xChkIdx;
-      this.checkWallIdxOffs[1] = yChkOff;
-      this.curMapPos[0] = curMapX;
-      this.curMapPos[1] = curMapY;
-      this.wallMaps[0] = xMap;
-      this.wallMaps[1] = yMap;
-      this.mapLimits[0] = mapWidth;
-      this.mapLimits[1] = mapHeight;
-      this.mapIncOffs[0] = stepX;
-      this.mapIncOffs[1] = stepX;
-      this.mapIncOffs[2] = xStepYOffs;
-      this.mapIncOffs[3] = yStepYOffs;
 
       do {
         side = this.sideDist[0] < this.sideDist[1] ? 0 : 1;
@@ -549,15 +536,17 @@ class Raycaster {
           break;
         }
         const nextPos = this.curMapPos[side] + this.step[side];
-        // if (nextPos < 0 || nextPos >= mapLimits[side]) {
-        //   outOfMap = true;
-        //   break;
-        // }
+        if (nextPos < 0 || nextPos >= this.mapLimits[side]) {
+          outOfMap = true;
+          break;
+        }
         this.curMapPos[side] = nextPos;
         this.sideDist[side] += this.deltaDist[side];
         this.mapOffs[side] += this.mapIncOffs[(side << 1) + side];
         this.mapOffs[side ^ 1] += this.mapIncOffs[(side << 1) + (side ^ 1)];
       } while (--MAX_STEPS);
+
+      const isXside = side === 0;
 
       this.zBuffer[x] = perpWallDist;
 
@@ -592,27 +581,21 @@ class Raycaster {
       let floorWallX;
       let floorWallY;
 
-      let wallMap;
-      let wallX = 0;
+      const mapWallX =
+        this.pos[side ^ 1] + perpWallDist * this.rayDir[side ^ 1];
+      const wallX = mapWallX - (mapWallX | 0);
 
-      if (side === 0) {
-        wallMap = xMap;
-        wallX = posY + perpWallDist * rayDirY;
-        wallX -= wallX | 0;
-        flipTexX = rayDirX > 0;
-        floorWallY = curMapY + wallX;
-        floorWallX = curMapX + xChkIdx;
-      } else {
-        wallMap = yMap;
-        wallX = posX + perpWallDist * rayDirX;
-        wallX -= wallX | 0;
-        flipTexX = rayDirY < 0;
-        floorWallX = curMapX + wallX;
-        floorWallY = curMapY + yChkIdx;
+      if (this.renderer.TexturedFloor && this.renderer.VertFloor) {
+        this.floorWall[side ^ 1] = this.curMapPos[side ^ 1] + wallX;
+        let floorWallXOffs = this.checkWallIdxOffs[side];
+        if (!isXside) {
+          floorWallXOffs /= this.yWallMapWidth;
+        }
+        this.floorWall[side] = this.curMapPos[side] + floorWallXOffs;
+        wallSlice.FloorWallX = this.floorWall[0];
+        wallSlice.FloorWallY = this.floorWall[1];
       }
 
-      wallSlice.FloorWallX = floorWallX;
-      wallSlice.FloorWallY = floorWallY;
 
       if (outOfMap || MAX_STEPS <= 0) {
         wallSlice.Hit = 0;
@@ -625,7 +608,7 @@ class Raycaster {
 
       wallSlice.Hit = 1;
 
-      const texIdx = wallMap[checkWallIdx] - 1;
+      const texIdx = this.wallMaps[side][checkWallIdx] - 1;
       // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
       const tex = this.textures[texIdx];
@@ -638,6 +621,8 @@ class Raycaster {
       } = mipmap.Image;
 
       let texX = (wallX * texWidth) | 0;
+
+      const flipTexX = this.rayDir[side] > 0;
       if (flipTexX) {
         texX = texWidth - texX - 1;
       }
