@@ -933,7 +933,7 @@ class Renderer {
       // this.renderViewFullVert2();
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
-      this.renderSprites();
+      // this.renderSprites(); // TODO:
     }
   }
 }

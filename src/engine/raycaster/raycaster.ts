@@ -112,7 +112,19 @@ class Raycaster {
   private frameIdx: number;
   private renderer: Renderer;
 
-  private double2FloatArr: Float32Array;
+  // vars used in raycasting
+  private sideDist = new Float32Array(2);
+  private deltaDist = new Float32Array(2);
+  private step = new Int32Array(2);
+  private mapOffs = new Int32Array(2);
+  private checkWallIdxOffs = new Int32Array(2);
+  private curMapPos = new Int32Array(2);
+  private wallMaps = new Array<Uint8Array>(2);
+  private mapLimits = new Int32Array(2);
+  private mapIncOffs = new Int32Array(4);
+
+  // private _2float: Float32Array;
+  // private _2u32: Uint32Array;
 
   public async init(params: RaycasterParams) {
     this.params = params;
@@ -133,10 +145,10 @@ class Raycaster {
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
 
-    this.double2FloatArr = new Float32Array(1);
-    // // example
-    // this.double2FloatArr[0] = tY; // convert tY to float
-    // const tYf = this.double2FloatArr[0];
+    // this._2float = new Float32Array(1);
+    // example
+    // this._2float[0] = tY; // convert tY to float
+    // const tYf = this._2float[0];
   }
 
   private initRenderer() {
@@ -367,6 +379,7 @@ class Raycaster {
       this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
         tex.WallMapIdx;
     }
+    // this.xWallMap[0] = 0; // test hole
 
     tex = this.findTex(wallTexKeys.BRICK1);
     this.xWallMap[4] = tex.WallMapIdx;
@@ -413,7 +426,7 @@ class Raycaster {
 
   private postRender() {}
 
-  render() {
+  public render() {
     this.preRender();
 
     const { mapWidth, mapHeight } = this;
@@ -494,55 +507,56 @@ class Raycaster {
       // ray map position
       let curMapX = mapX;
       let curMapY = mapY;
-      let nextMapX, nextMapY;
 
       let xMapOffs = curMapY * this.xWallMapWidth + curMapX;
       let yMapOffs = curMapY * this.yWallMapWidth + curMapX;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
-      let wallX = 0;
       let flipTexX = false;
       let outOfMap = false;
 
-      let checkWallIdx = -1;
+      let checkWallIdx;
+      let side;
 
-      let side = 0;
+      this.sideDist[0] = sideDistX;
+      this.sideDist[1] = sideDistY;
+      this.deltaDist[0] = deltaDistX;
+      this.deltaDist[1] = deltaDistY;
+      this.step[0] = stepX;
+      this.step[1] = stepY;
+      this.mapOffs[0] = xMapOffs;
+      this.mapOffs[1] = yMapOffs;
+      this.checkWallIdxOffs[0] = xChkIdx;
+      this.checkWallIdxOffs[1] = yChkOff;
+      this.curMapPos[0] = curMapX;
+      this.curMapPos[1] = curMapY;
+      this.wallMaps[0] = xMap;
+      this.wallMaps[1] = yMap;
+      this.mapLimits[0] = mapWidth;
+      this.mapLimits[1] = mapHeight;
+      this.mapIncOffs[0] = stepX;
+      this.mapIncOffs[1] = stepX;
+      this.mapIncOffs[2] = xStepYOffs;
+      this.mapIncOffs[3] = yStepYOffs;
 
       do {
-        if (sideDistX < sideDistY) {
-          side = 0;
-          perpWallDist = sideDistX;
-          checkWallIdx = xMapOffs + xChkIdx;
-          if (xMap[checkWallIdx]) {
-            break;
-          }
-          nextMapX = curMapX + stepX;
-          if (nextMapX < 0 || nextMapX >= mapWidth) {
-            outOfMap = true;
-            break;
-          }
-          curMapX = nextMapX;
-          sideDistX += deltaDistX;
-          xMapOffs += stepX;
-          yMapOffs += stepX;
-        } else {
-          side = 1;
-          perpWallDist = sideDistY;
-          checkWallIdx = yMapOffs + yChkOff;
-          if (yMap[checkWallIdx]) {
-            break;
-          }
-          nextMapY = curMapY + stepY;
-          if (nextMapY < 0 || nextMapY >= mapHeight) {
-            outOfMap = true;
-            break;
-          }
-          curMapY = nextMapY;
-          sideDistY += deltaDistY;
-          yMapOffs += yStepYOffs;
-          xMapOffs += xStepYOffs;
+        side = this.sideDist[0] < this.sideDist[1] ? 0 : 1;
+        checkWallIdx = this.mapOffs[side] + this.checkWallIdxOffs[side];
+        if (this.wallMaps[side][checkWallIdx]) {
+          // wall found
+          perpWallDist = this.sideDist[side];
+          break;
         }
+        const nextPos = this.curMapPos[side] + this.step[side];
+        // if (nextPos < 0 || nextPos >= mapLimits[side]) {
+        //   outOfMap = true;
+        //   break;
+        // }
+        this.curMapPos[side] = nextPos;
+        this.sideDist[side] += this.deltaDist[side];
+        this.mapOffs[side] += this.mapIncOffs[(side << 1) + side];
+        this.mapOffs[side ^ 1] += this.mapIncOffs[(side << 1) + (side ^ 1)];
       } while (--MAX_STEPS);
 
       this.zBuffer[x] = perpWallDist;
@@ -579,6 +593,7 @@ class Raycaster {
       let floorWallY;
 
       let wallMap;
+      let wallX = 0;
 
       if (side === 0) {
         wallMap = xMap;

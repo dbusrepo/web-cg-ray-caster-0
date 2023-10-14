@@ -1110,3 +1110,49 @@ for (; framePtr < frameLimitPtr; framePtr += frameStride) {
 // wallX -= Math.floor(wallX);
 // wallX %= 1;
 // wallX -= wallX | 0;
+
+const u32Val = new Uint32Array(1);
+
+u32Val[0] = curMapPos[side] + step[side];
+if (u32Val[0] >= mapLimits[side]) {
+  outOfMap = true;
+  break;
+}
+const nextPos = u32Val[0];
+
+do {
+  if (sideDistX < sideDistY) {
+    side = 0;
+    perpWallDist = sideDistX;
+    checkWallIdx = xMapOffs + xChkIdx;
+    if (xMap[checkWallIdx]) {
+      break;
+    }
+    nextMapX = curMapX + stepX;
+    if (nextMapX < 0 || nextMapX >= mapWidth) {
+      outOfMap = true;
+      break;
+    }
+    curMapX = nextMapX;
+    sideDistX += deltaDistX;
+    xMapOffs += stepX;
+    yMapOffs += stepX;
+  } else {
+    side = 1;
+    perpWallDist = sideDistY;
+    checkWallIdx = yMapOffs + yChkOff;
+    if (yMap[checkWallIdx]) {
+      break;
+    }
+    nextMapY = curMapY + stepY;
+    if (nextMapY < 0 || nextMapY >= mapHeight) {
+      outOfMap = true;
+      break;
+    }
+    curMapY = nextMapY;
+    sideDistY += deltaDistY;
+    yMapOffs += yStepYOffs;
+    xMapOffs += xStepYOffs;
+  }
+} while (--MAX_STEPS);
+
