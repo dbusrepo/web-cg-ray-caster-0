@@ -26,6 +26,7 @@ class Renderer {
   private spansFloorLY: Float32Array;
   private texturedFloor = false;
   private useWasm = false;
+  private vertFloor = false;
 
   constructor(raycaster: Raycaster) {
     this.raycaster = raycaster;
@@ -70,8 +71,20 @@ class Renderer {
     this.texturedFloor = texturedFloor;
   }
 
+  public get TexturedFloor(): boolean {
+    return this.texturedFloor;
+  }
+
   public set UseWasm(useWasm: boolean) {
     this.useWasm = useWasm;
+  }
+
+  public set VertFloor(vertFloor: boolean) {
+    this.vertFloor = vertFloor;
+  }
+
+  public get VertFloor(): boolean {
+    return this.vertFloor;
   }
 
   public renderBackground(color: number) {
@@ -926,15 +939,17 @@ class Renderer {
   }
 
   public render() {
-    if (this.useWasm) {
-      this.wasmEngineModule.render();
-    } else {
-      // this.renderViewFullVert();
+    // if (this.useWasm) {
+    //   this.wasmEngineModule.render();
+    // } else {
+    if (this.VertFloor) {
+      this.renderViewFullVert();
       // this.renderViewFullVert2();
+    } else {
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
-      // this.renderSprites(); // TODO:
     }
+    // this.renderSprites(); // TODO:
   }
 }
 

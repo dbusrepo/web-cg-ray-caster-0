@@ -1107,6 +1107,9 @@ for (; framePtr < frameLimitPtr; framePtr += frameStride) {
   // framePtr += frameStride;
 }
 
+// TODO: horz floor casting gives out bounds with rayDirX. check
+// const cameraX = (2 * x) / (vpWidth - 1) - 1;
+
 // wallX -= Math.floor(wallX);
 // wallX %= 1;
 // wallX -= wallX | 0;
@@ -1156,3 +1159,15 @@ do {
   }
 } while (--MAX_STEPS);
 
+if (this.renderer.TexturedFloor && this.renderer.VertFloor) {
+  if (side === 0) {
+    floorWallY = this.curMapPos[1] + wallX;
+    floorWallX = this.curMapPos[0] + this.checkWallIdxOffs[0];
+  } else {
+    floorWallX = this.curMapPos[0] + wallX;
+    floorWallY =
+      this.curMapPos[1] + this.checkWallIdxOffs[1] / this.yWallMapWidth;
+  }
+  wallSlice.FloorWallX = floorWallX;
+  wallSlice.FloorWallY = floorWallY;
+}

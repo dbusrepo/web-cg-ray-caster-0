@@ -120,11 +120,12 @@ class Raycaster {
   private step = new Int32Array(2);
   private mapOffs = new Int32Array(2);
   private checkWallIdxOffs = new Int32Array(2);
+  private checkWallIdxOffsDivFactor = new Int32Array(2);
   private curMapPos = new Int32Array(2);
   private wallMaps = new Array<Uint8Array>(2);
   private mapLimits = new Int32Array(2);
   private mapIncOffs = new Int32Array(4);
-  private floorWall = new Int32Array(2);
+  private floorWall = new Float32Array(2);
 
   // private _2float: Float32Array;
   // private _2u32: Uint32Array;
@@ -445,6 +446,27 @@ class Raycaster {
       PlaneX: planeX,
       PlaneY: planeY,
     } = this.player;
+    const {
+      pos,
+      wallMaps,
+      mapLimits,
+      rayDir,
+      deltaDist,
+      step,
+      checkWallIdxOffs,
+      checkWallIdxOffsDivFactor,
+      mapIncOffs,
+      xWallMapWidth,
+      yWallMapWidth,
+      curMapPos,
+      mapOffs,
+      sideDist,
+      zBuffer,
+      floorWall,
+      textures,
+      wallSlices,
+      WallHeight: wallHeight,
+    } = this;
 
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
     assert(posY >= 0 && posY < mapHeight, 'posY out of map bounds');
@@ -453,9 +475,6 @@ class Raycaster {
 
     const mapX = posX | 0;
     const mapY = posY | 0;
-
-    const mapOffsX = mapY * this.xWallMapWidth + posX;
-    const mapOffsY = mapY * this.yWallMapWidth + posX;
 
     const cellX = posX - mapX;
     const cellY = posY - mapY;
@@ -466,93 +485,88 @@ class Raycaster {
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
 
-    const { wallSlices, WallHeight: wallHeight } = this;
+    const texturedVertFloor =
+      this.renderer.TexturedFloor && this.renderer.VertFloor;
 
-    this.pos[0] = posX;
-    this.pos[1] = posY;
-    this.wallMaps[0] = xMap;
-    this.wallMaps[1] = yMap;
-    this.mapLimits[0] = mapWidth;
-    this.mapLimits[1] = mapHeight;
+    pos[0] = posX;
+    pos[1] = posY;
+    wallMaps[0] = xMap;
+    wallMaps[1] = yMap;
+    mapLimits[0] = mapWidth;
+    mapLimits[1] = mapHeight;
+
+    const mapOffsX = mapY * xWallMapWidth + posX;
+    const mapOffsY = mapY * yWallMapWidth + posX;
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
 
-      // TODO: horz floor casting gives out bounds with rayDirX. check
-      // const cameraX = (2 * x) / (vpWidth - 1) - 1;
+      rayDir[0] = dirX + planeX * cameraX;
+      rayDir[1] = dirY + planeY * cameraX;
+      deltaDist[0] = 1 / Math.abs(rayDir[0]);
+      deltaDist[1] = 1 / Math.abs(rayDir[1]);
 
-      this.rayDir[0] = dirX + planeX * cameraX;
-      this.rayDir[1] = dirY + planeY * cameraX;
-      this.deltaDist[0] = 1 / Math.abs(this.rayDir[0]);
-      this.deltaDist[1] = 1 / Math.abs(this.rayDir[1]);
-
-      if (this.rayDir[0] < 0) {
-        this.step[0] = -1;
-        this.checkWallIdxOffs[0] = 0;
-        this.sideDist[0] = cellX * this.deltaDist[0];
+      if (rayDir[0] < 0) {
+        step[0] = -1;
+        checkWallIdxOffs[0] = 0;
+        sideDist[0] = cellX * deltaDist[0];
       } else {
-        this.step[0] = 1;
-        this.checkWallIdxOffs[0] = 1;
-        this.sideDist[0] = (1.0 - cellX) * this.deltaDist[0];
+        step[0] = 1;
+        checkWallIdxOffs[0] = 1;
+        sideDist[0] = (1.0 - cellX) * deltaDist[0];
       }
 
-      this.mapIncOffs[0] = this.mapIncOffs[1] = this.step[0];
+      mapIncOffs[0] = mapIncOffs[1] = step[0];
+      checkWallIdxOffsDivFactor[0] = 1;
 
-      if (this.rayDir[1] < 0) {
-        this.step[1] = -1;
-        this.mapIncOffs[2] = -this.xWallMapWidth;
-        this.mapIncOffs[3] = -this.yWallMapWidth;
-        this.checkWallIdxOffs[1] = 0;
-        this.sideDist[1] = cellY * this.deltaDist[1];
+      if (rayDir[1] < 0) {
+        step[1] = -1;
+        mapIncOffs[2] = -xWallMapWidth;
+        mapIncOffs[3] = -yWallMapWidth;
+        checkWallIdxOffs[1] = 0;
+        checkWallIdxOffsDivFactor[1] = 1;
+        sideDist[1] = cellY * deltaDist[1];
       } else {
-        this.step[1] = 1;
-        this.mapIncOffs[2] = this.xWallMapWidth;
-        this.mapIncOffs[3] = this.yWallMapWidth;
-        this.checkWallIdxOffs[1] = this.yWallMapWidth;
-        this.sideDist[1] = (1.0 - cellY) * this.deltaDist[1];
+        step[1] = 1;
+        mapIncOffs[2] = xWallMapWidth;
+        mapIncOffs[3] = yWallMapWidth;
+        checkWallIdxOffs[1] = yWallMapWidth;
+        checkWallIdxOffsDivFactor[1] = yWallMapWidth;
+        sideDist[1] = (1.0 - cellY) * deltaDist[1];
       }
 
-      // const curMapX = mapX; // TODO: Remove
-      // const curMapY = mapY;
-
-      this.curMapPos[0] = mapX;
-      this.curMapPos[1] = mapY;
-      this.mapOffs[0] = mapOffsX;
-      this.mapOffs[1] = mapOffsY;
+      curMapPos[0] = mapX;
+      curMapPos[1] = mapY;
+      mapOffs[0] = mapOffsX;
+      mapOffs[1] = mapOffsY;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
       let outOfMap = false;
-
       let checkWallIdx;
       let side;
 
       do {
-        side = this.sideDist[0] < this.sideDist[1] ? 0 : 1;
-        checkWallIdx = this.mapOffs[side] + this.checkWallIdxOffs[side];
-        if (this.wallMaps[side][checkWallIdx]) {
+        side = sideDist[0] < sideDist[1] ? 0 : 1;
+        checkWallIdx = mapOffs[side] + checkWallIdxOffs[side];
+        if (wallMaps[side][checkWallIdx]) {
           // wall found
-          perpWallDist = this.sideDist[side];
+          perpWallDist = sideDist[side];
           break;
         }
-        const nextPos = this.curMapPos[side] + this.step[side];
-        if (nextPos < 0 || nextPos >= this.mapLimits[side]) {
+        const nextPos = curMapPos[side] + step[side];
+        if (nextPos < 0 || nextPos >= mapLimits[side]) {
           outOfMap = true;
           break;
         }
-        this.curMapPos[side] = nextPos;
-        this.sideDist[side] += this.deltaDist[side];
-        this.mapOffs[side] += this.mapIncOffs[(side << 1) + side];
-        this.mapOffs[side ^ 1] += this.mapIncOffs[(side << 1) + (side ^ 1)];
+        curMapPos[side] = nextPos;
+        sideDist[side] += deltaDist[side];
+        mapOffs[side] += mapIncOffs[(side << 1) + side];
+        mapOffs[side ^ 1] += mapIncOffs[(side << 1) + (side ^ 1)];
       } while (--MAX_STEPS);
 
-      const isXside = side === 0;
-
-      this.zBuffer[x] = perpWallDist;
-
-      if (perpWallDist > maxWallDistance) {
-        maxWallDistance = perpWallDist;
-      }
+      zBuffer[x] = perpWallDist;
+      maxWallDistance = Math.max(maxWallDistance, perpWallDist);
 
       const ratio = 1 / perpWallDist;
       let wallBottom = (projYcenter + posZ * ratio) | 0;
@@ -563,7 +577,6 @@ class Raycaster {
       const clipTop = Math.max(0, -wallTop);
       wallTop += clipTop; // wallTop = Math.max(0, wallTop);
       wallBottom = Math.min(wallBottom, vpHeight - 1);
-
       // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
       const wallSlice = wallSlices[x];
@@ -577,41 +590,29 @@ class Raycaster {
       minWallBottom = Math.min(minWallBottom, wallBottom);
       maxWallBottom = Math.max(maxWallBottom, wallBottom);
 
-      // floorWallX, floorWallY are used only for vert floor/ceil rend
-      let floorWallX;
-      let floorWallY;
-
-      const mapWallX =
-        this.pos[side ^ 1] + perpWallDist * this.rayDir[side ^ 1];
+      const mapWallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
       const wallX = mapWallX - (mapWallX | 0);
 
-      if (this.renderer.TexturedFloor && this.renderer.VertFloor) {
-        this.floorWall[side ^ 1] = this.curMapPos[side ^ 1] + wallX;
-        let floorWallXOffs = this.checkWallIdxOffs[side];
-        if (!isXside) {
-          floorWallXOffs /= this.yWallMapWidth;
-        }
-        this.floorWall[side] = this.curMapPos[side] + floorWallXOffs;
-        wallSlice.FloorWallX = this.floorWall[0];
-        wallSlice.FloorWallY = this.floorWall[1];
+      if (texturedVertFloor) {
+        floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
+        const floorWallXOffs =
+          checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
+        floorWall[side] = curMapPos[side] + floorWallXOffs;
+        wallSlice.FloorWallX = floorWall[0];
+        wallSlice.FloorWallY = floorWall[1];
       }
-
 
       if (outOfMap || MAX_STEPS <= 0) {
         wallSlice.Hit = 0;
-        // console.log('MAX_STEPS exceeded');
-        // console.log('no hit');
-        // break; // TODO:
-        // continue loopCol;
         continue;
       }
 
       wallSlice.Hit = 1;
 
-      const texIdx = this.wallMaps[side][checkWallIdx] - 1;
+      const texIdx = wallMaps[side][checkWallIdx] - 1;
       // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
-      const tex = this.textures[texIdx];
+      const tex = textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
 
       const {
@@ -620,16 +621,12 @@ class Raycaster {
         // Lg2Pitch: lg2Pitch,
       } = mipmap.Image;
 
-      let texX = (wallX * texWidth) | 0;
-
-      const flipTexX = this.rayDir[side] > 0;
-      if (flipTexX) {
-        texX = texWidth - texX - 1;
-      }
+      const flipTexX = side === 0 ? rayDir[0] > 0 : rayDir[1] < 0;
+      const srcTexX = (wallX * texWidth) | 0;
+      const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
       // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
       const texStepY = texHeight / wallSliceProjHeight;
-
       const texY = clipTop * texStepY;
 
       wallSlice.Height = wallSliceProjHeight;
@@ -649,9 +646,7 @@ class Raycaster {
     this.MaxWallBottom = maxWallBottom;
 
     this.processSprites();
-
     this.renderer.render();
-
     this.postRender();
   }
 

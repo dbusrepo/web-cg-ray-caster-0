@@ -23,11 +23,11 @@ const panelConfig = {
   // canvasWidth: 640,
   // canvasHeight: 480,
 
-  canvasWidth: 800,
-  canvasHeight: 600,
+  // canvasWidth: 800,
+  // canvasHeight: 600,
 
-  // canvasWidth: 1024,
-  // canvasHeight: 768,
+  canvasWidth: 1024,
+  canvasHeight: 768,
 
   // canvasWidth: 1280,
   // canvasHeight: 1024,
@@ -43,6 +43,9 @@ const panelConfig = {
 
   // canvasDisplayWidthWinMode: 512,
   // canvasDisplayHeightWinMode: 384,
+
+  // canvasDisplayWidthWinMode: 640,
+  // canvasDisplayHeightWinMode: 480,
 
   // canvasDisplayWidthWinMode: 800,
   // canvasDisplayHeightWinMode: 600,
