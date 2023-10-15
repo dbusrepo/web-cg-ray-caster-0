@@ -119,7 +119,7 @@ class Raycaster {
   private deltaDist = new Float32Array(2);
   private step = new Int32Array(2);
   private wallMapOffs = new Int32Array(2);
-  private wallMapIncOffs = new Int32Array(4);
+  private wallMapIncOffs = new Int32Array(3);
   private checkWallIdxOffs = new Int32Array(2);
   private checkWallIdxOffsDivFactor = new Int32Array(2);
   private curMapPos = new Int32Array(2);
@@ -525,19 +525,19 @@ class Raycaster {
       }
 
       checkWallIdxOffsDivFactor[X] = 1;
-      wallMapIncOffs[0] = wallMapIncOffs[1] = step[X];
+      wallMapIncOffs[0] = step[X];
 
       if (rayDir[Y] < 0) {
         step[Y] = -1;
+        wallMapIncOffs[1] = -yWallMapWidth;
         wallMapIncOffs[2] = -xWallMapWidth;
-        wallMapIncOffs[3] = -yWallMapWidth;
         checkWallIdxOffs[Y] = 0;
         checkWallIdxOffsDivFactor[Y] = 1;
         sideDist[Y] = cellY * deltaDist[Y];
       } else {
         step[Y] = 1;
+        wallMapIncOffs[1] = yWallMapWidth;
         wallMapIncOffs[2] = xWallMapWidth;
-        wallMapIncOffs[3] = yWallMapWidth;
         checkWallIdxOffs[Y] = yWallMapWidth;
         checkWallIdxOffsDivFactor[Y] = yWallMapWidth;
         sideDist[Y] = (1.0 - cellY) * deltaDist[Y];
@@ -566,8 +566,8 @@ class Raycaster {
           }
           curMapPos[side] = nextPos;
           sideDist[side] += deltaDist[side];
-          wallMapOffs[side] += wallMapIncOffs[(side << 1) + side];
-          wallMapOffs[side ^ 1] += wallMapIncOffs[(side << 1) + (side ^ 1)];
+          wallMapOffs[side] += wallMapIncOffs[side];
+          wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
         } else {
           perpWallDist = sideDist[side];
           break;
