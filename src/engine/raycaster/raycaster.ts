@@ -118,13 +118,13 @@ class Raycaster {
   private sideDist = new Float32Array(2);
   private deltaDist = new Float32Array(2);
   private step = new Int32Array(2);
-  private mapOffs = new Int32Array(2);
+  private wallMapOffs = new Int32Array(2);
+  private wallMapIncOffs = new Int32Array(4);
   private checkWallIdxOffs = new Int32Array(2);
   private checkWallIdxOffsDivFactor = new Int32Array(2);
   private curMapPos = new Int32Array(2);
   private wallMaps = new Array<Uint8Array>(2);
   private mapLimits = new Int32Array(2);
-  private mapIncOffs = new Int32Array(4);
   private floorWall = new Float32Array(2);
 
   // private _2float: Float32Array;
@@ -460,11 +460,11 @@ class Raycaster {
       step,
       checkWallIdxOffs,
       checkWallIdxOffsDivFactor,
-      mapIncOffs,
+      wallMapIncOffs,
       xWallMapWidth,
       yWallMapWidth,
       curMapPos,
-      mapOffs,
+      wallMapOffs,
       sideDist,
       wallZBuffer,
       floorWall,
@@ -525,19 +525,19 @@ class Raycaster {
       }
 
       checkWallIdxOffsDivFactor[X] = 1;
-      mapIncOffs[0] = mapIncOffs[1] = step[X];
+      wallMapIncOffs[0] = wallMapIncOffs[1] = step[X];
 
       if (rayDir[Y] < 0) {
         step[Y] = -1;
-        mapIncOffs[2] = -xWallMapWidth;
-        mapIncOffs[3] = -yWallMapWidth;
+        wallMapIncOffs[2] = -xWallMapWidth;
+        wallMapIncOffs[3] = -yWallMapWidth;
         checkWallIdxOffs[Y] = 0;
         checkWallIdxOffsDivFactor[Y] = 1;
         sideDist[Y] = cellY * deltaDist[Y];
       } else {
         step[Y] = 1;
-        mapIncOffs[2] = xWallMapWidth;
-        mapIncOffs[3] = yWallMapWidth;
+        wallMapIncOffs[2] = xWallMapWidth;
+        wallMapIncOffs[3] = yWallMapWidth;
         checkWallIdxOffs[Y] = yWallMapWidth;
         checkWallIdxOffsDivFactor[Y] = yWallMapWidth;
         sideDist[Y] = (1.0 - cellY) * deltaDist[Y];
@@ -545,8 +545,8 @@ class Raycaster {
 
       curMapPos[X] = mapX;
       curMapPos[Y] = mapY;
-      mapOffs[X] = mapOffsX;
-      mapOffs[Y] = mapOffsY;
+      wallMapOffs[X] = mapOffsX;
+      wallMapOffs[Y] = mapOffsY;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
@@ -556,7 +556,7 @@ class Raycaster {
 
       do {
         side = sideDist[X] < sideDist[Y] ? X : Y;
-        checkWallIdx = mapOffs[side] + checkWallIdxOffs[side];
+        checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
         const wallCode = wallMaps[side][checkWallIdx];
         if (!wallCode) {
           const nextPos = curMapPos[side] + step[side];
@@ -566,8 +566,8 @@ class Raycaster {
           }
           curMapPos[side] = nextPos;
           sideDist[side] += deltaDist[side];
-          mapOffs[side] += mapIncOffs[(side << 1) + side];
-          mapOffs[side ^ 1] += mapIncOffs[(side << 1) + (side ^ 1)];
+          wallMapOffs[side] += wallMapIncOffs[(side << 1) + side];
+          wallMapOffs[side ^ 1] += wallMapIncOffs[(side << 1) + (side ^ 1)];
         } else {
           perpWallDist = sideDist[side];
           break;
