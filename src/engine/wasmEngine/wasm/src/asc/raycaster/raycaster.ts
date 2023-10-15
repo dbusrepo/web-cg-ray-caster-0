@@ -48,8 +48,8 @@ import { RaycasterParams } from './raycasterParams';
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
   private wallSlices: SArray<Slice>;
-  private transpSlices: SArray<Ref<Slice>>;
   private zBuffer: SArray<f32>;
+  private transpSlices: SArray<Ref<Slice>>;
   private wallHeight: u32;
   private player: Player;
   private map: Map;
@@ -413,11 +413,11 @@ function allocSlice(): PTR_T {
 export {
   Raycaster,
   newRaycaster,
+  allocZBuffer,
   getBorderColorPtr,
   getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
-  allocZBuffer,
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,

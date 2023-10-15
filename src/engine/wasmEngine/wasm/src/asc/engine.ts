@@ -188,7 +188,7 @@ function initData(): void {
   }
 }
 
-function initMap(mapWidth: i32, mapHeight: i32): void {
+function allocMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
   raycaster.Map = map;
 }
@@ -249,7 +249,7 @@ export {
   render,
   run,
 
-  initMap,
+  allocMap,
 
   getRaycasterPtr,
   getBorderColorPtr,

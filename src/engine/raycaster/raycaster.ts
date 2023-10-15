@@ -339,10 +339,14 @@ class Raycaster {
   }
 
   public initMap() {
-    this.mapWidth = 10;
-    this.mapHeight = 10;
+    // TODO:
+    const MAP_WIDTH = 10;
+    const MAP_HEIGHT = 10;
 
-    this.wasmEngineModule.initMap(this.mapWidth, this.mapHeight);
+    this.mapWidth = MAP_WIDTH;
+    this.mapHeight = MAP_HEIGHT;
+
+    this.wasmEngineModule.allocMap(this.mapWidth, this.mapHeight);
 
     this.initWallMap();
     this.initFloorMap();
@@ -551,20 +555,21 @@ class Raycaster {
       do {
         side = sideDist[X] < sideDist[Y] ? X : Y;
         checkWallIdx = mapOffs[side] + checkWallIdxOffs[side];
-        if (wallMaps[side][checkWallIdx]) {
-          // wall found
+        const wallCode = wallMaps[side][checkWallIdx];
+        if (!wallCode) {
+          const nextPos = curMapPos[side] + step[side];
+          if (nextPos < 0 || nextPos >= mapLimits[side]) {
+            outOfMap = true;
+            break;
+          }
+          curMapPos[side] = nextPos;
+          sideDist[side] += deltaDist[side];
+          mapOffs[side] += mapIncOffs[(side << 1) + side];
+          mapOffs[side ^ 1] += mapIncOffs[(side << 1) + (side ^ 1)];
+        } else {
           perpWallDist = sideDist[side];
           break;
         }
-        const nextPos = curMapPos[side] + step[side];
-        if (nextPos < 0 || nextPos >= mapLimits[side]) {
-          outOfMap = true;
-          break;
-        }
-        curMapPos[side] = nextPos;
-        sideDist[side] += deltaDist[side];
-        mapOffs[side] += mapIncOffs[(side << 1) + side];
-        mapOffs[side ^ 1] += mapIncOffs[(side << 1) + (side ^ 1)];
       } while (--MAX_STEPS);
 
       zBuffer[x] = perpWallDist;
