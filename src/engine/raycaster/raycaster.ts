@@ -328,6 +328,7 @@ class Raycaster {
     return tex;
   }
 
+  // TODO:
   private genDarkWallTextures() {
     const wallTexKeysArr = Object.values(darkWallTexKeys);
     for (let i = 0; i < wallTexKeysArr.length; i++) {
@@ -596,8 +597,7 @@ class Raycaster {
         const floorWallXOffs =
           checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
         floorWall[side] = curMapPos[side] + floorWallXOffs;
-        wallSlice.FloorWallX = floorWall[0];
-        wallSlice.FloorWallY = floorWall[1];
+        [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
       }
 
       if (outOfMap || MAX_STEPS <= 0) {
