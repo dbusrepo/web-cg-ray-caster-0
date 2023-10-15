@@ -113,6 +113,14 @@ class Raycaster {
   private renderer: Renderer;
 
   // vars used in main raycasting loop
+  private iStep = new Int32Array(2);
+  private iSideDistX = new Float32Array(2);
+  private iSideDistY = new Float32Array(2);
+  private iCheckWallIdxOffsX = new Int32Array(2);
+  private iCheckWallIdxOffsY = new Int32Array(2);
+  private iWallMapIncOffsX = new Int32Array(2);
+  private iWallMapIncOffsY = new Int32Array(2);
+
   private pos = new Float32Array(2);
   private rayDir = new Float32Array(2);
   private sideDist = new Float32Array(2);
@@ -471,6 +479,13 @@ class Raycaster {
       textures,
       wallSlices,
       WallHeight: wallHeight,
+      iStep,
+      iSideDistX,
+      iSideDistY,
+      iCheckWallIdxOffsX, 
+      iCheckWallIdxOffsY, 
+      iWallMapIncOffsX,
+      iWallMapIncOffsY,
     } = this;
 
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
@@ -495,6 +510,24 @@ class Raycaster {
     let maxWallTop = -1;
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
+
+    const P = 0; 
+    const N = 1;
+
+    iStep[N] = -1;
+    iStep[P] = 1;
+    iSideDistX[N] = cellX;
+    iSideDistX[P] = 1.0 - cellX;
+    iSideDistY[N] = cellY;
+    iSideDistY[P] = 1.0 - cellY;
+    iCheckWallIdxOffsX[N] = 0;
+    iCheckWallIdxOffsX[P] = 1;
+    iCheckWallIdxOffsY[N] = 0;
+    iCheckWallIdxOffsY[P] = yWallMapWidth;
+    iWallMapIncOffsX[N] = -xWallMapWidth;
+    iWallMapIncOffsX[P] = xWallMapWidth;
+    iWallMapIncOffsY[N] = -yWallMapWidth;
+    iWallMapIncOffsY[P] = yWallMapWidth;
 
     const X = 0;
     const Y = 1;
