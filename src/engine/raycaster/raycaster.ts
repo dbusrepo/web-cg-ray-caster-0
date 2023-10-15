@@ -436,6 +436,10 @@ class Raycaster {
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
+  private isTranspWall(wallCode: number) {
+    return false;
+  }
+
   private preRender() {
     this.freeTranspSlices();
     this.frameIdx++;
@@ -568,99 +572,113 @@ class Raycaster {
       wallMapOffs[Y] = mapOffsY;
 
       const wallSlice = wallSlices[x];
+      wallSlice.Hit = 0;
+
       let steps = MAX_RAY_STEPS;
-      let perpWallDist = 0.0;
-      let checkWallIdx;
-      let side;
 
       for (;;) {
-        side = sideDist[X] < sideDist[Y] ? X : Y;
-        checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
-        const wallCode = wallMaps[side][checkWallIdx];
-        let insideMap = true;
+        const side = sideDist[X] < sideDist[Y] ? X : Y;
+        const checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
+        const wallMap = wallMaps[side];
+        const wallCode = wallMap[checkWallIdx];
+        let isRayValid = true;
         if (!wallCode) {
           const nextPos = curMapPos[side] + step[side];
-          insideMap = nextPos >= 0 && nextPos < mapLimits[side];
-          if (insideMap) {
+          const isInsideMap = nextPos >= 0 && nextPos < mapLimits[side];
+          isRayValid = isInsideMap && steps > 0;
+          if (isRayValid) {
             curMapPos[side] = nextPos;
             sideDist[side] += deltaDist[side];
             wallMapOffs[side] += wallMapIncOffs[side];
             wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+            steps--;
             continue;
           }
         }
-        perpWallDist = sideDist[side];
-        wallSlice.Hit = +insideMap;
+        const perpWallDist = sideDist[side];
+        const mapWallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
+        const wallX = mapWallX % 1;
+        const ratio = 1 / perpWallDist;
+        const wallSliceProjHeight = (wallHeight * ratio) | 0;
+        const srcWallBottom = (projYcenter + posZ * ratio) | 0;
+        const srcWallTop = srcWallBottom - wallSliceProjHeight + 1;
+        // const sliceHeight = srcWallBottom - srcWallTop + 1;
+
+        const clipTop = Math.max(0, -srcWallTop);
+        const wallTop = Math.max(0, srcWallTop); // wallTop = srcWallTop + clipTop;
+        const wallBottom = Math.min(srcWallBottom, vpHeight - 1);
+        // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
+
+        const isTranspWall = this.isTranspWall(wallCode);
+
+        let slice;
+
+        if (isTranspWall) {
+          slice = newSliceView(this.wasmEngineModule);
+          // TODO:
+        } else {
+          // solid wall or map edge/max steps reached
+          slice = wallSlice;
+          wallZBuffer[x] = perpWallDist;
+          maxWallDistance = Math.max(maxWallDistance, perpWallDist);
+          minWallTop = Math.min(minWallTop, wallTop);
+          maxWallTop = Math.max(maxWallTop, wallTop);
+          minWallBottom = Math.min(minWallBottom, wallBottom);
+          maxWallBottom = Math.max(maxWallBottom, wallBottom);
+          if (texturedVertFloor) {
+            floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
+            const floorWallXOffs =
+              checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
+            floorWall[side] = curMapPos[side] + floorWallXOffs;
+            [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
+          }
+        }
+
+        slice.Side = side;
+        slice.Distance = perpWallDist;
+        slice.Height = wallSliceProjHeight;
+        slice.ClipTop = clipTop;
+        slice.Top = wallTop;
+        slice.Bottom = wallBottom;
+
+        if (isRayValid) {
+          const texIdx = wallMap[checkWallIdx] - 1;
+          // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
+
+          const tex = textures[texIdx];
+          const mipmap = tex.getMipmap(0); // TODO:
+
+          const {
+            Width: texWidth,
+            Height: texHeight,
+            // Lg2Pitch: lg2Pitch,
+          } = mipmap.Image;
+
+          const srcTexX = (wallX * texWidth) | 0;
+          const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
+          const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
+          // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
+
+          const texStepY = texHeight / wallSliceProjHeight;
+          const texY = clipTop * texStepY;
+
+          slice.TexX = texX;
+          slice.TexStepY = texStepY;
+          slice.TexY = texY;
+          slice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
+          slice.Mipmap = mipmap.Image; // used in render ts
+
+          if (isTranspWall) {
+            continue;
+          }
+
+          // solid wall
+          wallSlice.Hit = 1;
+        }
+
+        // solid wall or map edge/max steps reached
         break;
       }
-
-      wallZBuffer[x] = perpWallDist;
-      maxWallDistance = Math.max(maxWallDistance, perpWallDist);
-
-      const ratio = 1 / perpWallDist;
-      let wallBottom = (projYcenter + posZ * ratio) | 0;
-      const wallSliceProjHeight = (wallHeight * ratio) | 0;
-      let wallTop = wallBottom - wallSliceProjHeight + 1;
-      // const sliceHeight = wallBottom - wallTop + 1;
-
-      const clipTop = Math.max(0, -wallTop);
-      wallTop += clipTop; // wallTop = Math.max(0, wallTop);
-      wallBottom = Math.min(wallBottom, vpHeight - 1);
-      // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
-
-      wallSlice.Distance = perpWallDist;
-      wallSlice.Top = wallTop;
-      wallSlice.Bottom = wallBottom;
-      wallSlice.Side = side;
-
-      minWallTop = Math.min(minWallTop, wallTop);
-      maxWallTop = Math.max(maxWallTop, wallTop);
-      minWallBottom = Math.min(minWallBottom, wallBottom);
-      maxWallBottom = Math.max(maxWallBottom, wallBottom);
-
-      const mapWallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
-      const wallX = mapWallX - (mapWallX | 0);
-
-      if (texturedVertFloor) {
-        floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
-        const floorWallXOffs =
-          checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
-        floorWall[side] = curMapPos[side] + floorWallXOffs;
-        [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
-      }
-
-      if (!wallSlice.Hit) {
-        continue;
-      }
-
-      const texIdx = wallMaps[side][checkWallIdx] - 1;
-      // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
-
-      const tex = textures[texIdx];
-      const mipmap = tex.getMipmap(0); // TODO:
-
-      const {
-        Width: texWidth,
-        Height: texHeight,
-        // Lg2Pitch: lg2Pitch,
-      } = mipmap.Image;
-
-      const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
-      const srcTexX = (wallX * texWidth) | 0;
-      const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
-      // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
-
-      const texStepY = texHeight / wallSliceProjHeight;
-      const texY = clipTop * texStepY;
-
-      wallSlice.Height = wallSliceProjHeight;
-      wallSlice.ClipTop = clipTop;
-
-      wallSlice.TexX = texX;
-      wallSlice.TexStepY = texStepY;
-      wallSlice.TexY = texY;
-      wallSlice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
-      wallSlice.Mipmap = mipmap.Image; // used in render ts
     }
 
     this.MaxWallDistance = maxWallDistance;
