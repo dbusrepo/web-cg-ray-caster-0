@@ -118,8 +118,7 @@ class Raycaster {
   private iSideDistY = new Float32Array(2);
   private iCheckWallIdxOffsX = new Int32Array(2);
   private iCheckWallIdxOffsY = new Int32Array(2);
-  private iWallMapIncOffsX = new Int32Array(2);
-  private iWallMapIncOffsY = new Int32Array(2);
+  private iCheckWallIdxOffsDivFactorY = new Int32Array(2);
 
   private pos = new Float32Array(2);
   private rayDir = new Float32Array(2);
@@ -482,10 +481,9 @@ class Raycaster {
       iStep,
       iSideDistX,
       iSideDistY,
-      iCheckWallIdxOffsX, 
-      iCheckWallIdxOffsY, 
-      iWallMapIncOffsX,
-      iWallMapIncOffsY,
+      iCheckWallIdxOffsX,
+      iCheckWallIdxOffsY,
+      iCheckWallIdxOffsDivFactorY,
     } = this;
 
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
@@ -524,10 +522,8 @@ class Raycaster {
     iCheckWallIdxOffsX[P] = 1;
     iCheckWallIdxOffsY[N] = 0;
     iCheckWallIdxOffsY[P] = yWallMapWidth;
-    iWallMapIncOffsX[N] = -xWallMapWidth;
-    iWallMapIncOffsX[P] = xWallMapWidth;
-    iWallMapIncOffsY[N] = -yWallMapWidth;
-    iWallMapIncOffsY[P] = yWallMapWidth;
+    iCheckWallIdxOffsDivFactorY[N] = 1;
+    iCheckWallIdxOffsDivFactorY[P] = yWallMapWidth;
 
     const X = 0;
     const Y = 1;
@@ -544,37 +540,25 @@ class Raycaster {
 
       rayDir[X] = dirX + planeX * cameraX;
       rayDir[Y] = dirY + planeY * cameraX;
-      deltaDist[X] = 1 / Math.abs(rayDir[X]);
-      deltaDist[Y] = 1 / Math.abs(rayDir[Y]);
 
-      if (rayDir[X] < 0) {
-        step[X] = -1;
-        checkWallIdxOffs[X] = 0;
-        sideDist[X] = cellX * deltaDist[X];
-      } else {
-        step[X] = 1;
-        checkWallIdxOffs[X] = 1;
-        sideDist[X] = (1.0 - cellX) * deltaDist[X];
-      }
+      const sX = rayDir[X] < 0 ? N : P;
+      const sY = rayDir[Y] < 0 ? N : P;
 
+      step[X] = iStep[sX];
+      deltaDist[X] = iStep[sX] / rayDir[X];
+      sideDist[X] = iSideDistX[sX] * deltaDist[X];
+      checkWallIdxOffs[X] = iCheckWallIdxOffsX[sX];
       checkWallIdxOffsDivFactor[X] = 1;
-      wallMapIncOffs[0] = step[X];
 
-      if (rayDir[Y] < 0) {
-        step[Y] = -1;
-        wallMapIncOffs[1] = -yWallMapWidth;
-        wallMapIncOffs[2] = -xWallMapWidth;
-        checkWallIdxOffs[Y] = 0;
-        checkWallIdxOffsDivFactor[Y] = 1;
-        sideDist[Y] = cellY * deltaDist[Y];
-      } else {
-        step[Y] = 1;
-        wallMapIncOffs[1] = yWallMapWidth;
-        wallMapIncOffs[2] = xWallMapWidth;
-        checkWallIdxOffs[Y] = yWallMapWidth;
-        checkWallIdxOffsDivFactor[Y] = yWallMapWidth;
-        sideDist[Y] = (1.0 - cellY) * deltaDist[Y];
-      }
+      step[Y] = iStep[sY];
+      deltaDist[Y] = iStep[sY] / rayDir[Y];
+      sideDist[Y] = iSideDistY[sY] * deltaDist[Y];
+      checkWallIdxOffs[Y] = iCheckWallIdxOffsY[sY];
+      checkWallIdxOffsDivFactor[Y] = iCheckWallIdxOffsDivFactorY[sY];
+
+      wallMapIncOffs[0] = step[X];
+      wallMapIncOffs[1] = step[Y] * yWallMapWidth;
+      wallMapIncOffs[2] = step[Y] * xWallMapWidth;
 
       curMapPos[X] = mapX;
       curMapPos[Y] = mapY;
