@@ -87,10 +87,10 @@ class Raycaster {
   private numViewSprites: number;
 
   private wallSlices: Slice[];
+  private wallZBuffer: Float32Array;
+
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlices: number;
-
-  private zBuffer: Float32Array;
 
   private mapWidth: number;
   private mapHeight: number;
@@ -166,7 +166,7 @@ class Raycaster {
     this.initTextures();
     this.initBorder();
     this.initViewport();
-    this.initZBuffer();
+    this.initWallZBuffer();
     this.initWallSlices();
     this.initTranspSlices();
 
@@ -274,12 +274,14 @@ class Raycaster {
   // private initBorderColor() {
   // }
 
-  private initZBuffer() {
-    const zBufferPtr = this.wasmEngineModule.allocZBuffer(this.raycasterPtr);
+  private initWallZBuffer() {
+    const wallZBufferPtr = this.wasmEngineModule.allocWallZBuffer(
+      this.raycasterPtr,
+    );
     assert(this.viewport, 'viewport not initialized');
-    this.zBuffer = new Float32Array(
+    this.wallZBuffer = new Float32Array(
       this.wasmRun.WasmMem.buffer,
-      zBufferPtr,
+      wallZBufferPtr,
       this.viewport.Width,
     );
   }
@@ -464,7 +466,7 @@ class Raycaster {
       curMapPos,
       mapOffs,
       sideDist,
-      zBuffer,
+      wallZBuffer,
       floorWall,
       textures,
       wallSlices,
@@ -572,7 +574,7 @@ class Raycaster {
         }
       } while (--MAX_STEPS);
 
-      zBuffer[x] = perpWallDist;
+      wallZBuffer[x] = perpWallDist;
       maxWallDistance = Math.max(maxWallDistance, perpWallDist);
 
       const ratio = 1 / perpWallDist;
@@ -657,8 +659,15 @@ class Raycaster {
   }
 
   private processSprites(): void {
-    const { sprites } = this;
-    const { player } = this;
+    const {
+      sprites,
+      player,
+      WallHeight,
+      wallZBuffer,
+      viewSprites,
+      textures,
+      ProjYCenter: projYCenter,
+    } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
     const { PlaneX: playerPlaneX, PlaneY: playerPlaneY } = player;
@@ -670,7 +679,7 @@ class Raycaster {
     const minDist = MIN_SPRITE_DIST;
     const maxDist = Math.min(this.MaxWallDistance, MAX_SPRITE_DIST);
 
-    this.numViewSprites = 0;
+    let numViewSprites = 0;
 
     for (let i = 0; i < sprites.length; i++) {
       const sprite = sprites[i];
@@ -694,7 +703,7 @@ class Raycaster {
       const tX = invDet * (playerDirY * spriteX - playerDirX * spriteY);
       const invTy = 1.0 / tY;
 
-      const spriteHeight = (this.WallHeight * invTy) | 0;
+      const spriteHeight = (WallHeight * invTy) | 0;
       const spriteWidth = spriteHeight;
 
       const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;
@@ -720,7 +729,7 @@ class Raycaster {
       // sprite cols in [startX, endX)
 
       const dy = (playerZ - sprite.PosZ) * invTy;
-      let endY = (this.ProjYCenter + dy) | 0;
+      let endY = (projYCenter + dy) | 0;
 
       if (endY < 0) {
         continue;
@@ -744,7 +753,7 @@ class Raycaster {
 
       // occlusion test
       let x = startX;
-      for (; x < endX && this.zBuffer[x] < tY; x++);
+      for (; x < endX && wallZBuffer[x] < tY; x++);
 
       if (x === endX) {
         // sprite is occluded
@@ -752,7 +761,7 @@ class Raycaster {
       }
 
       const texIdx = sprite.TexIdx;
-      const tex = this.textures[texIdx];
+      const tex = textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
       const {
         Width: texWidth,
@@ -777,14 +786,16 @@ class Raycaster {
       sprite.TexStepY = texStepY;
 
       // insertion sort on viewSprites[1..numViewSprites) on descending distance
-      let j = this.numViewSprites++;
-      this.viewSprites[0] = sprite; // sentinel
+      let j = numViewSprites++;
+      viewSprites[0] = sprite; // sentinel
       const spriteDist = sprite.Distance; // get float dist value
-      for (; this.viewSprites[j].Distance < spriteDist; j--) {
-        this.viewSprites[j + 1] = this.viewSprites[j];
+      for (; viewSprites[j].Distance < spriteDist; j--) {
+        viewSprites[j + 1] = viewSprites[j];
       }
-      this.viewSprites[j + 1] = sprite;
+      viewSprites[j + 1] = sprite;
     }
+
+    this.numViewSprites = numViewSprites;
   }
 
   private updateTranspSliceArrayIdx(

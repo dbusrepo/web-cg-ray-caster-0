@@ -48,7 +48,7 @@ import { RaycasterParams } from './raycasterParams';
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
   private wallSlices: SArray<Slice>;
-  private zBuffer: SArray<f32>;
+  private wallZBuffer: SArray<f32>;
   private transpSlices: SArray<Ref<Slice>>;
   private wallHeight: u32;
   private player: Player;
@@ -141,12 +141,12 @@ import { RaycasterParams } from './raycasterParams';
     this.wallHeight = wallHeight;
   }
 
-  get ZBuffer(): SArray<f32> {
-    return this.zBuffer;
+  get WallZBuffer(): SArray<f32> {
+    return this.wallZBuffer;
   }
 
-  set ZBuffer(zBuffer: SArray<f32>) {
-    this.zBuffer = zBuffer;
+  set WallZBuffer(wallZBuffer: SArray<f32>) {
+    this.wallZBuffer = wallZBuffer;
   }
 
   get Sprites(): SArray<Sprite> {
@@ -256,10 +256,10 @@ function getRaycaster(raycasterPtr: PTR_T): Raycaster {
   return changetype<Raycaster>(raycasterPtr);
 }
 
-function allocZBuffer(raycasterPtr: PTR_T): PTR_T {
+function allocWallZBuffer(raycasterPtr: PTR_T): PTR_T {
   const raycaster = getRaycaster(raycasterPtr);
-  raycaster.ZBuffer = newSArray<f32>(raycaster.Viewport.Width);
-  return raycaster.ZBuffer.DataPtr;
+  raycaster.WallZBuffer = newSArray<f32>(raycaster.Viewport.Width);
+  return raycaster.WallZBuffer.DataPtr;
 }
 
 // function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
@@ -413,7 +413,7 @@ function allocSlice(): PTR_T {
 export {
   Raycaster,
   newRaycaster,
-  allocZBuffer,
+  allocWallZBuffer,
   getBorderColorPtr,
   getWallHeightPtr,
   getBorderWidthPtr,
