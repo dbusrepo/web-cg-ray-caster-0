@@ -470,6 +470,9 @@ class Raycaster {
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
     assert(posY >= 0 && posY < mapHeight, 'posY out of map bounds');
 
+    const texturedVertFloor =
+      this.renderer.TexturedFloor && this.renderer.VertFloor;
+
     const projYcenter = this.ProjYCenter;
 
     const mapX = posX | 0;
@@ -478,66 +481,66 @@ class Raycaster {
     const cellX = posX - mapX;
     const cellY = posY - mapY;
 
+    const mapOffsX = mapY * xWallMapWidth + posX;
+    const mapOffsY = mapY * yWallMapWidth + posX;
+
     let maxWallDistance = 0;
     let minWallTop = projYcenter;
     let maxWallTop = -1;
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
 
-    const texturedVertFloor =
-      this.renderer.TexturedFloor && this.renderer.VertFloor;
+    const X = 0;
+    const Y = 1;
 
-    pos[0] = posX;
-    pos[1] = posY;
-    wallMaps[0] = xMap;
-    wallMaps[1] = yMap;
-    mapLimits[0] = mapWidth;
-    mapLimits[1] = mapHeight;
-
-    const mapOffsX = mapY * xWallMapWidth + posX;
-    const mapOffsY = mapY * yWallMapWidth + posX;
+    pos[X] = posX;
+    pos[Y] = posY;
+    wallMaps[X] = xMap;
+    wallMaps[Y] = yMap;
+    mapLimits[X] = mapWidth;
+    mapLimits[Y] = mapHeight;
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
 
-      rayDir[0] = dirX + planeX * cameraX;
-      rayDir[1] = dirY + planeY * cameraX;
-      deltaDist[0] = 1 / Math.abs(rayDir[0]);
-      deltaDist[1] = 1 / Math.abs(rayDir[1]);
+      rayDir[X] = dirX + planeX * cameraX;
+      rayDir[Y] = dirY + planeY * cameraX;
+      deltaDist[X] = 1 / Math.abs(rayDir[X]);
+      deltaDist[Y] = 1 / Math.abs(rayDir[Y]);
 
-      if (rayDir[0] < 0) {
-        step[0] = -1;
-        checkWallIdxOffs[0] = 0;
-        sideDist[0] = cellX * deltaDist[0];
+      if (rayDir[X] < 0) {
+        step[X] = -1;
+        checkWallIdxOffs[X] = 0;
+        sideDist[X] = cellX * deltaDist[X];
       } else {
-        step[0] = 1;
-        checkWallIdxOffs[0] = 1;
-        sideDist[0] = (1.0 - cellX) * deltaDist[0];
+        step[X] = 1;
+        checkWallIdxOffs[X] = 1;
+        sideDist[X] = (1.0 - cellX) * deltaDist[X];
       }
 
-      mapIncOffs[0] = mapIncOffs[1] = step[0];
-      checkWallIdxOffsDivFactor[0] = 1;
+      checkWallIdxOffsDivFactor[X] = 1;
+      mapIncOffs[0] = mapIncOffs[1] = step[X];
 
-      if (rayDir[1] < 0) {
-        step[1] = -1;
+      if (rayDir[Y] < 0) {
+        step[Y] = -1;
         mapIncOffs[2] = -xWallMapWidth;
         mapIncOffs[3] = -yWallMapWidth;
-        checkWallIdxOffs[1] = 0;
-        checkWallIdxOffsDivFactor[1] = 1;
-        sideDist[1] = cellY * deltaDist[1];
+        checkWallIdxOffs[Y] = 0;
+        checkWallIdxOffsDivFactor[Y] = 1;
+        sideDist[Y] = cellY * deltaDist[Y];
       } else {
-        step[1] = 1;
+        step[Y] = 1;
         mapIncOffs[2] = xWallMapWidth;
         mapIncOffs[3] = yWallMapWidth;
-        checkWallIdxOffs[1] = yWallMapWidth;
-        checkWallIdxOffsDivFactor[1] = yWallMapWidth;
-        sideDist[1] = (1.0 - cellY) * deltaDist[1];
+        checkWallIdxOffs[Y] = yWallMapWidth;
+        checkWallIdxOffsDivFactor[Y] = yWallMapWidth;
+        sideDist[Y] = (1.0 - cellY) * deltaDist[Y];
       }
 
-      curMapPos[0] = mapX;
-      curMapPos[1] = mapY;
-      mapOffs[0] = mapOffsX;
-      mapOffs[1] = mapOffsY;
+      curMapPos[X] = mapX;
+      curMapPos[Y] = mapY;
+      mapOffs[X] = mapOffsX;
+      mapOffs[Y] = mapOffsY;
 
       let MAX_STEPS = 100; // TODO:
       let perpWallDist = 0.0;
@@ -546,7 +549,7 @@ class Raycaster {
       let side;
 
       do {
-        side = sideDist[0] < sideDist[1] ? 0 : 1;
+        side = sideDist[X] < sideDist[Y] ? X : Y;
         checkWallIdx = mapOffs[side] + checkWallIdxOffs[side];
         if (wallMaps[side][checkWallIdx]) {
           // wall found
@@ -619,7 +622,7 @@ class Raycaster {
         // Lg2Pitch: lg2Pitch,
       } = mipmap.Image;
 
-      const flipTexX = side === 0 ? rayDir[0] > 0 : rayDir[1] < 0;
+      const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
       const srcTexX = (wallX * texWidth) | 0;
       const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
       // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
