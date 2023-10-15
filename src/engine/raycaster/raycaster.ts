@@ -396,7 +396,7 @@ class Raycaster {
       this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
         tex.WallMapIdx;
     }
-    // this.xWallMap[0] = 0; // test hole
+    this.xWallMap[0] = 0; // test hole
 
     tex = this.findTex(wallTexKeys.BRICK1);
     this.xWallMap[4] = tex.WallMapIdx;
@@ -509,7 +509,7 @@ class Raycaster {
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
 
-    const P = 0; 
+    const P = 0;
     const N = 1;
 
     iStep[N] = -1;
@@ -534,6 +534,8 @@ class Raycaster {
     wallMaps[Y] = yMap;
     mapLimits[X] = mapWidth;
     mapLimits[Y] = mapHeight;
+
+    const MAX_RAY_STEPS = 100; // TODO:
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
@@ -565,31 +567,32 @@ class Raycaster {
       wallMapOffs[X] = mapOffsX;
       wallMapOffs[Y] = mapOffsY;
 
-      let MAX_STEPS = 100; // TODO:
+      const wallSlice = wallSlices[x];
+      let steps = MAX_RAY_STEPS;
       let perpWallDist = 0.0;
-      let outOfMap = false;
       let checkWallIdx;
       let side;
 
-      do {
+      for (;;) {
         side = sideDist[X] < sideDist[Y] ? X : Y;
         checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
         const wallCode = wallMaps[side][checkWallIdx];
+        let insideMap = true;
         if (!wallCode) {
           const nextPos = curMapPos[side] + step[side];
-          if (nextPos < 0 || nextPos >= mapLimits[side]) {
-            outOfMap = true;
-            break;
+          insideMap = nextPos >= 0 && nextPos < mapLimits[side];
+          if (insideMap) {
+            curMapPos[side] = nextPos;
+            sideDist[side] += deltaDist[side];
+            wallMapOffs[side] += wallMapIncOffs[side];
+            wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+            continue;
           }
-          curMapPos[side] = nextPos;
-          sideDist[side] += deltaDist[side];
-          wallMapOffs[side] += wallMapIncOffs[side];
-          wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
-        } else {
-          perpWallDist = sideDist[side];
-          break;
         }
-      } while (--MAX_STEPS);
+        perpWallDist = sideDist[side];
+        wallSlice.Hit = +insideMap;
+        break;
+      }
 
       wallZBuffer[x] = perpWallDist;
       maxWallDistance = Math.max(maxWallDistance, perpWallDist);
@@ -605,7 +608,6 @@ class Raycaster {
       wallBottom = Math.min(wallBottom, vpHeight - 1);
       // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
-      const wallSlice = wallSlices[x];
       wallSlice.Distance = perpWallDist;
       wallSlice.Top = wallTop;
       wallSlice.Bottom = wallBottom;
@@ -627,12 +629,9 @@ class Raycaster {
         [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
       }
 
-      if (outOfMap || MAX_STEPS <= 0) {
-        wallSlice.Hit = 0;
+      if (!wallSlice.Hit) {
         continue;
       }
-
-      wallSlice.Hit = 1;
 
       const texIdx = wallMaps[side][checkWallIdx] - 1;
       // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
