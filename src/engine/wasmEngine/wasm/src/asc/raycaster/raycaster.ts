@@ -406,10 +406,6 @@ function setTranspSliceAtIdx(raycasterPtr: PTR_T, wallSliceIdx: SIZE_T, wallSlic
   raycaster.TranspSlices.at(wallSliceIdx).Ptr = wallSlicePtr;
 }
 
-function allocSlice(): PTR_T {
-  return changetype<PTR_T>(newSlice());
-}
-
 export {
   Raycaster,
   newRaycaster,
@@ -445,6 +441,5 @@ export {
 
   allocTranspSlices,
   resetTranspSlicesPtrs,
-  allocSlice,
   setTranspSliceAtIdx,
 };

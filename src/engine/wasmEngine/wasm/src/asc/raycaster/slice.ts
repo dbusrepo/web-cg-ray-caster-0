@@ -151,7 +151,7 @@ import { logi } from '../importVars';
 let wallSliceAllocator = changetype<ObjectAllocator<Slice>>(NULL_PTR);
 
 function initSliceAllocator(): void {
-  wallSliceAllocator = newObjectAllocator<Slice>(1);
+  wallSliceAllocator = newObjectAllocator<Slice>(16);
 }
 
 function newSlice(): Slice {
@@ -222,9 +222,14 @@ function getSliceNextPtrPtr(slicePtr: PTR_T): PTR_T {
   return slicePtr + offsetof<Slice>('nextPtr');
 }
 
+function allocSlice(): PTR_T {
+  return changetype<PTR_T>(newSlice());
+}
+
 export {
   Slice,
   newSlice,
+  allocSlice,
   getSliceDistancePtr,
   getSliceHitPtr,
   getSliceSidePtr,

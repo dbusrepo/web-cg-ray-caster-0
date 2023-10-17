@@ -107,6 +107,8 @@ class Raycaster {
 
   private floorMap: Uint8Array;
 
+  private isWallCodeTransp: { [key: number]: boolean };
+
   private backgroundColor: number; // TODO:
 
   private frameIdx: number;
@@ -413,6 +415,13 @@ class Raycaster {
     tex = this.findTex(darkWallTexKeys.REDBRICK);
     this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
     this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+
+    // test transp wall
+    const transpTex = this.findTex(darkWallTexKeys.EAGLE);
+    this.xWallMap[0 * this.xWallMapWidth + 3] = transpTex.WallMapIdx;
+
+    this.isWallCodeTransp = {};
+    this.isWallCodeTransp[transpTex.WallMapIdx] = true;
   }
 
   private initFloorMap() {
@@ -437,7 +446,7 @@ class Raycaster {
   }
 
   private isTranspWall(wallCode: number) {
-    return false;
+    return this.isWallCodeTransp[wallCode];
   }
 
   private preRender() {
@@ -575,29 +584,38 @@ class Raycaster {
       wallSlice.Hit = 0;
 
       let steps = MAX_RAY_STEPS;
+      let side: number;
+      let nextPos: number;
+
+      const tryNextPos = () => {
+        nextPos = curMapPos[side] + step[side];
+        const isInsideMap = nextPos >= 0 && nextPos < mapLimits[side];
+        return isInsideMap && steps > 0;
+      };
+
+      const advanceRay = () => {
+        curMapPos[side] = nextPos;
+        sideDist[side] += deltaDist[side];
+        wallMapOffs[side] += wallMapIncOffs[side];
+        wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+        steps--;
+      };
 
       for (;;) {
-        const side = sideDist[X] < sideDist[Y] ? X : Y;
+        side = sideDist[X] < sideDist[Y] ? X : Y;
         const checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
         const wallMap = wallMaps[side];
         const wallCode = wallMap[checkWallIdx];
         let isRayValid = true;
         if (!wallCode) {
-          const nextPos = curMapPos[side] + step[side];
-          const isInsideMap = nextPos >= 0 && nextPos < mapLimits[side];
-          isRayValid = isInsideMap && steps > 0;
+          isRayValid = tryNextPos();
           if (isRayValid) {
-            curMapPos[side] = nextPos;
-            sideDist[side] += deltaDist[side];
-            wallMapOffs[side] += wallMapIncOffs[side];
-            wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
-            steps--;
+            advanceRay();
             continue;
           }
         }
         const perpWallDist = sideDist[side];
-        const mapWallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
-        const wallX = mapWallX % 1;
+        const wallX = (pos[side ^ 1] + perpWallDist * rayDir[side ^ 1]) % 1;
         const ratio = 1 / perpWallDist;
         const wallSliceProjHeight = (wallHeight * ratio) | 0;
         const srcWallBottom = (projYcenter + posZ * ratio) | 0;
@@ -611,28 +629,8 @@ class Raycaster {
 
         const isTranspWall = this.isTranspWall(wallCode);
 
-        let slice;
-
-        if (isTranspWall) {
-          slice = newSliceView(this.wasmEngineModule);
-          // TODO:
-        } else {
-          // solid wall or map edge/max steps reached
-          slice = wallSlice;
-          wallZBuffer[x] = perpWallDist;
-          maxWallDistance = Math.max(maxWallDistance, perpWallDist);
-          minWallTop = Math.min(minWallTop, wallTop);
-          maxWallTop = Math.max(maxWallTop, wallTop);
-          minWallBottom = Math.min(minWallBottom, wallBottom);
-          maxWallBottom = Math.max(maxWallBottom, wallBottom);
-          if (texturedVertFloor) {
-            floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
-            const floorWallXOffs =
-              checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
-            floorWall[side] = curMapPos[side] + floorWallXOffs;
-            [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
-          }
-        }
+        // transp wall, solid wall or map edge/max steps reached
+        const slice = isTranspWall ? this.newTranspSlice(x) : wallSlice;
 
         slice.Side = side;
         slice.Distance = perpWallDist;
@@ -669,14 +667,29 @@ class Raycaster {
           slice.Mipmap = mipmap.Image; // used in render ts
 
           if (isTranspWall) {
-            continue;
+            isRayValid = tryNextPos();
+            if (isRayValid) {
+              advanceRay();
+              continue;
+            }
           }
-
-          // solid wall
-          wallSlice.Hit = 1;
         }
 
         // solid wall or map edge/max steps reached
+        wallSlice.Hit = isRayValid ? 1 : 0;
+        wallZBuffer[x] = perpWallDist;
+        maxWallDistance = Math.max(maxWallDistance, perpWallDist);
+        minWallTop = Math.min(minWallTop, wallTop);
+        maxWallTop = Math.max(maxWallTop, wallTop);
+        minWallBottom = Math.min(minWallBottom, wallBottom);
+        maxWallBottom = Math.max(maxWallBottom, wallBottom);
+        if (texturedVertFloor) {
+          floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
+          const floorWallXOffs =
+            checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
+          floorWall[side] = curMapPos[side] + floorWallXOffs;
+          [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
+        }
         break;
       }
     }
@@ -845,7 +858,7 @@ class Raycaster {
     );
   }
 
-  private newTranspSlice(idx: number) {
+  private newTranspSlice(idx: number): Slice {
     this.numTranspSlices++;
     const newSlice = newSliceView(this.wasmEngineModule);
     // insert at front in transpSlices[idx]
@@ -857,8 +870,7 @@ class Raycaster {
       // assert(sliceView.Prev !== null);
       newSlice.Prev!.Next = newSlice;
     } else {
-      newSlice.Prev = newSlice;
-      newSlice.Next = newSlice;
+      newSlice.Prev = newSlice.Next = newSlice;
     }
     this.updateTranspSliceArrayIdx(idx, newSlice);
     return newSlice;

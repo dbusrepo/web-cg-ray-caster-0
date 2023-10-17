@@ -104,10 +104,10 @@ import {
   getMaxWallDistancePtr,
   allocTranspSlices,
   resetTranspSlicesPtrs,
-  allocSlice,
   setTranspSliceAtIdx,
 } from './raycaster/raycaster';
 import { 
+  allocSlice,
   getSliceDistancePtr,
   getSliceHitPtr,
   getSliceSidePtr,
