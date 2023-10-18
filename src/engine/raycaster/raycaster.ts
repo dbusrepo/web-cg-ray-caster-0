@@ -45,6 +45,15 @@ const wallTexKeys = {
   BRICK1: imageKeys.BRICK1,
 };
 
+const WALL_FLAGS_OFFSET = 13;
+const WALL_CODE_MASK = (1 << WALL_FLAGS_OFFSET) - 1;
+
+const WALL_FLAGS = {
+  TRANSP: 1 << WALL_FLAGS_OFFSET,
+  IS_DOOR: 1 << (WALL_FLAGS_OFFSET + 1),
+  IS_SECRET: 1 << (WALL_FLAGS_OFFSET + 2),
+};
+
 const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
   (acc, [key, val]) => {
     const DARK_TEX_SUFFIX = '_D';
@@ -97,8 +106,8 @@ class Raycaster {
 
   private textures: Texture[];
 
-  private xWallMap: Uint8Array;
-  private yWallMap: Uint8Array;
+  private xWallMap: Uint16Array;
+  private yWallMap: Uint16Array;
 
   private xWallMapWidth: number;
   private xWallMapHeight: number;
@@ -106,8 +115,6 @@ class Raycaster {
   private yWallMapHeight: number;
 
   private floorMap: Uint8Array;
-
-  private isWallCodeTransp: { [key: number]: boolean };
 
   private backgroundColor: number; // TODO:
 
@@ -132,7 +139,7 @@ class Raycaster {
   private checkWallIdxOffs = new Int32Array(2);
   private checkWallIdxOffsDivFactor = new Int32Array(2);
   private curMapPos = new Int32Array(2);
-  private wallMaps = new Array<Uint8Array>(2);
+  private wallMaps = new Array<Uint16Array>(2);
   private mapLimits = new Int32Array(2);
   private floorWall = new Float32Array(2);
 
@@ -364,29 +371,23 @@ class Raycaster {
   }
 
   private initWallMap() {
-    const xMapPtr = this.wasmEngineModule.getXWallMapPtr(this.raycasterPtr);
-    this.xWallMapWidth = this.wasmEngineModule.getXWallMapWidth(
-      this.raycasterPtr,
-    );
-    this.xWallMapHeight = this.wasmEngineModule.getXWallMapHeight(
-      this.raycasterPtr,
-    );
+    const { wasmEngineModule } = this;
 
-    const yMapPtr = this.wasmEngineModule.getYWallMapPtr(this.raycasterPtr);
-    this.yWallMapWidth = this.wasmEngineModule.getYWallMapWidth(
-      this.raycasterPtr,
-    );
-    this.yWallMapHeight = this.wasmEngineModule.getYWallMapHeight(
-      this.raycasterPtr,
-    );
+    this.xWallMapWidth = wasmEngineModule.getXWallMapWidth(this.raycasterPtr);
+    this.xWallMapHeight = wasmEngineModule.getXWallMapHeight(this.raycasterPtr);
 
-    this.xWallMap = new Uint8Array(
+    this.yWallMapWidth = wasmEngineModule.getYWallMapWidth(this.raycasterPtr);
+    this.yWallMapHeight = wasmEngineModule.getYWallMapHeight(this.raycasterPtr);
+
+    const xMapPtr = wasmEngineModule.getXWallMapPtr(this.raycasterPtr);
+    this.xWallMap = new Uint16Array(
       this.wasmRun.WasmMem.buffer,
       xMapPtr,
       this.xWallMapWidth * this.xWallMapHeight,
     );
 
-    this.yWallMap = new Uint8Array(
+    const yMapPtr = wasmEngineModule.getYWallMapPtr(this.raycasterPtr);
+    this.yWallMap = new Uint16Array(
       this.wasmRun.WasmMem.buffer,
       yMapPtr,
       this.yWallMapWidth * this.yWallMapHeight,
@@ -417,11 +418,10 @@ class Raycaster {
     this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
 
     // test transp wall
-    const transpTex = this.findTex(darkWallTexKeys.EAGLE);
-    this.xWallMap[0 * this.xWallMapWidth + 3] = transpTex.WallMapIdx;
-
-    this.isWallCodeTransp = {};
-    this.isWallCodeTransp[transpTex.WallMapIdx] = true;
+    // const transpTex = this.findTex(darkWallTexKeys.EAGLE);
+    // this.xWallMap[0 * this.xWallMapWidth + 3] =
+    //   transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
+    // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP); 
   }
 
   private initFloorMap() {
@@ -443,10 +443,6 @@ class Raycaster {
 
     tex = this.findTex(floorTexKeys.FLOOR1);
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
-  }
-
-  private isTranspWall(wallCode: number) {
-    return this.isWallCodeTransp[wallCode];
   }
 
   private preRender() {
@@ -607,7 +603,7 @@ class Raycaster {
         const wallMap = wallMaps[side];
         const wallCode = wallMap[checkWallIdx];
         let isRayValid = true;
-        if (!wallCode) {
+        if (!(wallCode & WALL_CODE_MASK)) {
           isRayValid = tryNextPos();
           if (isRayValid) {
             advanceRay();
@@ -627,7 +623,7 @@ class Raycaster {
         const wallBottom = Math.min(srcWallBottom, vpHeight - 1);
         // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
-        const isTranspWall = this.isTranspWall(wallCode);
+        const isTranspWall = wallCode & WALL_FLAGS.TRANSP;
 
         // transp wall, solid wall or map edge/max steps reached
         const slice = isTranspWall ? this.newTranspSlice(x) : wallSlice;
@@ -640,7 +636,7 @@ class Raycaster {
         slice.Bottom = wallBottom;
 
         if (isRayValid) {
-          const texIdx = wallMap[checkWallIdx] - 1;
+          const texIdx = (wallCode & WALL_CODE_MASK) - 1;
           // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
           const tex = textures[texIdx];
