@@ -1,12 +1,13 @@
 import assert from 'assert';
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import type { WasmNullPtr } from '../wasmEngine/wasmRun';
 import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 
 class Slice {
   private mipmap: BitImageRGBA; // ts cached fields
-  private next: Slice | null = null;
-  private prev: Slice | null = null;
+  private next: Slice | WasmNullPtr = WASM_NULL_PTR;
+  private prev: Slice | WasmNullPtr = WASM_NULL_PTR;
 
   constructor(
     private slicePtr: number,
@@ -63,11 +64,11 @@ class Slice {
     this.nextPtrPtr = nextPtrPtr;
   }
 
-  get Prev(): Slice | null {
+  get Prev(): Slice | WasmNullPtr {
     return this.prev;
   }
 
-  set Prev(prev: Slice | null) {
+  set Prev(prev: Slice | WasmNullPtr) {
     this.prev = prev;
     gWasmView.setUint32(
       this.prevPtrPtr,
@@ -76,11 +77,11 @@ class Slice {
     );
   }
 
-  get Next(): Slice | null {
+  get Next(): Slice | WasmNullPtr {
     return this.next;
   }
 
-  set Next(next: Slice | null) {
+  set Next(next: Slice | WasmNullPtr) {
     this.next = next;
     gWasmView.setUint32(
       this.nextPtrPtr,
@@ -222,7 +223,7 @@ class Slice {
   }
 }
 
-let freeList: Slice | null = null;
+let freeList: Slice | WasmNullPtr = WASM_NULL_PTR;
 
 const newSliceView = (wasmEngineModule: WasmEngineModule) => {
   let sliceView;
@@ -245,9 +246,8 @@ const freeSliceView = (slice: Slice) => {
 
 const freeTranspSliceViewsList = (slice: Slice) => {
   // double linked list, add to free list in O(1)
-  const { Prev: prev } = slice;
-  // assert(prev);
-  prev!.Next = freeList;
+  const prev = slice.Prev as Slice;
+  prev.Next = freeList;
   freeList = slice;
 };
 

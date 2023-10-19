@@ -418,9 +418,11 @@ class Raycaster {
     this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
 
     // test transp wall
-    // const transpTex = this.findTex(darkWallTexKeys.EAGLE);
-    // this.xWallMap[0 * this.xWallMapWidth + 3] =
-    //   transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
+    const transpTex = this.findTex(darkWallTexKeys.EAGLE);
+    this.xWallMap[0 * this.xWallMapWidth + 2] =
+      transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[0 * this.xWallMapWidth + 3] =
+      transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
     // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP); 
   }
 
@@ -612,12 +614,12 @@ class Raycaster {
         }
         const perpWallDist = sideDist[side];
         const wallX = (pos[side ^ 1] + perpWallDist * rayDir[side ^ 1]) % 1;
+
         const ratio = 1 / perpWallDist;
         const wallSliceProjHeight = (wallHeight * ratio) | 0;
         const srcWallBottom = (projYcenter + posZ * ratio) | 0;
         const srcWallTop = srcWallBottom - wallSliceProjHeight + 1;
         // const sliceHeight = srcWallBottom - srcWallTop + 1;
-
         const clipTop = Math.max(0, -srcWallTop);
         const wallTop = Math.max(0, srcWallTop); // wallTop = srcWallTop + clipTop;
         const wallBottom = Math.min(srcWallBottom, vpHeight - 1);
@@ -697,6 +699,20 @@ class Raycaster {
     this.MaxWallBottom = maxWallBottom;
 
     this.processSprites();
+
+    // console.log('Num of transp walls slices: ', this.numTranspSlices);
+    // for (let x = 0; x < vpWidth; x++) {
+    //   let numWallSlicesCol = 0;
+    //   let slicePtr = this.transpSlices[x];
+    //   if (slicePtr !== WASM_NULL_PTR) {
+    //     do {
+    //       numWallSlicesCol++;
+    //       slicePtr = slicePtr.Next as Slice; // double linked list here
+    //     } while (slicePtr !== this.transpSlices[x]);
+    //   }
+    //   console.log(`x: ${x}, numWallSlicesCol: ${numWallSlicesCol}`);
+    // }
+
     this.renderer.render();
     this.postRender();
   }
@@ -863,8 +879,8 @@ class Raycaster {
       newSlice.Prev = frontSlice.Prev;
       frontSlice.Prev = newSlice;
       newSlice.Next = frontSlice;
-      // assert(sliceView.Prev !== null);
-      newSlice.Prev!.Next = newSlice;
+      // assert(newSlice.Prev !== WASM_NULL_PTR, 'invalid prev slice');
+      (newSlice.Prev as Slice).Next = newSlice;
     } else {
       newSlice.Prev = newSlice.Next = newSlice;
     }
