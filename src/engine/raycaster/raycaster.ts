@@ -173,7 +173,7 @@ class Raycaster {
 
   private initRenderer() {
     this.renderer = new Renderer(this);
-    this.renderer.TexturedFloor = true;
+    this.renderer.IsFloorTextured = true;
     this.renderer.UseWasm = false;
     this.renderer.VertFloor = true;
   }
@@ -454,9 +454,7 @@ class Raycaster {
 
   private postRender() {}
 
-  public render() {
-    this.preRender();
-
+  private calcWallsVis() {
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
@@ -500,8 +498,8 @@ class Raycaster {
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
     assert(posY >= 0 && posY < mapHeight, 'posY out of map bounds');
 
-    const texturedVertFloor =
-      this.renderer.TexturedFloor && this.renderer.VertFloor;
+    const isFloorVertTextured =
+      this.renderer.IsFloorTextured && this.renderer.VertFloor;
 
     const projYcenter = this.ProjYCenter;
 
@@ -681,7 +679,7 @@ class Raycaster {
         maxWallTop = Math.max(maxWallTop, wallTop);
         minWallBottom = Math.min(minWallBottom, wallBottom);
         maxWallBottom = Math.max(maxWallBottom, wallBottom);
-        if (texturedVertFloor) {
+        if (isFloorVertTextured) {
           floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
           const floorWallXOffs =
             checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
@@ -697,22 +695,12 @@ class Raycaster {
     this.MaxWallTop = maxWallTop;
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
+  }
 
+  public render() {
+    this.preRender();
+    this.calcWallsVis();
     this.processSprites();
-
-    // console.log('Num of transp walls slices: ', this.numTranspSlices);
-    // for (let x = 0; x < vpWidth; x++) {
-    //   let numWallSlicesCol = 0;
-    //   let slicePtr = this.transpSlices[x];
-    //   if (slicePtr !== WASM_NULL_PTR) {
-    //     do {
-    //       numWallSlicesCol++;
-    //       slicePtr = slicePtr.Next as Slice; // double linked list here
-    //     } while (slicePtr !== this.transpSlices[x]);
-    //   }
-    //   console.log(`x: ${x}, numWallSlicesCol: ${numWallSlicesCol}`);
-    // }
-
     this.renderer.render();
     this.postRender();
   }
@@ -1096,6 +1084,14 @@ class Raycaster {
 
   get WasmRun() {
     return this.wasmRun;
+  }
+
+  get NumTranspSlices() {
+    return this.numTranspSlices;
+  }
+
+  get TranspSlices() {
+    return this.transpSlices;
   }
 }
 

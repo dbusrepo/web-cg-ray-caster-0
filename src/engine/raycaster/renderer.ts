@@ -1,11 +1,13 @@
 // import assert from 'assert';
-import { WasmRun } from '../wasmEngine/wasmRun';
+import type { WasmNullPtr } from '../wasmEngine/wasmRun';
+import { WasmRun, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
 import { Raycaster } from './raycaster';
 import { Sprite } from './sprite';
+import { Slice } from './slice';
 
 const CEIL_COLOR = 0xffbbbbbb;
 const FLOOR_COLOR = 0xff555555;
@@ -24,7 +26,7 @@ class Renderer {
   private spansStepY: Float32Array;
   private spansFloorLX: Float32Array;
   private spansFloorLY: Float32Array;
-  private texturedFloor = false;
+  private isFloorTextured = false;
   private useWasm = false;
   private vertFloor = false;
 
@@ -67,12 +69,12 @@ class Renderer {
     this.textures = raycaster.Textures;
   }
 
-  public set TexturedFloor(texturedFloor: boolean) {
-    this.texturedFloor = texturedFloor;
+  public set IsFloorTextured(isFloorTextured: boolean) {
+    this.isFloorTextured = isFloorTextured;
   }
 
-  public get TexturedFloor(): boolean {
-    return this.texturedFloor;
+  public get IsFloorTextured(): boolean {
+    return this.isFloorTextured;
   }
 
   public set UseWasm(useWasm: boolean) {
@@ -142,7 +144,7 @@ class Renderer {
       frameBuf32,
       frameStride,
       frameRowPtrs,
-      texturedFloor,
+      isFloorTextured,
       raycaster,
       textures,
     } = this;
@@ -249,6 +251,18 @@ class Renderer {
           offs += texStepY;
         }
 
+        // wall alg2 dda vers fixed
+        // const FIX = 16;
+        // let offs_fix = ((mipRowOffs + texY) * (1 << FIX)) | 0;
+        // let texStepY_fix = (texStepY * (1 << FIX)) | 0;
+        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        //   const color = mipPixels[offs_fix >> FIX];
+        //   frameBuf32[framePtr] = color;
+        //   offs_fix += texStepY_fix;
+        // }
+
+
+
         // const offsets = texOffsetsArrays[projHeight];
         // // assert(offsets !== undefined);
         // for (let offIdx = 0; framePtr < frameLimitPtr; framePtr += frameStride) {
@@ -338,7 +352,7 @@ class Renderer {
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
-      if (!texturedFloor) {
+      if (!isFloorTextured) {
         for (let y = bottom + 1; y < vpHeight; y++) {
           frameBuf32[framePtr] = FLOOR_COLOR;
           framePtr += frameStride;
@@ -424,7 +438,7 @@ class Renderer {
       spansStepX,
       spansStepY,
       raycaster,
-      texturedFloor,
+      isFloorTextured: texturedFloor,
       textures,
     } = this;
 
@@ -593,7 +607,7 @@ class Renderer {
       frameRowPtrs,
       raycaster,
       textures,
-      texturedFloor,
+      isFloorTextured: texturedFloor,
     } = this;
 
     const { FloorMap: floorMap, MapWidth: mapWidth } = raycaster;
@@ -925,6 +939,82 @@ class Renderer {
     }
   }
 
+  private renderTranspSlices() {
+    const {
+      startFramePtr,
+      frameBuf32,
+      frameStride,
+      frameRowPtrs,
+      raycaster,
+      textures,
+    } = this;
+
+    const {
+      TranspSlices: transpSlices,
+      NumTranspSlices: numTranspSlices,
+      MapWidth: mapWidth,
+    } = raycaster;
+
+    const {
+      // StartX: vpStartX,
+      // StartY: vpStartY,
+      Width: vpWidth,
+      Height: vpHeight,
+    } = raycaster.Viewport;
+
+    if (!numTranspSlices) {
+      return;
+    }
+
+    const renderSlice = (slice: Slice, x: number) => {
+      // const {
+      //   Hit: hit,
+      //   Top: top,
+      //   Bottom: bottom,
+      //   TexX: texX,
+      //   TexStepY: texStepY,
+      //   TexY: texY,
+      //   Mipmap: mipmap,
+      //   Side: side,
+      // } = transpSlices[x];
+      //
+      // let framePtr = frameRowPtrs[top] + x;
+      // let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+      //
+      // const {
+      //   Buf32: mipPixels,
+      //   // Width: texWidth,
+      //   // Height: texHeight,
+      //   Lg2Pitch: lg2Pitch,
+      // } = mipmap;
+      //
+      // const mipRowOffs = texX << lg2Pitch;
+      // let offs = mipRowOffs + texY;
+      //
+      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      //   const color = mipPixels[offs | 0];
+      //   frameBuf32[framePtr] = color;
+      //   offs += texStepY;
+      // }
+      // // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+    };
+
+    for (let x = 0; x < vpWidth; x++) {
+      const startPtr = transpSlices[x]; // double linked list here
+      if (startPtr !== WASM_NULL_PTR) {
+        let curPtr = startPtr;
+        do {
+          renderSlice(curPtr, x);
+          curPtr = curPtr.Next as Slice;
+        } while (curPtr !== startPtr);
+      }
+    }
+  }
+
+  private renderSprite(sprite: Sprite) {
+    // TODO:
+  }
+
   private renderSprites() {
     const viewSprites = this.raycaster.ViewSprites;
     const numViewSprites = this.raycaster.NumViewSprites;
@@ -932,10 +1022,6 @@ class Renderer {
     for (let i = 0; i < numViewSprites; ++i) {
       this.renderSprite(viewSprites[i]);
     }
-  }
-
-  private renderSprite(sprite: Sprite) {
-    // TODO:
   }
 
   public render() {
@@ -949,7 +1035,8 @@ class Renderer {
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
     }
-    // this.renderSprites(); // TODO:
+    this.renderTranspSlices();
+    this.renderSprites(); // TODO:
   }
 }
 

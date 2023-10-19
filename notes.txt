@@ -342,26 +342,3 @@ https://stackoverflow.com/questions/73157442/webpack-warning-using-webworker-cir
 https://stackoverflow.com/questions/73499449/webpack-dev-server-not-reloading
 
 // console.log(`px ${pX.toFixed(2)} py ${pY.toFixed(2)}`); // dirX ${dirX} dirY ${dirY}`);// planeX ${planeX} planeY ${planeY} pitch ${pitch} posZ ${posZ}`)
-
-// const cameraX = 2 * (width - 1) / width - 1;
-// (2 * width - 2) / width - 1;
-// 2 - 2 / width - 1 = 1 - 2 / width
-// 2 * x / (width - 1) - 1, 
-// => x = width - 1, 2 * (width - 1) / (width - 1) - 1 = 1, x = 0, 2 * 0 / (width - 1) - 1 = -1
-// console.log(cameraX);
-private syncWorkers() {
-  for (let i = 0; i < this.auxWorkers.length; ++i) {
-    const { index: workerIdx } = this.auxWorkers[i];
-    Atomics.store(this.syncArray, workerIdx, 1);
-    Atomics.notify(this.syncArray, workerIdx);
-  }
-  // this.wasmEngine.syncWorkers(this.auxWorkers);
-}
-
-private waitWorkers() {
-  for (let i = 0; i < this.auxWorkers.length; ++i) {
-    const { index: workerIdx } = this.auxWorkers[i];
-    Atomics.wait(this.syncArray, workerIdx, 1);
-  }
-  // this.wasmEngine.waitWorkers(this.auxWorkers);
-}

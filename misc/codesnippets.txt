@@ -1171,3 +1171,39 @@ if (this.renderer.TexturedFloor && this.renderer.VertFloor) {
   wallSlice.FloorWallX = floorWallX;
   wallSlice.FloorWallY = floorWallY;
 }
+
+// const cameraX = 2 * (width - 1) / width - 1;
+// (2 * width - 2) / width - 1;
+// 2 - 2 / width - 1 = 1 - 2 / width
+// 2 * x / (width - 1) - 1, 
+// => x = width - 1, 2 * (width - 1) / (width - 1) - 1 = 1, x = 0, 2 * 0 / (width - 1) - 1 = -1
+// console.log(cameraX);
+private syncWorkers() {
+  for (let i = 0; i < this.auxWorkers.length; ++i) {
+    const { index: workerIdx } = this.auxWorkers[i];
+    Atomics.store(this.syncArray, workerIdx, 1);
+    Atomics.notify(this.syncArray, workerIdx);
+  }
+  // this.wasmEngine.syncWorkers(this.auxWorkers);
+}
+
+private waitWorkers() {
+  for (let i = 0; i < this.auxWorkers.length; ++i) {
+    const { index: workerIdx } = this.auxWorkers[i];
+    Atomics.wait(this.syncArray, workerIdx, 1);
+  }
+  // this.wasmEngine.waitWorkers(this.auxWorkers);
+}
+
+console.log('Num of transp walls slices: ', this.numTranspSlices);
+for (let x = 0; x < vpWidth; x++) {
+  let numWallSlicesCol = 0;
+  let slicePtr = this.transpSlices[x];
+  if (slicePtr !== WASM_NULL_PTR) {
+    do {
+      numWallSlicesCol++;
+      slicePtr = slicePtr.Next as Slice; // double linked list here
+    } while (slicePtr !== this.transpSlices[x]);
+  }
+  console.log(`x: ${x}, numWallSlicesCol: ${numWallSlicesCol}`);
+}
