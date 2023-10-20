@@ -423,7 +423,7 @@ class Raycaster {
       transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
     this.xWallMap[0 * this.xWallMapWidth + 3] =
       transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
-    // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP); 
+    // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
   }
 
   private initFloorMap() {
