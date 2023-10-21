@@ -185,7 +185,6 @@ class Raycaster {
 
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
-    this.renderer.UseWasm = false;
     this.renderer.VertFloor = true;
     this.renderer.Back2Front = true;
   }
@@ -727,8 +726,8 @@ class Raycaster {
           slice.TexX = texX;
           slice.TexStepY = texStepY;
           slice.TexY = texY;
+          slice.Mipmap = image; // used in render ts
           slice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
-          slice.Mipmap = mipmap.Image; // used in render ts
 
           if (isTranspWall) {
             nextPos = curMapPos[side] + step[side];
@@ -821,6 +820,7 @@ class Raycaster {
       const invDet =
         1.0 / (playerPlaneX * playerDirY - playerDirX * playerPlaneY);
       const tY = invDet * (-playerPlaneY * spriteX + playerPlaneX * spriteY);
+      // tY is the straight distance from the player position to the sprite
 
       if (tY < minDist || tY > maxDist) {
         // console.log('tY behind or too far'); // behind or occluded by max (wall) distance
@@ -829,8 +829,15 @@ class Raycaster {
 
       const tX = invDet * (playerDirY * spriteX - playerDirX * spriteY);
       const invTy = 1.0 / tY;
+      // assert(invTy > 0, 'invalid invTy');
 
       const spriteHeight = (WallHeight * invTy) | 0;
+
+      if (spriteHeight <= 0) {
+        // console.log('spriteHeight <= 0');
+        continue;
+      }
+
       const spriteWidth = spriteHeight;
 
       const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;
@@ -872,29 +879,33 @@ class Raycaster {
       const clipY = Math.max(0, -startY);
       startY += clipY;
       endY = Math.min(endY, vpHeight - 1);
-
       // assert(startY <= endY, `invalid startY ${startY} and endY ${endY}`);
-      // sprite rows in [startY, endY]
 
+      // sprite rows in [startY, endY]
       // sprite cols in [startX, endX)
 
-      // occlusion test
-      let x = startX;
-      for (; x < endX && wallZBuffer[x] < tY; x++);
+      // occlusion test with walls
+      let isOccluded = true;
+      for (let x = startX; x < endX; x++) {
+        if (wallZBuffer[x] >= tY) {
+          isOccluded = false;
+          break;
+        }
+      }
 
-      if (x === endX) {
-        // sprite is occluded
+      if (isOccluded) {
         continue;
       }
 
       const texIdx = sprite.TexIdx;
       const tex = textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
+      const { Image: image } = mipmap;
       const {
         Width: texWidth,
         Height: texHeight,
         // Lg2Pitch: lg2Pitch,
-      } = mipmap.Image;
+      } = image;
 
       const texStepX = texWidth / spriteWidth;
       const texX = (clipX * texStepX) | 0;
@@ -902,6 +913,7 @@ class Raycaster {
       const texStepY = texHeight / spriteHeight;
       const texY = (clipY * texStepY) | 0;
 
+      sprite.Mipmap = image; // used in render ts
       sprite.Distance = tY;
       sprite.StartX = startX;
       sprite.EndX = endX;
@@ -1172,6 +1184,10 @@ class Raycaster {
 
   get TranspSlices() {
     return this.transpSlices;
+  }
+
+  get WallZBuffer() {
+    return this.wallZBuffer;
   }
 }
 

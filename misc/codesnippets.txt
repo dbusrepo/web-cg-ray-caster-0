@@ -1208,6 +1208,9 @@ for (let x = 0; x < vpWidth; x++) {
   console.log(`x: ${x}, numWallSlicesCol: ${numWallSlicesCol}`);
 }
 
+// if (this.useWasm) {
+//   this.wasmEngineModule.render();
+// } else {
 
 private renderViewFullVert() {
   const {
@@ -1495,3 +1498,17 @@ private renderViewFullVert() {
   // }
 }
 
+// sprite processing by rows, not used
+// for (let y = startY; y <= endY; y++) {
+//   let framePtr = frameRowPtrs[y] + startX;
+//   let frameLimitPtr = frameRowPtrs[y] + endX;
+//
+//   for (; framePtr <= frameLimitPtr; framePtr++) {
+//     const color = mipPixels[offs | 0];
+//     if (color !== transpColor) {
+//       frameBuf32[framePtr] = color;
+//     }
+//     offs += texStepX;
+//   }
+//   offs += texStepY;
+// }

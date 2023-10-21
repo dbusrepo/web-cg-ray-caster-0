@@ -5,7 +5,7 @@ import type { WasmNullPtr } from '../wasmEngine/wasmRun';
 import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 
 class Slice {
-  private mipmap: BitImageRGBA; // ts cached fields
+  private mipmap: BitImageRGBA;
   private next: Slice | WasmNullPtr = WASM_NULL_PTR;
   private prev: Slice | WasmNullPtr = WASM_NULL_PTR;
 

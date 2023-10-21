@@ -1,7 +1,10 @@
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
+import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 
 class Sprite {
+  private mipmap: BitImageRGBA;
+
   constructor(
     // private spritePtr: number,
     private posXPtr: number,
@@ -31,6 +34,14 @@ class Sprite {
   // get WasmPtr(): number {
   //   return this.spritePtr;
   // }
+
+  get Mipmap(): BitImageRGBA {
+    return this.mipmap;
+  }
+
+  set Mipmap(mipmap: BitImageRGBA) {
+    this.mipmap = mipmap;
+  }
 
   get PosX(): number {
     return gWasmView.getFloat32(this.posXPtr, true);
