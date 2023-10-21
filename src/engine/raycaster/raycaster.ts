@@ -429,17 +429,17 @@ class Raycaster {
     }
     // this.yMap[2] = 0; // test hole
 
-    tex = this.findTex(darkWallTexKeys.REDBRICK);
-    this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
-    this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+    const redBrick= this.findTex(darkWallTexKeys.REDBRICK);
+    this.yWallMap[4 + this.yWallMapWidth * 2] = redBrick.WallMapIdx;
+    this.yWallMap[5 + this.yWallMapWidth * 2] = redBrick.WallMapIdx;
 
     // test transp wall
-    const transpTex1 = this.findTex(darkWallTexKeys.TRANSP1);
-    this.xWallMap[6 * this.xWallMapWidth + 2] =
-      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[6 * this.xWallMapWidth + 4] =
-      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
     const transpTex0 = this.findTex(darkWallTexKeys.TRANSP0);
+    const transpTex1 = this.findTex(darkWallTexKeys.TRANSP1);
+    this.xWallMap[0 * this.xWallMapWidth + 2] =
+      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[0 * this.xWallMapWidth + 3] =
+      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
     this.xWallMap[4 * this.xWallMapWidth + 5] =
       transpTex0.WallMapIdx | WALL_FLAGS.TRANSP;
     // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
