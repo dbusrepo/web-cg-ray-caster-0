@@ -17,9 +17,11 @@ class Renderer {
   private wasmRun: WasmRun;
   private wasmEngineModule: WasmEngineModule;
   private frameBuf32: Uint32Array;
+  private occlusionBuf8: Uint8Array;
   private frameStride: number;
   private startFramePtr: number;
   private frameRowPtrs: Uint32Array;
+  private occlusionBufRowPtrs: Uint32Array;
   private textures: Texture[];
   private spansX1: Int32Array;
   private spansStepX: Float32Array;
@@ -28,6 +30,7 @@ class Renderer {
   private spansFloorLY: Float32Array;
   private isFloorTextured = false;
   private useWasm = false;
+  private back2front = false;
   private vertFloor = false;
 
   constructor(raycaster: Raycaster) {
@@ -36,7 +39,7 @@ class Renderer {
     const {
       StartX: vpStartX,
       StartY: vpStartY,
-      // Width: vpWidth,
+      Width: vpWidth,
       Height: vpHeight,
     } = viewport;
 
@@ -53,12 +56,21 @@ class Renderer {
       frameBuf8.byteLength / Uint32Array.BYTES_PER_ELEMENT,
     );
 
+    this.occlusionBuf8 = new Uint8Array(this.frameBuf32.length); // js buf
+
     this.startFramePtr = vpStartY * this.frameStride + vpStartX;
 
     this.frameRowPtrs = new Uint32Array(vpHeight + 1);
     for (let i = 0; i <= vpHeight; i++) {
       this.frameRowPtrs[i] = this.startFramePtr + i * this.frameStride;
     }
+
+    this.occlusionBufRowPtrs = new Uint32Array(vpHeight + 1);
+    for (let i = 0; i <= vpHeight; i++) {
+      this.occlusionBufRowPtrs[i] = this.startFramePtr + i * this.frameStride;
+    }
+
+    // const frameRows = this.frameBuf32.length / this.frameStride;
 
     this.spansX1 = new Int32Array(vpHeight);
     this.spansStepX = new Float32Array(vpHeight);
@@ -87,6 +99,14 @@ class Renderer {
 
   public get VertFloor(): boolean {
     return this.vertFloor;
+  }
+
+  public get Back2Front(): boolean {
+    return this.back2front;
+  }
+
+  public set Back2Front(useBack2Front: boolean) {
+    this.back2front = useBack2Front;
   }
 
   public renderBackground(color: number) {
@@ -201,6 +221,8 @@ class Renderer {
       // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
+      // let occPtr = occlusionBufRowPtrs[top] + x; // TODO: remove
+
       if (hit) {
         const {
           Buf32: mipPixels,
@@ -213,134 +235,22 @@ class Renderer {
         // const mipStride = 1 << pitchLg2;
         const mipRowOffs = texX << lg2Pitch;
 
-        // // wall alg1: bres
-        // // const wallSliceHeight = bottom - top + 1;
-        // // let numPixels = wallSliceHeight;
-        // const frac = texWidth;
-        // let counter = -projHeight + clipTop * frac;
-        // let colIdx = mipRowOffs;
-        // let color = mipPixels[colIdx];
-        // // while (numPixels--) {
+        // let offs = mipRowOffs + texY;
         // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   while (counter >= 0) {
-        //     counter -= projHeight;
-        //     colIdx++;
-        //     color = mipPixels[colIdx];
-        //   }
+        //   const color = mipPixels[offs | 0];
         //   frameBuf32[framePtr] = color;
-        //   counter += frac;
+        //   offs += texStepY;
         // }
 
-        // wall alg2: dda vers 1
-        // for (let y = top; y <= bottom; y++) {
-        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   const texColOffs = texY | 0;
-        //   const color = mipPixels[mipRowOffs + texColOffs];
-        //   // color = frameColorRGBAWasm.lightColorABGR(color, 255);
-        //   // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        //   frameBuf32[framePtr] = color;
-        //   texY += texStepY;
-        // }
-
-        // // wall alg2 dda vers 2
         let offs = mipRowOffs + texY;
         for (; framePtr < frameLimitPtr; framePtr += frameStride) {
           const color = mipPixels[offs | 0];
           frameBuf32[framePtr] = color;
           offs += texStepY;
         }
-
-        // wall alg2 dda vers fixed
-        // const FIX = 16;
-        // let offs_fix = ((mipRowOffs + texY) * (1 << FIX)) | 0;
-        // let texStepY_fix = (texStepY * (1 << FIX)) | 0;
-        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   const color = mipPixels[offs_fix >> FIX];
-        //   frameBuf32[framePtr] = color;
-        //   offs_fix += texStepY_fix;
-        // }
-
-        // const offsets = texOffsetsArrays[projHeight];
-        // // assert(offsets !== undefined);
-        // for (let offIdx = 0; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   frameBuf32[framePtr] = mipPixels[offsets[offIdx++]];
-        // }
-
-        // // wall alg3: fixed
-        // const FIX = 16;
-        // let texStepY_fix = (texStepY * (1 << FIX)) | 0;
-        // let texY_fix = ((texY) * (1 << FIX)) | 0;
-        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   const texColOffs = texY_fix >> FIX;
-        //   const color = mipPixels[mipRowOffs + texColOffs];
-        //   frameBuf32[framePtr] = color;
-        //   texY_fix += texStepY_fix;
-        // }
-
-        // // wall alg4: dda when min, bres when mag
-        // if (projHeight <= texWidth) {
-        //   for (let y = top; y <= bottom; y++) {
-        //     const texColOffs = texY | 0;
-        //     let color = mipPixels[mipRowOffs + texColOffs];
-        //     // const color = mipmap.Buf32[texY * texWidth + texX];
-        //     // color = frameColorRGBAWasm.lightColorABGR(color, 255);
-        //     frameBuf32[framePtr] = color;
-        //     // frameColorRGBAWasm.lightPixel(frameBuf32, dstPtr, 120);
-        //     texY += texStepY;
-        //     framePtr += frameStride;
-        //   }
-        // } else {
-        //   const frac = texWidth;
-        //   let counter = -projHeight + clipTop * frac;
-        //   let colIdx = mipRowOffs;
-        //   let color = mipPixels[colIdx];
-        //   for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //     while (counter >= 0) {
-        //       counter -= projHeight;
-        //       colIdx++;
-        //       color = mipPixels[colIdx];
-        //     }
-        //     frameBuf32[framePtr] = color;
-        //     counter += frac;
-        //   }
-        //   // // prev version:
-        //   // // const frac = texWidth;
-        //   // // let counter = (clipTop * frac) % projHeight;
-        //   // // let colIdx = mipRowOffs + (texY | 0);
-        //   // // let color = mipPixels[colIdx];
-        //   // // while (numPixels--) {
-        //   // //   frameBuf32[framePtr] = color;
-        //   // //   counter += frac;
-        //   // //   while (counter >= projHeight) {
-        //   // //     counter -= projHeight;
-        //   // //     colIdx++;
-        //   // //     color = mipPixels[colIdx];
-        //   // //   }
-        //   // //   framePtr += frameStride;
-        //   // // }
-        // }
-
-        // // // wall alg5
-        // let offsets = texOffsetsArrays[projHeight];
-        // if (!offsets) {
-        //   offsets = new Uint32Array(projHeight);
-        //   let yOffs = texY;
-        //   for (let i = 0; i !== projHeight; ++i) {
-        //     offsets[i] = yOffs | 0;
-        //     yOffs += texStepY;
-        //   }
-        //   texOffsetsArrays[projHeight] = offsets;
-        // }
-        // for (
-        //   let offIdx = 0;
-        //   framePtr < frameLimitPtr;
-        //   framePtr += frameStride, offIdx++
-        // ) {
-        //   frameBuf32[framePtr] = mipPixels[mipRowOffs + offsets[offIdx]];
-        // }
       } else {
         // no hit untextured wall
-        const color = side === 0 ? 0xff0000ee : 0xff0000aa;
+        const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
         // for (let y = top; y <= bottom; y++) {
         for (; framePtr < frameLimitPtr; framePtr += frameStride) {
           frameBuf32[framePtr] = color;
@@ -350,9 +260,8 @@ class Renderer {
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
       if (!isFloorTextured) {
-        for (let y = bottom + 1; y < vpHeight; y++) {
+        for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
           frameBuf32[framePtr] = FLOOR_COLOR;
-          framePtr += frameStride;
         }
       } else {
         let prevFloorMapIdx = null;
@@ -395,33 +304,216 @@ class Renderer {
       }
       // assert(framePtr === colPtr + vpHeight * frameStride);
     }
+  }
 
-    // // render horizontal lines for minWallTop and maxWallBottom
-    // const minTopRowPtr = screenPtr + minWallTop * frameStride;
-    // const maxBottomRowPtr = screenPtr + maxWallBottom * frameStride;
-    // for (let i = colStart; i < colEnd; i++) {
-    //   frameBuf32[minTopRowPtr + i] = 0xff0000ff;
-    //   frameBuf32[maxBottomRowPtr + i] = 0xff0000ff;
-    // }
+  private renderViewFullVertTranspsF2B() {
+    const {
+      startFramePtr,
+      frameBuf32,
+      frameStride,
+      frameRowPtrs,
+      isFloorTextured,
+      raycaster,
+      textures,
+      occlusionBuf8,
+      occlusionBufRowPtrs,
+    } = this;
 
-    // ...
-    // const colPtr = renderParams.screenPtr;
-    // let scrPtr = colPtr + wallTop * stride;
+    const {
+      FloorMap: floorMap,
+      WallSlices: wallSlices,
+      MapWidth: mapWidth,
+      ProjYCenter: projYCenter,
+      TranspSlices: transpSlices,
+    } = raycaster;
 
-    // // textured wall
-    // for (let y = wallTop; y < wallBottom; y++) {
-    //   const texY = texPosY | 0; // + 0.5 | 0;
-    //   texPosY += texStepY;
-    //   const color = texture.Buf32[texY * texWidth + texX];
-    //   frameBuf32[scrPtr] = color;
-    //   scrPtr += stride;
-    // }
+    const {
+      // StartX: vpStartX,
+      // StartY: vpStartY,
+      Width: vpWidth,
+      Height: vpHeight,
+    } = raycaster.Viewport;
 
-    // // solid color
-    // for (let y = wallTop; y < wallBottom; y++) {
-    //   frameBuf32[scrPtr] = 0xff0000ff;
-    //   scrPtr += stride;
-    // }
+    const { PosX: posX, PosY: posY, PosZ: posZ } = raycaster.Player;
+
+    for (let x = 0; x < vpWidth; x++) {
+      let {
+        Hit: hit,
+        Top: top,
+        Bottom: bottom,
+        Side: side,
+        // TexId: texId,
+        // MipLvl: mipLvl,
+        TexX: texX,
+        TexY: texY,
+        TexStepY: texStepY,
+        Distance: wallDistance,
+        FloorWallX: floorWallX,
+        FloorWallY: floorWallY,
+        Mipmap: mipmap,
+        Height: projHeight,
+        ClipTop: clipTop,
+      } = wallSlices[x];
+
+      const colPtr = startFramePtr + x;
+      let framePtr = colPtr;
+      let frameLimitPtr = frameRowPtrs[top] + x;
+
+      let occPtr = colPtr;
+
+      // render ceil
+
+      // for (let y = 0; y < top; y++) {
+      for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+        if (!occlusionBuf8[occPtr]) {
+          frameBuf32[framePtr] = CEIL_COLOR;
+        }
+      }
+      // assert(framePtr === colPtr + top * frameStride);
+
+      // const wallSliceHeight = bottom - top + 1;
+      // frameLimitPtr = framePtr + wallSliceHeight * frameStride;
+      // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
+      frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+      // let occPtr = occlusionBufRowPtrs[top] + x; // TODO: remove
+
+      const isTranspCol = transpSlices[x] !== WASM_NULL_PTR;
+
+      if (hit) {
+        const {
+          Buf32: mipPixels,
+          // Width: texWidth,
+          // Height: texHeight,
+          Lg2Pitch: lg2Pitch,
+        } = mipmap;
+
+        // mipmap is rotated 90ccw
+        // const mipStride = 1 << pitchLg2;
+        const mipRowOffs = texX << lg2Pitch;
+
+        // let offs = mipRowOffs + texY;
+        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        //   const color = mipPixels[offs | 0];
+        //   frameBuf32[framePtr] = color;
+        //   offs += texStepY;
+        // }
+
+        let offs = mipRowOffs + texY;
+        if (isTranspCol) {
+          for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+            if (!occlusionBuf8[occPtr]) {
+              const color = mipPixels[offs | 0];
+              frameBuf32[framePtr] = color;
+            }
+            offs += texStepY;
+          }
+        } else {
+          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+            const color = mipPixels[offs | 0];
+            frameBuf32[framePtr] = color;
+            offs += texStepY;
+          }
+        }
+      } else {
+        // no hit untextured wall
+        const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
+        // for (let y = top; y <= bottom; y++) {
+        for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+          if (!occlusionBuf8[occPtr]) {
+            frameBuf32[framePtr] = color;
+          }
+        }
+      }
+
+      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+
+      if (!isFloorTextured) {
+        for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride, occPtr += frameStride) {
+          if (!occlusionBuf8[occPtr]) {
+            frameBuf32[framePtr] = FLOOR_COLOR;
+          }
+        }
+      } else {
+        let prevFloorMapIdx = null;
+        let floorMip;
+
+        if (isTranspCol) {
+          for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride, occPtr += frameStride) {
+            if (occlusionBuf8[occPtr]) {
+              continue;
+            }
+            // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
+            const dist = posZ / (y - projYCenter);
+            let weight = dist / wallDistance;
+            // assert(weight >= 0);
+            // assert(weight <= 1);
+            let floorX = weight * floorWallX + (1 - weight) * posX;
+            let floorY = weight * floorWallY + (1 - weight) * posY;
+            const floorXidx = floorX | 0;
+            const floorYidx = floorY | 0;
+            const floorMapIdx = floorYidx * mapWidth + floorXidx;
+            const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
+            if (
+              sameFloorMapIdx ||
+              (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
+            ) {
+              if (!sameFloorMapIdx) {
+                const floorTexIdx = floorMap[floorMapIdx];
+                floorMip = textures[floorTexIdx].getMipmap(0).Image;
+                prevFloorMapIdx = floorMapIdx;
+              }
+              const mip = floorMip!;
+              const u = floorX - floorXidx;
+              const v = floorY - floorYidx;
+              // assert(floorX >= 0 && floorX < 1);
+              // assert(floorY >= 0 && floorY < 1);
+              const floorMipX = u * mip.Width;
+              const floorMipY = v * mip.Height;
+              const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+              // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+              const color = mip.Buf32[mipOffs];
+              frameBuf32[framePtr] = color;
+            }
+          }
+        } else {
+          for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
+            // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
+            const dist = posZ / (y - projYCenter);
+            let weight = dist / wallDistance;
+            // assert(weight >= 0);
+            // assert(weight <= 1);
+            let floorX = weight * floorWallX + (1 - weight) * posX;
+            let floorY = weight * floorWallY + (1 - weight) * posY;
+            const floorXidx = floorX | 0;
+            const floorYidx = floorY | 0;
+            const floorMapIdx = floorYidx * mapWidth + floorXidx;
+            const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
+            if (
+              sameFloorMapIdx ||
+              (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
+            ) {
+              if (!sameFloorMapIdx) {
+                const floorTexIdx = floorMap[floorMapIdx];
+                floorMip = textures[floorTexIdx].getMipmap(0).Image;
+                prevFloorMapIdx = floorMapIdx;
+              }
+              const mip = floorMip!;
+              const u = floorX - floorXidx;
+              const v = floorY - floorYidx;
+              // assert(floorX >= 0 && floorX < 1);
+              // assert(floorY >= 0 && floorY < 1);
+              const floorMipX = u * mip.Width;
+              const floorMipY = v * mip.Height;
+              const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+              // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+              const color = mip.Buf32[mipOffs];
+              frameBuf32[framePtr] = color;
+            }
+          }
+        }
+      }
+      // assert(framePtr === colPtr + vpHeight * frameStride);
+    }
   }
 
   private renderViewFullVert2() {
@@ -936,7 +1028,7 @@ class Renderer {
     }
   }
 
-  private renderTranspSlices() {
+  private renderTranspSlicesB2F() {
     const {
       startFramePtr,
       frameBuf32,
@@ -1011,6 +1103,92 @@ class Renderer {
     }
   }
 
+  private renderTranspSlicesF2B() {
+    const {
+      startFramePtr,
+      frameBuf32,
+      occlusionBuf8,
+      occlusionBufRowPtrs,
+      frameStride,
+      frameRowPtrs,
+      raycaster,
+      textures,
+    } = this;
+
+    // memset occlusion buffer TODO:
+    const occlusionBufSize = occlusionBuf8.length;
+    for (let i = 0; i < occlusionBufSize; ++i) {
+      occlusionBuf8[i] = 0;
+    }
+
+    const {
+      TranspSlices: transpSlices,
+      NumTranspSlicesList: numTranspSlicesList,
+      MapWidth: mapWidth,
+    } = raycaster;
+
+    const {
+      // StartX: vpStartX,
+      // StartY: vpStartY,
+      Width: vpWidth,
+      Height: vpHeight,
+    } = raycaster.Viewport;
+
+    if (!numTranspSlicesList) {
+      return;
+    }
+
+    const renderSlice = (slice: Slice, x: number) => {
+      const {
+        Hit: hit,
+        Top: top,
+        Bottom: bottom,
+        TexX: texX,
+        TexStepY: texStepY,
+        TexY: texY,
+        Mipmap: mipmap,
+        Side: side,
+      } = slice;
+
+      const {
+        Buf32: mipPixels,
+        // Width: texWidth,
+        // Height: texHeight,
+        Lg2Pitch: lg2Pitch,
+      } = mipmap;
+
+      const { transpColor } = Texture;
+
+      let offs = (texX << lg2Pitch) + texY;
+
+      let framePtr = frameRowPtrs[top] + x;
+      let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+
+      let occPtr = occlusionBufRowPtrs[top] + x;
+
+      for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+        const color = mipPixels[offs | 0];
+        if (!occlusionBuf8[occPtr] && color !== transpColor) {
+          frameBuf32[framePtr] = color;
+          occlusionBuf8[occPtr] = 1;
+        }
+        offs += texStepY;
+      }
+      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+    };
+
+    for (let x = 0; x < vpWidth; x++) {
+      if (transpSlices[x] !== WASM_NULL_PTR) {
+        const startPtr = (transpSlices[x] as Slice).Prev as Slice; // double linked list
+        let curPtr = startPtr;
+        do {
+          renderSlice(curPtr, x);
+          curPtr = curPtr.Prev as Slice;
+        } while (curPtr !== startPtr);
+      }
+    }
+  }
+
   private renderSprite(sprite: Sprite) {
     // TODO:
   }
@@ -1025,9 +1203,19 @@ class Renderer {
   }
 
   private renderWalls() {
+    const { raycaster } = this;
     if (this.VertFloor) {
-      this.renderViewFullVert();
-      // this.renderViewFullVert2();
+      if (this.back2front) {
+        this.renderViewFullVert();
+        // this.renderViewFullVert2();
+      } else {
+        const { NumTranspSlicesList } = raycaster;
+        if (NumTranspSlicesList) {
+          this.renderViewFullVertTranspsF2B();
+        } else {
+          this.renderViewFullVert();
+        }
+      }
     } else {
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
@@ -1038,8 +1226,14 @@ class Renderer {
     // if (this.useWasm) {
     //   this.wasmEngineModule.render();
     // } else {
-    this.renderWalls();
-    this.renderTranspSlices();
+    if (this.back2front) {
+      this.renderWalls();
+      this.renderTranspSlicesB2F();
+    } else {
+      this.renderTranspSlicesF2B();
+      this.renderWalls();
+    }
+    // this.renderTranspSlicesB2F();
     this.renderSprites(); // TODO:
   }
 }
