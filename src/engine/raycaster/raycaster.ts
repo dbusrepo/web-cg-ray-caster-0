@@ -435,9 +435,9 @@ class Raycaster {
 
     // test transp wall
     const transpTex1 = this.findTex(darkWallTexKeys.TRANSP1);
-    this.xWallMap[6 * this.xWallMapWidth + 2] =
+    this.xWallMap[0 * this.xWallMapWidth + 2] =
       transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[6 * this.xWallMapWidth + 4] =
+    this.xWallMap[0 * this.xWallMapWidth + 3] =
       transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
     const transpTex0 = this.findTex(darkWallTexKeys.TRANSP0);
     this.xWallMap[4 * this.xWallMapWidth + 5] =
