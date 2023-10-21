@@ -409,40 +409,54 @@ class Raycaster {
       this.yWallMapWidth * this.yWallMapHeight,
     );
 
-    let tex = this.findTex(wallTexKeys.GREYSTONE);
-    for (let i = 0; i < this.xWallMapHeight; i++) {
-      this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
-      this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
-        tex.WallMapIdx;
+    // use dark wall textures for xWallMap
+    {
+      const tex = this.findTex(wallTexKeys.GREYSTONE);
+      for (let i = 0; i < this.xWallMapHeight; i++) {
+        this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
+        this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
+          tex.WallMapIdx;
+      }
+      this.xWallMap[0] = 0; // test hole
     }
-    this.xWallMap[0] = 0; // test hole
 
-    tex = this.findTex(wallTexKeys.BRICK1);
-    this.xWallMap[4] = tex.WallMapIdx;
-    this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
+    {
+      const tex = this.findTex(wallTexKeys.BRICK1);
+      this.xWallMap[4] = tex.WallMapIdx;
+      this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
+    }
 
-    tex = this.findTex(darkWallTexKeys.GREYSTONE);
-    for (let i = 0; i < this.yWallMapWidth; i++) {
-      this.yWallMap[i] = tex.WallMapIdx;
-      this.yWallMap[i + (this.yWallMapHeight - 1) * this.yWallMapWidth] =
-        tex.WallMapIdx;
+    {
+      const tex = this.findTex(darkWallTexKeys.GREYSTONE);
+      for (let i = 0; i < this.yWallMapWidth; i++) {
+        this.yWallMap[i] = tex.WallMapIdx;
+        this.yWallMap[i + (this.yWallMapHeight - 1) * this.yWallMapWidth] =
+          tex.WallMapIdx;
+      }
     }
     // this.yMap[2] = 0; // test hole
 
-    tex = this.findTex(darkWallTexKeys.REDBRICK);
-    this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
-    this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+    {
+      const tex = this.findTex(darkWallTexKeys.REDBRICK);
+      this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+      this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+    }
 
     // test transp wall
-    const transpTex1 = this.findTex(darkWallTexKeys.TRANSP1);
-    this.xWallMap[0 * this.xWallMapWidth + 2] =
-      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[0 * this.xWallMapWidth + 3] =
-      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
-    const transpTex0 = this.findTex(darkWallTexKeys.TRANSP0);
-    this.xWallMap[4 * this.xWallMapWidth + 5] =
-      transpTex0.WallMapIdx | WALL_FLAGS.TRANSP;
-    // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
+    {
+      const transpTex0 = this.findTex(wallTexKeys.TRANSP0);
+      const transpTex1 = this.findTex(wallTexKeys.TRANSP1);
+      this.xWallMap[0 * this.xWallMapWidth + 2] =
+        transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+      // this.xWallMap[0 * this.xWallMapWidth + 3] =
+      //   transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+      // this.xWallMap[4 * this.xWallMapWidth + 5] =
+      //   transpTex0.WallMapIdx | WALL_FLAGS.TRANSP;
+      // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
+    }
+    this.yWallMap[2 + this.yWallMapWidth * 5] = this.findTex(darkWallTexKeys.TRANSP0).WallMapIdx;
+
+    this.yWallMap[1 + this.yWallMapWidth * 3] = this.findTex(darkWallTexKeys.GREYSTONE).WallMapIdx;
   }
 
   private initFloorMap() {
