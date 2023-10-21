@@ -187,6 +187,7 @@ class Raycaster {
     this.renderer.IsFloorTextured = true;
     this.renderer.UseWasm = false;
     this.renderer.VertFloor = true;
+    this.renderer.Back2Front = true;
   }
 
   private initData() {
@@ -294,7 +295,7 @@ class Raycaster {
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
 
-      // TODO: init sprites
+      // test sprite
       const sprite = this.sprites[0];
       sprite.PosX = 7.5;
       sprite.PosY = 0.5;
@@ -454,11 +455,22 @@ class Raycaster {
       //   transpTex0.WallMapIdx | WALL_FLAGS.TRANSP;
       // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
     }
-    this.yWallMap[2 + this.yWallMapWidth * 5] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[2 + this.xWallMapWidth * 5] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
 
+    // this.yWallMap[2 + this.yWallMapWidth * 5] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    // this.xWallMap[2 + this.xWallMapWidth * 5] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+
+    this.yWallMap[3 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[3 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[4 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[4 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
     this.yWallMap[5 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
     this.xWallMap[5 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[6 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[6 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[7 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[7 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[8 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[8 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
   }
 
   private initFloorMap() {

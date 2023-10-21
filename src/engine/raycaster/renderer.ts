@@ -30,6 +30,7 @@ class Renderer {
   private spansFloorLY: Float32Array;
   private isFloorTextured = false;
   private useWasm = false;
+  private back2front = false;
   private vertFloor = false;
 
   constructor(raycaster: Raycaster) {
@@ -98,6 +99,14 @@ class Renderer {
 
   public get VertFloor(): boolean {
     return this.vertFloor;
+  }
+
+  public get Back2Front(): boolean {
+    return this.back2front;
+  }
+
+  public set Back2Front(useBack2Front: boolean) {
+    this.back2front = useBack2Front;
   }
 
   public renderBackground(color: number) {
@@ -297,7 +306,7 @@ class Renderer {
     }
   }
 
-  private renderViewFullVertWithTransps() {
+  private renderViewFullVertTranspsF2B() {
     const {
       startFramePtr,
       frameBuf32,
@@ -1195,14 +1204,18 @@ class Renderer {
 
   private renderWalls() {
     const { raycaster } = this;
-    const { NumTranspSlicesList } = raycaster;
     if (this.VertFloor) {
-      if (NumTranspSlicesList) {
-        this.renderViewFullVertWithTransps();
-      } else {
+      if (this.back2front) {
         this.renderViewFullVert();
+        // this.renderViewFullVert2();
+      } else {
+        const { NumTranspSlicesList } = raycaster;
+        if (NumTranspSlicesList) {
+          this.renderViewFullVertTranspsF2B();
+        } else {
+          this.renderViewFullVert();
+        }
       }
-      // this.renderViewFullVert2();
     } else {
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
@@ -1213,8 +1226,13 @@ class Renderer {
     // if (this.useWasm) {
     //   this.wasmEngineModule.render();
     // } else {
-    this.renderTranspSlicesF2B();
-    this.renderWalls();
+    if (this.back2front) {
+      this.renderWalls();
+      this.renderTranspSlicesB2F();
+    } else {
+      this.renderTranspSlicesF2B();
+      this.renderWalls();
+    }
     // this.renderTranspSlicesB2F();
     this.renderSprites(); // TODO:
   }
