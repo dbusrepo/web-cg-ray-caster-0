@@ -11,6 +11,10 @@ const ABGR_RED_SHIFT = 0;
 const BPP_RGBA = 4;
 
 abstract class FrameColorRGBA {
+  static colorBGR(b: number, g: number, r: number): number {
+    return FrameColorRGBA.colorABGR(0xff, b, g, r);
+  }
+
   static colorABGR(a: number, b: number, g: number, r: number): number {
     return (
       (a << ABGR_ALPHA_SHIFT) |

@@ -196,8 +196,7 @@ class Renderer {
       }
       // assert(framePtr === colPtr + top * frameStride);
 
-      const wallSliceHeight = bottom - top + 1;
-
+      // const wallSliceHeight = bottom - top + 1;
       // frameLimitPtr = framePtr + wallSliceHeight * frameStride;
       // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
@@ -205,7 +204,7 @@ class Renderer {
       if (hit) {
         const {
           Buf32: mipPixels,
-          Width: texWidth,
+          // Width: texWidth,
           // Height: texHeight,
           Lg2Pitch: lg2Pitch,
         } = mipmap;
@@ -260,8 +259,6 @@ class Renderer {
         //   frameBuf32[framePtr] = color;
         //   offs_fix += texStepY_fix;
         // }
-
-
 
         // const offsets = texOffsetsArrays[projHeight];
         // // assert(offsets !== undefined);
@@ -951,7 +948,7 @@ class Renderer {
 
     const {
       TranspSlices: transpSlices,
-      NumTranspSlices: numTranspSlices,
+      NumTranspSlicesList: numTranspSlicesList,
       MapWidth: mapWidth,
     } = raycaster;
 
@@ -962,45 +959,44 @@ class Renderer {
       Height: vpHeight,
     } = raycaster.Viewport;
 
-    if (!numTranspSlices) {
+    if (!numTranspSlicesList) {
       return;
     }
 
     const renderSlice = (slice: Slice, x: number) => {
-      // const {
-      //   Hit: hit,
-      //   Top: top,
-      //   Bottom: bottom,
-      //   TexX: texX,
-      //   TexStepY: texStepY,
-      //   TexY: texY,
-      //   Mipmap: mipmap,
-      //   Side: side,
-      // } = transpSlices[x];
-      //
-      // let framePtr = frameRowPtrs[top] + x;
-      // let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-      //
-      // const {
-      //   Buf32: mipPixels,
-      //   // Width: texWidth,
-      //   // Height: texHeight,
-      //   Lg2Pitch: lg2Pitch,
-      // } = mipmap;
-      //
-      // const mipRowOffs = texX << lg2Pitch;
-      // let offs = mipRowOffs + texY;
-      //
-      // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-      //   const color = mipPixels[offs | 0];
-      //   frameBuf32[framePtr] = color;
-      //   offs += texStepY;
-      // }
-      // // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+      const {
+        Hit: hit,
+        Top: top,
+        Bottom: bottom,
+        TexX: texX,
+        TexStepY: texStepY,
+        TexY: texY,
+        Mipmap: mipmap,
+        Side: side,
+      } = slice;
+
+      const {
+        Buf32: mipPixels,
+        // Width: texWidth,
+        // Height: texHeight,
+        Lg2Pitch: lg2Pitch,
+      } = mipmap;
+
+      let offs = (texX << lg2Pitch) + texY;
+
+      let framePtr = frameRowPtrs[top] + x;
+      let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        const color = mipPixels[offs | 0];
+        frameBuf32[framePtr] = color;
+        offs += texStepY;
+      }
+      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
     };
 
     for (let x = 0; x < vpWidth; x++) {
-      const startPtr = transpSlices[x]; // double linked list here
+      const startPtr = transpSlices[x]; // double linked list
       if (startPtr !== WASM_NULL_PTR) {
         let curPtr = startPtr;
         do {
@@ -1024,10 +1020,7 @@ class Renderer {
     }
   }
 
-  public render() {
-    // if (this.useWasm) {
-    //   this.wasmEngineModule.render();
-    // } else {
+  private renderWalls() {
     if (this.VertFloor) {
       this.renderViewFullVert();
       // this.renderViewFullVert2();
@@ -1035,6 +1028,13 @@ class Renderer {
       this.renderViewWallsVertFloorsHorz();
       // this.renderViewFullHorz(); // TODO:
     }
+  }
+
+  public render() {
+    // if (this.useWasm) {
+    //   this.wasmEngineModule.render();
+    // } else {
+    this.renderWalls();
     this.renderTranspSlices();
     this.renderSprites(); // TODO:
   }

@@ -10,3 +10,5 @@ BRICK1=pics/brick1.png
 BRICK1_D=pics/brick1.png
 FLOOR0=pics/floor0.png
 FLOOR1=pics/floor1.png
+TRANSP0=pics/transp0.png
+TRANSP1=pics/transp1.png
