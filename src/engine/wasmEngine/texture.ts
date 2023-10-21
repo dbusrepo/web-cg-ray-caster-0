@@ -60,7 +60,7 @@ class Texture {
 
   makeDarker() {
     this.mipmaps.forEach((mipmap) => {
-      // mipmap.Image.makeDarker(Texture.transpColor);
+      mipmap.Image.makeDarker(Texture.transpColor);
     });
   }
 }
