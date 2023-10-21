@@ -71,7 +71,7 @@ class BitImageRGBA extends BitImage {
   }
 
   makeDarker(transpColor: number) {
-    const buf32 = this.Buf32;
+    const { Buf32: buf32 } = this;
     for (let i = 0; i < buf32.length; ++i) {
       // png texels are stored in rgba, read as abgr due to little endian
       const c = buf32[i]; // abgr
