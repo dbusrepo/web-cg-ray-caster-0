@@ -982,6 +982,8 @@ class Renderer {
         Lg2Pitch: lg2Pitch,
       } = mipmap;
 
+      const { transpColor } = Texture;
+
       let offs = (texX << lg2Pitch) + texY;
 
       let framePtr = frameRowPtrs[top] + x;
@@ -989,7 +991,9 @@ class Renderer {
 
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
         const color = mipPixels[offs | 0];
-        frameBuf32[framePtr] = color;
+        if (color !== transpColor) {
+          frameBuf32[framePtr] = color;
+        }
         offs += texStepY;
       }
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);

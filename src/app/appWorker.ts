@@ -81,7 +81,7 @@ class AppWorker {
     this.initFrameBuf();
     // this.clearBg();
     // this.wasmEngineModule.render();
-    this.raycaster.render();
+    // this.raycaster.render();
   }
 
   private initFrameBuf() {
@@ -341,7 +341,7 @@ class AppWorker {
       this.syncWorkers();
       // this.clearBg();
       // this.wasmEngineModule.render();
-      // this.raycaster.render();
+      this.raycaster.render();
       this.waitWorkers();
       this.drawWasmFrame();
       saveFrameTime();

@@ -49,6 +49,7 @@ const wallTexKeys = {
   BRICK1: imageKeys.BRICK1,
   TRANSP0: imageKeys.TRANSP0,
   TRANSP1: imageKeys.TRANSP1,
+  FULL_TRANSP: imageKeys.FULL_TRANSP,
 };
 
 const WALL_FLAGS_OFFSET = 13;
@@ -107,7 +108,6 @@ class Raycaster {
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
   private texId2isColTranspMap: { [key: number]: { [key: number]: boolean } };
-  private transpColor: number;
 
   private mapWidth: number;
   private mapHeight: number;
@@ -152,7 +152,7 @@ class Raycaster {
   private floorWall = new Float32Array(2);
 
   // private _2float: Float32Array;
-  // private _2u32: Uint32Array;
+  // private _1u32: Uint32Array;
 
   public async init(params: RaycasterParams) {
     this.params = params;
@@ -168,13 +168,6 @@ class Raycaster {
     this.initData();
     this.initRenderer();
 
-    this.texId2isColTranspMap = {}; // [texId][colId] = 1 if texId has col coliId with transparecy
-    this.transpColor = FrameColorRGBAWasm.colorBGR(
-      TRANSP_COLOR_RGB.b,
-      TRANSP_COLOR_RGB.g,
-      TRANSP_COLOR_RGB.r,
-    );
-
     this.renderer.renderBorders(this.BorderColor);
 
     // this.renderBackground();
@@ -187,6 +180,8 @@ class Raycaster {
   }
 
   private initRenderer() {
+    this.texId2isColTranspMap = {}; // [texId][colId] = 1 if texId has col coliId with transparecy
+
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
     this.renderer.UseWasm = false;
@@ -194,6 +189,12 @@ class Raycaster {
   }
 
   private initData() {
+    Texture.transpColor = FrameColorRGBAWasm.colorBGR(
+      TRANSP_COLOR_RGB.b,
+      TRANSP_COLOR_RGB.g,
+      TRANSP_COLOR_RGB.r,
+    );
+
     this.initTextures();
     this.initBorder();
     this.initViewport();
@@ -433,11 +434,14 @@ class Raycaster {
     this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
 
     // test transp wall
-    const transpTex = this.findTex(darkWallTexKeys.TRANSP1);
-    this.xWallMap[0 * this.xWallMapWidth + 2] =
-      transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
-    // this.xWallMap[0 * this.xWallMapWidth + 3] =
-    //   transpTex.WallMapIdx | WALL_FLAGS.TRANSP;
+    const transpTex1 = this.findTex(darkWallTexKeys.TRANSP1);
+    this.xWallMap[6 * this.xWallMapWidth + 2] =
+      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[6 * this.xWallMapWidth + 4] =
+      transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+    const transpTex0 = this.findTex(darkWallTexKeys.TRANSP0);
+    this.xWallMap[4 * this.xWallMapWidth + 5] =
+      transpTex0.WallMapIdx | WALL_FLAGS.TRANSP;
     // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
   }
 
@@ -479,16 +483,17 @@ class Raycaster {
     const isColTranspMap = texId2isColTranspMap[texIdx];
 
     if (isColTranspMap[texX] !== undefined) {
-      console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
+      // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
       return isColTranspMap[texX];
     }
 
     const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
 
     // image is rotated 90ccw
+    const { transpColor } = Texture;
     const rowOffs = texX << lg2Pitch;
     let y = 0;
-    for (; y < texWidth && mipPixels[rowOffs + y] !== this.transpColor; y++) {}
+    for (; y < texWidth && mipPixels[rowOffs + y] !== transpColor; y++) {}
 
     return (isColTranspMap[texX] = y < texWidth);
   }
@@ -676,7 +681,7 @@ class Raycaster {
 
           const isTranspWall =
             wallCode & WALL_FLAGS.TRANSP &&
-            this.isColTransp(texIdx, srcTexX, image);
+            this.isColTransp(texIdx, texX, image);
 
           if (isTranspWall) {
             slice = this.newTranspSlice(x);

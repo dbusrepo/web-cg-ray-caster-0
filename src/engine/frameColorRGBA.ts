@@ -17,10 +17,11 @@ abstract class FrameColorRGBA {
 
   static colorABGR(a: number, b: number, g: number, r: number): number {
     return (
-      (a << ABGR_ALPHA_SHIFT) |
-      (b << ABGR_BLUE_SHIFT) |
-      (g << ABGR_GREEN_SHIFT) |
-      r
+      ((a << ABGR_ALPHA_SHIFT) |
+        (b << ABGR_BLUE_SHIFT) |
+        (g << ABGR_GREEN_SHIFT) |
+        r) >>>
+      0
     );
   }
 
