@@ -13,7 +13,7 @@ import { logi } from '../importVars';
   private distance: f32;
   private startX: u32;
   private endX: u32;
-  private texX: u32;
+  private texX: f32;
   private texStepX: f32;
   private startY: u32;
   private endY: u32;
@@ -87,11 +87,11 @@ import { logi } from '../importVars';
     this.endX = endX;
   }
 
-  get TexX(): u32 {
+  get TexX(): f32 {
     return this.texX;
   }
 
-  set TexX(texX: u32) {
+  set TexX(texX: f32) {
     this.texX = texX;
   }
 

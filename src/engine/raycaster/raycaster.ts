@@ -872,22 +872,22 @@ class Raycaster {
       // sprite cols in [startX, endX]
 
       const dy = (playerZ - sprite.PosZ) * invTy;
-      let endY = (projYCenter + dy) | 0;
+      let srcEndY = (projYCenter + dy) | 0;
 
-      if (endY < 0) {
+      if (srcEndY < 0) {
         continue;
       }
 
-      let startY = endY - spriteHeight + 1;
+      let srcStartY = srcEndY - spriteHeight + 1;
 
-      if (startY >= vpHeight) {
+      if (srcStartY >= vpHeight) {
         continue;
       }
 
       // vertical clip
-      const clipY = Math.max(0, -startY);
-      startY += clipY;
-      endY = Math.min(endY, vpHeight - 1);
+      const clipY = Math.max(0, -srcStartY);
+      const startY = srcStartY + clipY;
+      const endY = Math.min(srcEndY, vpHeight - 1);
       // assert(startY <= endY, `invalid startY ${startY} and endY ${endY}`);
 
       // sprite rows in [startY, endY]
@@ -900,16 +900,17 @@ class Raycaster {
       const { Width: texWidth, Height: texHeight, Lg2Pitch: lg2Pitch } = image;
 
       const texStepX = texWidth / spriteWidth;
-      const texX = (clipX * texStepX) | 0;
+      const texX = clipX * texStepX;
 
       const texStepY = texHeight / spriteHeight;
-      const texY = (clipY * texStepY) | 0;
+      const texY = clipY * texStepY;
 
       // occlusion test with walls and slice gen with cols with transp walls
       let useTranspSlicesOnly = true;
       let isOccluded = true;
 
-      for (let x = startX; x <= endX; x++) {
+      let sliceTexX = texX;
+      for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
         if (transpSlices[x] === WASM_NULL_PTR) {
           useTranspSlicesOnly = false;
           if (wallZBuffer[x] >= tY) {
@@ -920,9 +921,9 @@ class Raycaster {
           slice.Side = 0;
           slice.Distance = tY;
           slice.ClipTop = clipY;
+          slice.TexX = sliceTexX;
           slice.Top = startY;
           slice.Bottom = endY;
-          slice.TexX = texX;
           slice.TexY = texY;
           slice.TexStepY = texStepY;
           slice.Mipmap = image;
