@@ -838,6 +838,12 @@ class Raycaster {
         continue;
       }
 
+      // too big
+      if (spriteHeight >= vpHeight * 4) {
+        // console.log('spriteHeight >= vpHeight * 3');
+        continue;
+      }
+
       const spriteWidth = spriteHeight;
 
       const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;

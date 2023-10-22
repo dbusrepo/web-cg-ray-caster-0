@@ -1198,7 +1198,7 @@ class Renderer {
       Mipmap: mipmap,
       StartX: startX,
       EndX: endX,
-      TexX: texX,
+      TexX: startTexX,
       TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
@@ -1215,30 +1215,29 @@ class Renderer {
 
     const { transpColor } = Texture;
 
-    const startYPtr = frameRowPtrs[startY];
-    const endYPtr = frameRowPtrs[endY + 1];
+    // y start and end of cur sprite slice
+    let startYPtr = frameRowPtrs[startY] + startX;
+    let endYPtr = frameRowPtrs[endY + 1] + startX;
 
-    let curTexX = texX;
+    let texX = startTexX;
 
-    for (let x = startX; x < endX; x++) {
+    for (let x = startX; x < endX; x++, startYPtr++, endYPtr++) {
       if (distance <= wallZBuffer[x] && transpSlices[x] === WASM_NULL_PTR) {
-        const startXPtr = startYPtr + x;
-        const endXPtr = endYPtr + x;
-        const mipRowOffs = curTexX << lg2Pitch;
-        let offs = mipRowOffs + texY;
+        const mipRowOffs = texX << lg2Pitch;
+        let texYOffs = mipRowOffs + texY;
         for (
-          let framePtr = startXPtr;
-          framePtr < endXPtr;
+          let framePtr = startYPtr;
+          framePtr < endYPtr;
           framePtr += frameStride
         ) {
-          const color = mipPixels[offs | 0];
+          const color = mipPixels[texYOffs | 0];
           if (color !== transpColor) {
             frameBuf32[framePtr] = color;
           }
-          offs += texStepY;
+          texYOffs += texStepY;
         }
       }
-      curTexX += texStepX;
+      texX += texStepX;
     }
   }
 
