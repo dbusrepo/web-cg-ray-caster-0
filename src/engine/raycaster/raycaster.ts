@@ -721,7 +721,6 @@ class Raycaster {
             slice = this.newWallTranspSlice(x);
             slice.Side = side;
             slice.Distance = perpWallDist;
-            slice.Height = wallSliceProjHeight;
             slice.ClipTop = clipTop;
             slice.Top = wallTop;
             slice.Bottom = wallBottom;
@@ -755,7 +754,6 @@ class Raycaster {
 
         wallSlice.Side = side;
         wallSlice.Distance = perpWallDist;
-        wallSlice.Height = wallSliceProjHeight;
         wallSlice.ClipTop = clipTop;
         wallSlice.Top = wallTop;
         wallSlice.Bottom = wallBottom;
@@ -899,11 +897,7 @@ class Raycaster {
       const tex = textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
       const { Image: image } = mipmap;
-      const {
-        Width: texWidth,
-        Height: texHeight,
-        Lg2Pitch: lg2Pitch,
-      } = image;
+      const { Width: texWidth, Height: texHeight, Lg2Pitch: lg2Pitch } = image;
 
       const texStepX = texWidth / spriteWidth;
       const texX = (clipX * texStepX) | 0;
@@ -925,7 +919,6 @@ class Raycaster {
           const slice = this.newTranspSlice(x);
           slice.Side = 0;
           slice.Distance = tY;
-          slice.Height = spriteHeight;
           slice.ClipTop = clipY;
           slice.Top = startY;
           slice.Bottom = endY;
@@ -969,7 +962,7 @@ class Raycaster {
         continue;
       }
 
-      sprite.Mipmap = image; // used in render ts
+      sprite.Mipmap = image;
       sprite.Distance = tY;
       sprite.StartX = startX;
       sprite.EndX = endX;

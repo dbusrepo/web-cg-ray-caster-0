@@ -12,7 +12,6 @@ class Slice {
   constructor(
     private slicePtr: number,
     private distancePtr: number,
-    private heightPtr: number,
     private clipTopPtr: number,
     private hitPtr: number,
     private sidePtr: number,
@@ -31,7 +30,6 @@ class Slice {
   init(
     slicePtr: number,
     distancePtr: number,
-    heightPtr: number,
     clipTopPtr: number,
     hitPtr: number,
     sidePtr: number,
@@ -48,7 +46,6 @@ class Slice {
   ) {
     this.slicePtr = slicePtr;
     this.distancePtr = distancePtr;
-    this.heightPtr = heightPtr;
     this.clipTopPtr = clipTopPtr;
     this.hitPtr = hitPtr;
     this.sidePtr = sidePtr;
@@ -190,14 +187,6 @@ class Slice {
     gWasmView.setFloat32(this.floorWallYPtr, floorWallY, true);
   }
 
-  get Height(): number {
-    return gWasmView.getUint32(this.heightPtr, true);
-  }
-
-  set Height(projHeight: number) {
-    gWasmView.setUint32(this.heightPtr, projHeight, true);
-  }
-
   get ClipTop(): number {
     return gWasmView.getUint32(this.clipTopPtr, true);
   }
@@ -254,7 +243,6 @@ function createSliceView(wasmEngineModule: WasmEngineModule, slicePtr: number) {
   return new Slice(
     slicePtr,
     wasmEngineModule.getSliceDistancePtr(slicePtr),
-    wasmEngineModule.getSliceHeightPtr(slicePtr),
     wasmEngineModule.getSliceClipTopPtr(slicePtr),
     wasmEngineModule.getSliceHitPtr(slicePtr),
     wasmEngineModule.getSliceSidePtr(slicePtr),

@@ -8,7 +8,6 @@ import { logi } from '../importVars';
   private top: u32;
   private bottom: u32;
 
-  private height: u32;
   private clipTop: u32;
 
   private hit: u8;
@@ -115,14 +114,6 @@ import { logi } from '../importVars';
     this.floorWallY = floorWallY;
   }
 
-  get Height(): u32 {
-    return this.height;
-  }
-
-  set Height(height: u32) {
-    this.height = height;
-  }
-
   get ClipTop(): u32 {
     return this.clipTop;
   }
@@ -206,10 +197,6 @@ function getSliceMipMapIdxPtr(slicePtr: PTR_T): PTR_T {
   return slicePtr + offsetof<Slice>('mipMapIdx');
 }
 
-function getSliceHeightPtr(slicePtr: PTR_T): PTR_T {
-  return slicePtr + offsetof<Slice>('height');
-}
-
 function getSliceClipTopPtr(slicePtr: PTR_T): PTR_T {
   return slicePtr + offsetof<Slice>('clipTop');
 }
@@ -241,7 +228,6 @@ export {
   getSliceFloorWallXPtr,
   getSliceFloorWallYPtr,
   getSliceMipMapIdxPtr,
-  getSliceHeightPtr,
   getSliceClipTopPtr,
   getSlicePrevPtrPtr,
   getSliceNextPtrPtr,

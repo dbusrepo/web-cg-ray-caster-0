@@ -195,8 +195,7 @@ class Renderer {
         FloorWallX: floorWallX,
         FloorWallY: floorWallY,
         Mipmap: mipmap,
-        Height: projHeight,
-        ClipTop: clipTop,
+        // ClipTop: clipTop,
       } = wallSlices[x];
 
       const colPtr = startFramePtr + x;
@@ -1050,16 +1049,14 @@ class Renderer {
       return;
     }
 
-    const renderSlice = (slice: Slice, x: number) => {
+    const renderSlice = (slice: Slice, x: number) => { // TODO: inline
       const {
-        Hit: hit,
         Top: top,
         Bottom: bottom,
         TexX: texX,
         TexStepY: texStepY,
         TexY: texY,
         Mipmap: mipmap,
-        Side: side,
       } = slice;
 
       const {
@@ -1203,9 +1200,9 @@ class Renderer {
       TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
-      TexY: texY,
-      TexStepY: texStepY,
       YOffsets: yOffsets,
+      // TexY: texY,
+      // TexStepY: texStepY,
     } = sprite;
 
     const {
