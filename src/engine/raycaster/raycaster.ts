@@ -51,6 +51,10 @@ const wallTexKeys = {
   TRANSP1: imageKeys.TRANSP1,
   TRANSP2: imageKeys.TRANSP2,
   FULL_TRANSP: imageKeys.FULL_TRANSP,
+  GREEN_LIGHT: imageKeys.GREEN_LIGHT,
+  BARREL: imageKeys.BARREL,
+  PILLAR: imageKeys.PILLAR,
+  PLANT: imageKeys.PLANT,
 };
 
 const WALL_FLAGS_OFFSET = 13;
@@ -112,7 +116,7 @@ class Raycaster {
 
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
-  private texId2isColTranspMap: { [key: number]: { [key: number]: boolean } };
+  private texIdx2isColTranspMap: { [key: number]: { [key: number]: boolean } };
 
   private mapWidth: number;
   private mapHeight: number;
@@ -184,7 +188,7 @@ class Raycaster {
   }
 
   private initRenderer() {
-    this.texId2isColTranspMap = {}; // [texId][colId] = 1 if texId has col coliId with transparecy
+    this.texIdx2isColTranspMap = {}; // [texIdx][colId] = 1 if texId has col coliId with transparecy
 
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
@@ -289,7 +293,7 @@ class Raycaster {
   }
 
   private initSprites(): void {
-    const NUM_SPRITES = 3;
+    const NUM_SPRITES = 7;
     const SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
 
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
@@ -297,33 +301,87 @@ class Raycaster {
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
 
-      // test sprite
       {
+        const tex = this.findTex(wallTexKeys.PILLAR);
+        assert(tex);
         const sprite = this.sprites[0];
         sprite.PosX = 7.5;
         sprite.PosY = 0.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-        sprite.TexIdx = this.findTex(wallTexKeys.EAGLE).WallMapIdx;
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
         sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
       }
 
       {
+        const tex = this.findTex(wallTexKeys.PILLAR);
+        assert(tex);
         const sprite = this.sprites[1];
-        sprite.PosX = 3.5;
-        sprite.PosY = 3.5;
+        sprite.PosX = 7.5;
+        sprite.PosY = 8.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-        sprite.TexIdx = this.findTex(wallTexKeys.EAGLE).WallMapIdx;
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
         sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
       }
 
       {
+        const tex = this.findTex(wallTexKeys.BARREL);
+        console.log(tex);
+        assert(tex);
         const sprite = this.sprites[2];
-        sprite.PosX = 3.5;
+        sprite.PosX = 4.5;
+        sprite.PosY = 2.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PLANT);
+        assert(tex);
+        const sprite = this.sprites[3];
+        sprite.PosX = 0.5;
+        sprite.PosY = 6.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PLANT);
+        assert(tex);
+        const sprite = this.sprites[4];
+        sprite.PosX = 0.5;
         sprite.PosY = 4.5;
-        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-        sprite.TexIdx = this.findTex(wallTexKeys.REDBRICK).WallMapIdx;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+        assert(tex);
+        const sprite = this.sprites[5];
+        sprite.PosX = 5.5;
+        sprite.PosY = 1.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PLANT);
+        assert(tex);
+        const sprite = this.sprites[6];
+        sprite.PosX = 0.5;
+        sprite.PosY = 2.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
         sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
       }
@@ -378,14 +436,14 @@ class Raycaster {
     });
   }
 
-  private findTex(texKey: string): Texture {
+  private findTex(texKey: string): Texture | null {
     let tex: Texture | null = null;
     for (let i = 0; i < this.textures.length; i++) {
       if (this.textures[i].Key === texKey) {
         tex = this.textures[i];
       }
     }
-    assert(tex !== null, `texture ${texKey} not found`);
+    // assert(tex !== null, `texture ${texKey} not found`);
     return tex;
   }
 
@@ -395,7 +453,9 @@ class Raycaster {
     for (let i = 0; i < wallTexKeysArr.length; i++) {
       const darkTexKey = wallTexKeysArr[i];
       const darkTex = this.findTex(darkTexKey);
-      darkTex.makeDarker();
+      if (darkTex) {
+        darkTex.makeDarker();
+      }
     }
   }
 
@@ -438,22 +498,25 @@ class Raycaster {
 
     {
       const tex = this.findTex(wallTexKeys.GREYSTONE);
+      assert(tex);
       for (let i = 0; i < this.xWallMapHeight; i++) {
         this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
         this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
           tex.WallMapIdx;
       }
-      this.xWallMap[0] = 0; // test hole
+      // this.xWallMap[0] = 0; // test hole
     }
 
     {
-      const tex = this.findTex(wallTexKeys.BRICK1);
+      const tex = this.findTex(wallTexKeys.GREYSTONE);
+      assert(tex);
       this.xWallMap[4] = tex.WallMapIdx;
       this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
     }
 
     {
       const tex = this.findTex(darkWallTexKeys.GREYSTONE);
+      assert(tex);
       for (let i = 0; i < this.yWallMapWidth; i++) {
         this.yWallMap[i] = tex.WallMapIdx;
         this.yWallMap[i + (this.yWallMapHeight - 1) * this.yWallMapWidth] =
@@ -464,6 +527,7 @@ class Raycaster {
 
     {
       const tex = this.findTex(darkWallTexKeys.REDBRICK);
+      assert(tex);
       this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
       this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
     }
@@ -484,20 +548,28 @@ class Raycaster {
     // this.yWallMap[2 + this.yWallMapWidth * 5] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
     // this.xWallMap[2 + this.xWallMapWidth * 5] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
 
-    this.yWallMap[3 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[3 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[4 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[4 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[5 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[5 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[6 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[6 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[7 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[7 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[8 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[8 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    const darkTransp2 = this.findTex(darkWallTexKeys.TRANSP2);
+    assert(darkTransp2);
+    const transp2 = this.findTex(wallTexKeys.TRANSP2);
+    assert(transp2);
+    this.yWallMap[3 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[3 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[4 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[4 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[5 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[5 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[6 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[6 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[7 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[7 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[8 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[8 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
 
-    this.yWallMap[6 + this.yWallMapWidth * 7] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[6 + this.yWallMapWidth * 7] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+
+    const darkTransp0 = this.findTex(darkWallTexKeys.TRANSP0);
+    assert(darkTransp0);
+    this.yWallMap[8 + this.yWallMapWidth * 6] = darkTransp0.WallMapIdx | WALL_FLAGS.TRANSP;
   }
 
   private initFloorMap() {
@@ -510,6 +582,7 @@ class Raycaster {
     );
 
     let tex = this.findTex(floorTexKeys.FLOOR0);
+    assert(tex);
 
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
@@ -518,6 +591,7 @@ class Raycaster {
     }
 
     tex = this.findTex(floorTexKeys.FLOOR1);
+    assert(tex);
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
@@ -528,13 +602,13 @@ class Raycaster {
   private postRender() {}
 
   private isColTransp(texIdx: number, texX: number, image: BitImageRGBA) {
-    const { texId2isColTranspMap } = this;
+    const { texIdx2isColTranspMap } = this;
 
-    if (!texId2isColTranspMap[texIdx]) {
-      texId2isColTranspMap[texIdx] = {};
+    if (!texIdx2isColTranspMap[texIdx]) {
+      texIdx2isColTranspMap[texIdx] = {};
     }
 
-    const isColTranspMap = texId2isColTranspMap[texIdx];
+    const isColTranspMap = texIdx2isColTranspMap[texIdx];
 
     if (isColTranspMap[texX] !== undefined) {
       // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);

@@ -18,3 +18,7 @@ FULL_TRANSP=pics/full_transp.png
 FULL_TRANSP_D=pics/full_transp.png
 FLOOR0=pics/floor0.png
 FLOOR1=pics/floor1.png
+GREEN_LIGHT=pics/greenlight.png
+BARREL=pics/barrel.png
+PILLAR=pics/pillar.png
+PLANT=pics/plant.png
