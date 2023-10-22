@@ -20,7 +20,7 @@ import {
   Slice,
   getWasmWallSlicesView,
   newSliceView,
-  // freeSliceView,
+  freeSliceView,
   freeTranspSliceViewsList,
 } from './slice';
 import Renderer from './renderer';
@@ -718,7 +718,7 @@ class Raycaster {
             this.isColTransp(texIdx, texX, image);
 
           if (isTranspWall) {
-            slice = this.newTranspSlice(x);
+            slice = this.newWallTranspSlice(x);
             slice.Side = side;
             slice.Distance = perpWallDist;
             slice.Height = wallSliceProjHeight;
@@ -731,8 +731,8 @@ class Raycaster {
           const texY = clipTop * texStepY;
 
           slice.TexX = texX;
-          slice.TexStepY = texStepY;
           slice.TexY = texY;
+          slice.TexStepY = texStepY;
           slice.Mipmap = image; // used in render ts
           slice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
 
@@ -895,30 +895,6 @@ class Raycaster {
       // sprite rows in [startY, endY]
       // sprite cols in [startX, endX]
 
-      // occlusion test with walls and slice gen with cols with transp walls
-      let useTranspSlicesOnly = true;
-      let isOccluded = true;
-
-      for (let x = startX; x <= endX; x++) {
-        const colHasTransp = transpSlices[x] !== WASM_NULL_PTR;
-        if (!colHasTransp) {
-          useTranspSlicesOnly = false;
-          if (wallZBuffer[x] >= tY) {
-            isOccluded = false;
-          }
-        } else {
-          // gen sprite x slice and insert and sort slices list
-          // let slice = transpSlices[x] as Slice;
-        }
-      }
-
-      const removeFromSortingList = isOccluded || useTranspSlicesOnly;
-      if (removeFromSortingList) {
-        // sprite removed from the sorting list
-        // if it has cols shared with transp walls slices it will be rendered later with them
-        continue;
-      }
-
       const texIdx = sprite.TexIdx;
       const tex = textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
@@ -934,6 +910,64 @@ class Raycaster {
 
       const texStepY = texHeight / spriteHeight;
       const texY = (clipY * texStepY) | 0;
+
+      // occlusion test with walls and slice gen with cols with transp walls
+      let useTranspSlicesOnly = true;
+      let isOccluded = true;
+
+      for (let x = startX; x <= endX; x++) {
+        if (transpSlices[x] === WASM_NULL_PTR) {
+          useTranspSlicesOnly = false;
+          if (wallZBuffer[x] >= tY) {
+            isOccluded = false;
+          }
+        } else {
+          const slice = this.newTranspSlice(x);
+          slice.Side = 0;
+          slice.Distance = tY;
+          slice.Height = spriteHeight;
+          slice.ClipTop = clipY;
+          slice.Top = startY;
+          slice.Bottom = endY;
+          slice.TexX = texX;
+          slice.TexY = texY;
+          slice.TexStepY = texStepY;
+          slice.Mipmap = image;
+          slice.MipMapIdx = mipmap.WasmIdx;
+
+          // insert in correct descending/no increasing distance order in circular doubly linked list transpSlices[x]
+          const firstPtr = transpSlices[x] as Slice;
+          // const lastPtr = firstPtr.Prev;
+          let curPtr = firstPtr;
+
+          if (tY >= curPtr.Distance) {
+            // insert at front, the sprite slice is the farthest, check wall occlusion
+            if (wallZBuffer[x] >= tY) {
+              this.updateTranspSliceArrayIdx(x, slice);
+            } else {
+              // sprite slice occluded by wall, free it
+              freeSliceView(slice);
+              continue;
+            }
+          } else {
+            do {
+              curPtr = curPtr.Next as Slice;
+            } while (tY < curPtr.Distance && curPtr !== firstPtr);
+          }
+          // insert before curPtr
+          slice.Prev = curPtr.Prev;
+          curPtr.Prev = slice;
+          slice.Next = curPtr;
+          (slice.Prev as Slice).Next = slice;
+        }
+      }
+
+      const removeFromSortingList = isOccluded || useTranspSlicesOnly;
+      if (removeFromSortingList) {
+        // sprite removed from the sorting list
+        // if it has cols shared with transp walls slices it will be rendered later with them
+        continue;
+      }
 
       sprite.Mipmap = image; // used in render ts
       sprite.Distance = tY;
@@ -981,9 +1015,19 @@ class Raycaster {
     );
   }
 
+  private newWallTranspSlice(idx: number): Slice {
+    const newSlice = newSliceView(this.wasmEngineModule);
+    this.addTranspSliceAtFront(newSlice, idx);
+    return newSlice;
+  }
+
   private newTranspSlice(idx: number): Slice {
     const newSlice = newSliceView(this.wasmEngineModule);
-    // insert at front in transpSlices[idx]
+    return newSlice;
+  }
+
+  private addTranspSliceAtFront(newSlice: Slice, idx: number) {
+    // insert at front in circular doubly linked list transpSlices[idx]
     if (this.transpSlices[idx]) {
       const frontSlice = this.transpSlices[idx] as Slice;
       newSlice.Prev = frontSlice.Prev;

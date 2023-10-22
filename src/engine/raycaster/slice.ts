@@ -234,8 +234,7 @@ const newSliceView = (wasmEngineModule: WasmEngineModule) => {
     const slicePtr = wasmEngineModule.allocSlice();
     sliceView = createSliceView(wasmEngineModule, slicePtr);
   }
-  // wsliceView.Next = null;
-  // wsliceView.Prev = null;
+  sliceView.Next = sliceView.Prev = WASM_NULL_PTR; // init
   return sliceView;
 };
 

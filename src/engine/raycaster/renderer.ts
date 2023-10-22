@@ -1087,8 +1087,9 @@ class Renderer {
     };
 
     for (let x = 0; x < vpWidth; x++) {
-      const startPtr = transpSlices[x]; // double linked list
+      const startPtr = transpSlices[x];
       if (startPtr !== WASM_NULL_PTR) {
+        // the circular doubly linked list is sort by no increasing distance
         let curPtr = startPtr;
         do {
           renderSlice(curPtr, x);
