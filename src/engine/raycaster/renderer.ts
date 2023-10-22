@@ -1204,6 +1204,7 @@ class Renderer {
       EndY: endY,
       TexY: texY,
       TexStepY: texStepY,
+      YOffsets: yOffsets,
     } = sprite;
 
     const {
@@ -1221,21 +1222,21 @@ class Renderer {
 
     let texX = startTexX;
 
-    for (let x = startX; x < endX; x++, startYPtr++, endYPtr++) {
+    for (
+      let x = startX;
+      x <= endX;
+      x++, startYPtr++, endYPtr++, texX += texStepX
+    ) {
       if (distance <= wallZBuffer[x] && transpSlices[x] === WASM_NULL_PTR) {
         const mipRowOffs = texX << lg2Pitch;
-        let texYOffs = texY;
         let framePtr = startYPtr;
-        for (let y = startY; y <= endY; y++) {
-          const color = mipPixels[mipRowOffs + (texYOffs | 0)];
+        for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+          const color = mipPixels[mipRowOffs + yOffsets[y]];
           if (color !== transpColor) {
             frameBuf32[framePtr] = color;
           }
-          texYOffs += texStepY;
-          framePtr += frameStride;
         }
       }
-      texX += texStepX;
     }
   }
 
@@ -1245,7 +1246,7 @@ class Renderer {
     const { NumViewSprites: numViewSprites } = raycaster;
 
     if (this.back2front) {
-      for (let i = 0; i < numViewSprites; ++i) {
+      for (let i = 1; i <= numViewSprites; ++i) {
         this.renderSpriteB2F(viewSprites[i]);
       }
     } else {

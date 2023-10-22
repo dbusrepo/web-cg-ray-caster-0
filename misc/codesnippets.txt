@@ -1512,3 +1512,15 @@ private renderViewFullVert() {
 //   }
 //   offs += texStepY;
 // }
+
+// sprite inner loop before using precald y offsets
+// let texYOffs = texY;
+// let framePtr = startYPtr;
+// for (let y = startY; y <= endY; y++) {
+//   const color = mipPixels[mipRowOffs + (texYOffs | 0)];
+//   if (color !== transpColor) {
+//     frameBuf32[framePtr] = color;
+//   }
+//   texYOffs += texStepY;
+//   framePtr += frameStride;
+// }

@@ -4,6 +4,7 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 
 class Sprite {
   private mipmap: BitImageRGBA;
+  private yOffsets: Uint32Array; // precalcd row offsets
 
   constructor(
     // private spritePtr: number,
@@ -34,6 +35,20 @@ class Sprite {
   // get WasmPtr(): number {
   //   return this.spritePtr;
   // }
+
+  allocYOffsets(length: number): void {
+    if (!this.yOffsets) {
+      this.yOffsets = new Uint32Array(length);
+    }
+  }
+
+  get YOffsets(): Uint32Array {
+    return this.yOffsets;
+  }
+
+  get MaxHeight(): number {
+    return this.yOffsets.length;
+  }
 
   get Mipmap(): BitImageRGBA {
     return this.mipmap;

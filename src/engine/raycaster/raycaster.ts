@@ -76,6 +76,9 @@ const floorTexKeys = {
   FLOOR1: imageKeys.FLOOR1,
 };
 
+const MIN_SPRITE_DIST = 0.1;
+const MAX_SPRITE_DIST = 1000; // TODO:
+
 class Raycaster {
   private params: RaycasterParams;
   private wasmRun: WasmRun;
@@ -289,6 +292,8 @@ class Raycaster {
 
   private initSprites(): void {
     const NUM_SPRITES = 1;
+    const SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
+
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
     if (this.sprites.length) {
@@ -301,6 +306,8 @@ class Raycaster {
       sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       sprite.TexIdx = 0;
       sprite.Visible = 1;
+
+      sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
     }
   }
 
@@ -793,14 +800,12 @@ class Raycaster {
       viewSprites,
       textures,
       ProjYCenter: projYCenter,
+      transpSlices,
     } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
     const { PlaneX: playerPlaneX, PlaneY: playerPlaneY } = player;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
-
-    const MIN_SPRITE_DIST = 0.1;
-    const MAX_SPRITE_DIST = 1000; // TODO:
 
     const minDist = MIN_SPRITE_DIST;
     const maxDist = Math.min(this.MaxWallDistance, MAX_SPRITE_DIST);
@@ -839,7 +844,7 @@ class Raycaster {
       }
 
       // too big
-      if (spriteHeight >= vpHeight * 4) {
+      if (spriteHeight > sprite.MaxHeight) {
         // console.log('spriteHeight >= vpHeight * 3');
         continue;
       }
@@ -853,7 +858,7 @@ class Raycaster {
         continue;
       }
 
-      let endX = startX + spriteWidth;
+      let endX = startX + spriteWidth - 1;
 
       if (endX < 0) {
         continue;
@@ -864,9 +869,9 @@ class Raycaster {
       startX += clipX;
 
       // clip endX
-      endX = Math.min(endX, vpWidth);
+      endX = Math.min(endX, vpWidth - 1);
 
-      // sprite cols in [startX, endX)
+      // sprite cols in [startX, endX]
 
       const dy = (playerZ - sprite.PosZ) * invTy;
       let endY = (projYCenter + dy) | 0;
@@ -888,18 +893,29 @@ class Raycaster {
       // assert(startY <= endY, `invalid startY ${startY} and endY ${endY}`);
 
       // sprite rows in [startY, endY]
-      // sprite cols in [startX, endX)
+      // sprite cols in [startX, endX]
 
-      // occlusion test with walls
+      // occlusion test with walls and slice gen with cols with transp walls
+      let useTranspSlicesOnly = true;
       let isOccluded = true;
-      for (let x = startX; x < endX; x++) {
-        if (wallZBuffer[x] >= tY) {
-          isOccluded = false;
-          break;
+
+      for (let x = startX; x <= endX; x++) {
+        const colHasTransp = transpSlices[x] !== WASM_NULL_PTR;
+        if (!colHasTransp) {
+          useTranspSlicesOnly = false;
+          if (wallZBuffer[x] >= tY) {
+            isOccluded = false;
+          }
+        } else {
+          // gen sprite x slice and insert and sort slices list
+          // let slice = transpSlices[x] as Slice;
         }
       }
 
-      if (isOccluded) {
+      const removeFromSortingList = isOccluded || useTranspSlicesOnly;
+      if (removeFromSortingList) {
+        // sprite removed from the sorting list
+        // if it has cols shared with transp walls slices it will be rendered later with them
         continue;
       }
 
@@ -910,7 +926,7 @@ class Raycaster {
       const {
         Width: texWidth,
         Height: texHeight,
-        // Lg2Pitch: lg2Pitch,
+        Lg2Pitch: lg2Pitch,
       } = image;
 
       const texStepX = texWidth / spriteWidth;
@@ -930,14 +946,23 @@ class Raycaster {
       sprite.TexY = texY;
       sprite.TexStepY = texStepY;
 
-      // insertion sort on viewSprites[1..numViewSprites) on descending distance
+      // precalc row offsets
+      const { YOffsets: yOffsets } = sprite;
+      let curTexY = texY;
+      for (let y = startY; y <= endY; y++) {
+        yOffsets[y] = curTexY;
+        curTexY += texStepY;
+      }
+
+      // insertion sort on viewSprites[1...numViewSprites] on descending distance
       let j = numViewSprites++;
-      viewSprites[0] = sprite; // sentinel
+      viewSprites[0] = sprite; // sentinel at 0
       const spriteDist = sprite.Distance; // get float dist value
       for (; viewSprites[j].Distance < spriteDist; j--) {
         viewSprites[j + 1] = viewSprites[j];
       }
       viewSprites[j + 1] = sprite;
+      // viewSprites[1...numViewSprites] is sorted on descending distance
     }
 
     this.numViewSprites = numViewSprites;
