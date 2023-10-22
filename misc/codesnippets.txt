@@ -1524,3 +1524,291 @@ private renderViewFullVert() {
 //   texYOffs += texStepY;
 //   framePtr += frameStride;
 // }
+
+private renderWallsFloorsVert2() {
+  const {
+    startFramePtr,
+    frameBuf32,
+    frameStride,
+    frameRowPtrs,
+    spansFloorLX,
+    spansFloorLY,
+    spansStepX,
+    spansStepY,
+    raycaster,
+    isFloorTextured: texturedFloor,
+    textures,
+  } = this;
+
+  const {
+    FloorMap: floorMap,
+    WallSlices: wallSlices,
+    MapWidth: mapWidth,
+    ProjYCenter: projYCenter,
+    MinWallBottom: minWallBottom,
+  } = raycaster;
+
+  const {
+    // StartX: vpStartX,
+    // StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
+
+  const {
+    DirX: dirX,
+    DirY: dirY,
+    PosX: posX,
+    PosY: posY,
+    PosZ: posZ,
+    PlaneX: planeX,
+    PlaneY: planeY,
+  } = raycaster.Player;
+
+  const rayDirLeftX = dirX - planeX;
+  const rayDirLeftY = dirY - planeY;
+  const rayDirRightX = dirX + planeX;
+  const rayDirRightY = dirY + planeY;
+  const invWidth = 1 / vpWidth;
+  const rayStepX = (rayDirRightX - rayDirLeftX) * invWidth;
+  const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
+
+  for (let y = minWallBottom + 1; y < vpHeight; ++y) {
+    const yd = y - projYCenter;
+    const sDist = posZ / yd;
+    spansFloorLX[y] = posX + sDist * rayDirLeftX;
+    spansFloorLY[y] = posY + sDist * rayDirLeftY;
+    spansStepX[y] = sDist * rayStepX;
+    spansStepY[y] = sDist * rayStepY;
+  }
+
+  for (let x = 0; x < vpWidth; x++) {
+    let {
+      Hit: hit,
+      Top: top,
+      Bottom: bottom,
+      Side: side,
+      // TexId: texId,
+      // MipLvl: mipLvl,
+      TexX: texX,
+      TexY: texY,
+      TexStepY: texStepY,
+      // Distance: wallDistance,
+      // FloorWallX: floorWallX,
+      // FloorWallY: floorWallY,
+      Mipmap: mipmap,
+    } = wallSlices[x];
+
+    const colPtr = startFramePtr + x;
+    let framePtr = colPtr;
+    let frameLimitPtr = frameRowPtrs[top] + x;
+
+    // render ceil
+    // for (let y = 0; y < top; y++) {
+    for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      frameBuf32[framePtr] = CEIL_COLOR;
+    }
+    // assert(framePtr === colPtr + top * frameStride);
+    // assert(framePtr === frameLimitPtr);
+
+    frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+
+    if (hit) {
+      const {
+        Buf32: mipPixels,
+        // Width: texWidth,
+        // Height: texHeight,
+        Lg2Pitch: lg2Pitch,
+      } = mipmap;
+
+      const mipRowOffs = texX << lg2Pitch;
+      let offs = mipRowOffs + texY;
+      // // wall alg2: dda
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        const color = mipPixels[offs | 0];
+        frameBuf32[framePtr] = color;
+        offs += texStepY;
+      }
+    } else {
+      // no hit untextured wall
+      const color = side === 0 ? 0xff0000ee : 0xff0000aa;
+      // for (let y = top; y <= bottom; y++) {
+      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        frameBuf32[framePtr] = color;
+      }
+    }
+    // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+
+    if (!texturedFloor) {
+      for (let y = bottom + 1; y < vpHeight; y++) {
+        frameBuf32[framePtr] = FLOOR_COLOR;
+        framePtr += frameStride;
+      }
+    } else {
+      let floorMip;
+      let prevFloorMapIdx = null;
+
+      for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
+        const floorX = spansFloorLX[y] + x * spansStepX[y];
+        const floorY = spansFloorLY[y] + x * spansStepY[y];
+        const floorXidx = floorX | 0;
+        const floorYidx = floorY | 0;
+        const floorMapIdx = floorYidx * mapWidth + floorXidx;
+        const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
+        if (
+          sameFloorMapIdx ||
+          (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
+        ) {
+          if (!sameFloorMapIdx) {
+            const floorTexIdx = floorMap[floorMapIdx];
+            floorMip = textures[floorTexIdx].getMipmap(0).Image;
+            prevFloorMapIdx = floorMapIdx;
+          }
+          const mip = floorMip!;
+          const u = floorX - floorXidx;
+          const v = floorY - floorYidx;
+          // assert(u >= 0 && u < 1);
+          // assert(v >= 0 && v < 1);
+          const floorMipX = u * mip.Width;
+          const floorMipY = v * mip.Height;
+          const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+          // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+          const color = mip.Buf32[mipOffs];
+          frameBuf32[framePtr] = color;
+        }
+      }
+    }
+    // assert(framePtr === colPtr + vpHeight * frameStride);
+  }
+}
+
+private renderViewFullHorz() {
+  const {
+    frameBuf32,
+    startFramePtr,
+    frameStride,
+    spansStepX,
+    spansStepY,
+    spansFloorLX,
+    spansFloorLY,
+    frameRowPtrs,
+    raycaster,
+  } = this;
+
+  const {
+    FloorMap: floorMap,
+    WallSlices: wallSlices,
+    // MapWidth: mapWidth,
+    ProjYCenter: projYCenter,
+    MinWallTop: minWallTop,
+    MaxWallTop: maxWallTop,
+    MinWallBottom: minWallBottom,
+    MaxWallBottom: maxWallBottom,
+  } = raycaster;
+
+  const {
+    // StartX: vpStartX,
+    // StartY: vpStartY,
+    Width: vpWidth,
+    Height: vpHeight,
+  } = raycaster.Viewport;
+
+  const {
+    DirX: dirX,
+    DirY: dirY,
+    PosX: posX,
+    PosY: posY,
+    PosZ: posZ,
+    PlaneX: planeX,
+    PlaneY: planeY,
+  } = raycaster.Player;
+
+  const rayDirLeftX = dirX - planeX;
+  const rayDirLeftY = dirY - planeY;
+  const rayDirRightX = dirX + planeX;
+  const rayDirRightY = dirY + planeY;
+  const invWidth = 1 / vpWidth;
+  const rayStepX = (rayDirRightX - rayDirLeftX) * invWidth;
+  const rayStepY = (rayDirRightY - rayDirLeftY) * invWidth;
+
+  for (let y = minWallBottom + 1; y < vpHeight; ++y) {
+    const yd = y - projYCenter;
+    const sDist = posZ / yd;
+    spansFloorLX[y] = posX + sDist * rayDirLeftX;
+    spansFloorLY[y] = posY + sDist * rayDirLeftY;
+    spansStepX[y] = sDist * rayStepX;
+    spansStepY[y] = sDist * rayStepY;
+  }
+
+  // render horz ceiling above walls
+  for (let y = 0; y < minWallTop; y++) {
+    this.renderCeilSpan(y, 0, vpWidth - 1);
+  }
+
+  let rowFramePtr = startFramePtr + frameRowPtrs[minWallTop];
+
+  // render walls top half
+  for (let y = minWallTop; y < maxWallTop; ++y, rowFramePtr += frameStride) {
+    let framePtr = rowFramePtr;
+    for (let x = 0; x < vpWidth; ++x, ++framePtr) {
+      const wallSlice = wallSlices[x];
+      if (y < wallSlice.Top) {
+        frameBuf32[framePtr] = CEIL_COLOR;
+      } else {
+        const mipmap = wallSlices[x].Mipmap;
+        const texOffs = (wallSlice.TexX << mipmap.Lg2Pitch) | wallSlice.TexY;
+        frameBuf32[framePtr] = mipmap.Buf32[texOffs];
+        wallSlice.TexY += wallSlice.TexStepY;
+      }
+    }
+  }
+
+  // render walls central part
+  for (
+    let y = maxWallTop;
+    y <= minWallBottom;
+    ++y, rowFramePtr += frameStride
+  ) {
+    let framePtr = rowFramePtr;
+    for (let x = 0; x < vpWidth; ++x) {
+      const wallSlice = wallSlices[x];
+      const mipmap = wallSlices[x].Mipmap;
+      const texOffs = (wallSlice.TexX << mipmap.Lg2Pitch) | wallSlice.TexY;
+      frameBuf32[framePtr++] = mipmap.Buf32[texOffs];
+      wallSlice.TexY += wallSlice.TexStepY;
+    }
+  }
+
+  // render walls bottom half
+  for (
+    let y = minWallBottom + 1;
+    y <= maxWallBottom;
+    ++y, rowFramePtr += frameStride
+  ) {
+    let x1span = 0;
+    let x2span = -1;
+    let framePtr = rowFramePtr;
+    for (let x = 0; x < vpWidth; ++x, ++framePtr) {
+      const wallSlice = wallSlices[x];
+      if (y <= wallSlice.Bottom) {
+        // render left floor span
+        this.renderFloorSpan(y, x1span, x2span);
+        // render wall pixel
+        const mipmap = wallSlices[x].Mipmap;
+        const texOffs = (wallSlice.TexX << mipmap.Lg2Pitch) | wallSlice.TexY;
+        frameBuf32[framePtr] = mipmap.Buf32[texOffs];
+        wallSlice.TexY += wallSlice.TexStepY;
+        x1span = x + 1;
+        x2span = x;
+      } else {
+        x2span++;
+      }
+    }
+    this.renderFloorSpan(y, x1span, x2span);
+  }
+
+  // render floor spans below maxWallBottom
+  for (let y = maxWallBottom + 1; y < vpHeight; y++) {
+    this.renderFloorSpan(y, 0, vpWidth - 1);
+  }
+}

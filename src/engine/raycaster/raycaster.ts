@@ -188,8 +188,8 @@ class Raycaster {
 
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
-    this.renderer.VertFloor = true;
-    this.renderer.Back2Front = false;
+    this.renderer.VertFloor = false;
+    this.renderer.Back2Front = true;
   }
 
   private initData() {
