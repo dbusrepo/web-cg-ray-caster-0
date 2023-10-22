@@ -81,7 +81,7 @@ class AppWorker {
     this.initFrameBuf();
     // this.clearBg();
     // this.wasmEngineModule.render();
-    // this.raycaster.render();
+    // this.raycaster.render(0);
   }
 
   private initFrameBuf() {
@@ -275,7 +275,7 @@ class AppWorker {
       timeSinceLastFrameArr = new Float64Array(
         AppWorker.TIMES_SINCE_LAST_FRAME_ARR_LEN,
       );
-      frameCnt = 0;
+      frameCnt = 1;
       frameTimeCnt = 0;
       timeLastFrameCnt = 0;
       statsTimeAcc = 0;
@@ -341,7 +341,7 @@ class AppWorker {
       this.syncWorkers();
       // this.clearBg();
       // this.wasmEngineModule.render();
-      this.raycaster.render();
+      this.raycaster.render(frameCnt);
       this.waitWorkers();
       this.drawWasmFrame();
       saveFrameTime();

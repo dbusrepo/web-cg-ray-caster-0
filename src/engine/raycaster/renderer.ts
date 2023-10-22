@@ -28,6 +28,7 @@ class Renderer {
   private spansStepY: Float32Array;
   private spansFloorLX: Float32Array;
   private spansFloorLY: Float32Array;
+  private frameCnt: number;
   private isFloorTextured = false;
   private back2front = false;
   private vertFloor = false;
@@ -1044,7 +1045,7 @@ class Renderer {
       // StartX: vpStartX,
       // StartY: vpStartY,
       Width: vpWidth,
-      Height: vpHeight,
+      // Height: vpHeight,
     } = raycaster.Viewport;
 
     for (let x = 0; x < vpWidth; x++) {
@@ -1061,9 +1062,8 @@ class Renderer {
   }
 
   private initOcclusionBuf() {
-    const { occlusionBuf8, frameBuf32 } = this;
-    const occlusionBufSize = occlusionBuf8.length;
-    for (let i = 0; i < occlusionBufSize; ++i) {
+    const { occlusionBuf8 } = this;
+    for (let i = 0; i < occlusionBuf8.length; ++i) {
       occlusionBuf8[i] = 0;
     }
   }
@@ -1304,7 +1304,6 @@ class Renderer {
   }
 
   private renderWallsFloorsF2B() {
-    const { raycaster } = this;
     if (this.VertFloor) {
       if (this.isOcclusionCheckNeeded()) {
         this.renderWallsFloorsVertOcclusionChk();
@@ -1327,7 +1326,8 @@ class Renderer {
     }
   }
 
-  public render() {
+  public render(frameCnt: number) {
+    this.frameCnt = frameCnt;
     if (this.back2front) {
       this.renderWallsFloorsB2F();
       this.renderTranspSlicesB2F();

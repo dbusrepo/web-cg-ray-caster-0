@@ -131,7 +131,6 @@ class Raycaster {
 
   private backgroundColor: number;
 
-  private frameIdx: number;
   private renderer: Renderer;
 
   // vars used in main raycasting loop
@@ -215,8 +214,6 @@ class Raycaster {
     this.initPlayer();
     this.initSprites();
     this.initMap();
-
-    this.frameIdx = 0;
   }
 
   private initBorder() {
@@ -320,6 +317,7 @@ class Raycaster {
         sprite.Visible = 1;
         sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
       }
+
       {
         const sprite = this.sprites[2];
         sprite.PosX = 3.5;
@@ -525,7 +523,6 @@ class Raycaster {
 
   private preRender() {
     this.freeTranspSlices();
-    this.frameIdx++;
   }
 
   private postRender() {}
@@ -804,11 +801,11 @@ class Raycaster {
     this.MaxWallBottom = maxWallBottom;
   }
 
-  public render() {
+  public render(frameCnt: number) {
     this.preRender();
     this.calcWallsVis();
     this.processSprites();
-    this.renderer.render();
+    this.renderer.render(frameCnt);
     this.postRender();
   }
 
