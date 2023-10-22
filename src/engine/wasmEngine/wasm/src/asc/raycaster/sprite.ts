@@ -17,7 +17,7 @@ import { logi } from '../importVars';
   private texStepX: f32;
   private startY: u32;
   private endY: u32;
-  private texY: u32;
+  private texY: f32;
   private texStepY: f32;
 
   // active: u8; // 0: inactive, 1: active
@@ -119,11 +119,11 @@ import { logi } from '../importVars';
     this.endY = endY;
   }
 
-  get TexY(): u32 {
+  get TexY(): f32 {
     return this.texY;
   }
 
-  set TexY(texY: u32) {
+  set TexY(texY: f32) {
     this.texY = texY;
   }
 

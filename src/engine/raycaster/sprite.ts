@@ -156,11 +156,11 @@ class Sprite {
   }
 
   get TexY(): number {
-    return gWasmView.getUint32(this.texYPtr, true);
+    return gWasmView.getFloat32(this.texYPtr, true);
   }
 
   set TexY(value: number) {
-    gWasmView.setUint32(this.texYPtr, value, true);
+    gWasmView.setFloat32(this.texYPtr, value, true);
   }
 
   get TexStepY(): number {
