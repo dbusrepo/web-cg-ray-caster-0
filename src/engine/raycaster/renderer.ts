@@ -1224,17 +1224,15 @@ class Renderer {
     for (let x = startX; x < endX; x++, startYPtr++, endYPtr++) {
       if (distance <= wallZBuffer[x] && transpSlices[x] === WASM_NULL_PTR) {
         const mipRowOffs = texX << lg2Pitch;
-        let texYOffs = mipRowOffs + texY;
-        for (
-          let framePtr = startYPtr;
-          framePtr < endYPtr;
-          framePtr += frameStride
-        ) {
-          const color = mipPixels[texYOffs | 0];
+        let texYOffs = texY;
+        let framePtr = startYPtr;
+        for (let y = startY; y <= endY; y++) {
+          const color = mipPixels[mipRowOffs + (texYOffs | 0)];
           if (color !== transpColor) {
             frameBuf32[framePtr] = color;
           }
           texYOffs += texStepY;
+          framePtr += frameStride;
         }
       }
       texX += texStepX;
