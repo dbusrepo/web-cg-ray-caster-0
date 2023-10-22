@@ -358,7 +358,11 @@ class Renderer {
       // render ceil
 
       // for (let y = 0; y < top; y++) {
-      for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+      for (
+        ;
+        framePtr < frameLimitPtr;
+        framePtr += frameStride, occPtr += frameStride
+      ) {
         if (!occlusionBuf8[occPtr]) {
           frameBuf32[framePtr] = CEIL_COLOR;
         }
@@ -394,7 +398,11 @@ class Renderer {
 
         let offs = mipRowOffs + texY;
         if (isTranspCol) {
-          for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+          for (
+            ;
+            framePtr < frameLimitPtr;
+            framePtr += frameStride, occPtr += frameStride
+          ) {
             if (!occlusionBuf8[occPtr]) {
               const color = mipPixels[offs | 0];
               frameBuf32[framePtr] = color;
@@ -412,7 +420,11 @@ class Renderer {
         // no hit untextured wall
         const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
         // for (let y = top; y <= bottom; y++) {
-        for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+        for (
+          ;
+          framePtr < frameLimitPtr;
+          framePtr += frameStride, occPtr += frameStride
+        ) {
           if (!occlusionBuf8[occPtr]) {
             frameBuf32[framePtr] = color;
           }
@@ -422,7 +434,11 @@ class Renderer {
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
       if (!isFloorTextured) {
-        for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride, occPtr += frameStride) {
+        for (
+          let y = bottom + 1;
+          y < vpHeight;
+          y++, framePtr += frameStride, occPtr += frameStride
+        ) {
           if (!occlusionBuf8[occPtr]) {
             frameBuf32[framePtr] = FLOOR_COLOR;
           }
@@ -432,7 +448,11 @@ class Renderer {
         let floorMip;
 
         if (isTranspCol) {
-          for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride, occPtr += frameStride) {
+          for (
+            let y = bottom + 1;
+            y < vpHeight;
+            y++, framePtr += frameStride, occPtr += frameStride
+          ) {
             if (occlusionBuf8[occPtr]) {
               continue;
             }
@@ -1022,21 +1042,52 @@ class Renderer {
     }
   }
 
-  private renderTranspSlicesB2F() {
+  private renderSlice(slice: Slice, x: number) {
+    const { frameBuf32, frameRowPtrs, frameStride } = this;
+
     const {
-      startFramePtr,
-      frameBuf32,
-      frameStride,
-      frameRowPtrs,
-      raycaster,
-      textures,
-    } = this;
+      Top: top,
+      Bottom: bottom,
+      TexX: texX,
+      TexStepY: texStepY,
+      TexY: texY,
+      Mipmap: mipmap,
+    } = slice;
+
+    const {
+      Buf32: mipPixels,
+      // Width: texWidth,
+      // Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = mipmap;
+
+    const { transpColor } = Texture;
+
+    let offs = (texX << lg2Pitch) + texY;
+
+    let framePtr = frameRowPtrs[top] + x;
+    let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+
+    for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      const color = mipPixels[offs | 0];
+      if (color !== transpColor) {
+        frameBuf32[framePtr] = color;
+      }
+      offs += texStepY;
+    }
+  }
+
+  private renderTranspSlicesB2F() {
+    const { raycaster } = this;
 
     const {
       TranspSlices: transpSlices,
       NumTranspSlicesList: numTranspSlicesList,
-      MapWidth: mapWidth,
     } = raycaster;
+
+    if (!numTranspSlicesList) {
+      return;
+    }
 
     const {
       // StartX: vpStartX,
@@ -1045,51 +1096,13 @@ class Renderer {
       Height: vpHeight,
     } = raycaster.Viewport;
 
-    if (!numTranspSlicesList) {
-      return;
-    }
-
-    const renderSlice = (slice: Slice, x: number) => { // TODO: inline
-      const {
-        Top: top,
-        Bottom: bottom,
-        TexX: texX,
-        TexStepY: texStepY,
-        TexY: texY,
-        Mipmap: mipmap,
-      } = slice;
-
-      const {
-        Buf32: mipPixels,
-        // Width: texWidth,
-        // Height: texHeight,
-        Lg2Pitch: lg2Pitch,
-      } = mipmap;
-
-      const { transpColor } = Texture;
-
-      let offs = (texX << lg2Pitch) + texY;
-
-      let framePtr = frameRowPtrs[top] + x;
-      let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-
-      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        const color = mipPixels[offs | 0];
-        if (color !== transpColor) {
-          frameBuf32[framePtr] = color;
-        }
-        offs += texStepY;
-      }
-      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
-    };
-
     for (let x = 0; x < vpWidth; x++) {
       const startPtr = transpSlices[x];
       if (startPtr !== WASM_NULL_PTR) {
-        // the circular doubly linked list is sort by no increasing distance
+        // the circular doubly linked list is sort by decreasing distance
         let curPtr = startPtr;
         do {
-          renderSlice(curPtr, x);
+          this.renderSlice(curPtr, x);
           curPtr = curPtr.Next as Slice;
         } while (curPtr !== startPtr);
       }
@@ -1159,7 +1172,11 @@ class Renderer {
 
       let occPtr = occlusionBufRowPtrs[top] + x;
 
-      for (; framePtr < frameLimitPtr; framePtr += frameStride, occPtr += frameStride) {
+      for (
+        ;
+        framePtr < frameLimitPtr;
+        framePtr += frameStride, occPtr += frameStride
+      ) {
         const color = mipPixels[offs | 0];
         if (!occlusionBuf8[occPtr] && color !== transpColor) {
           frameBuf32[framePtr] = color;

@@ -477,6 +477,8 @@ class Raycaster {
     this.xWallMap[7 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
     this.yWallMap[8 + this.yWallMapWidth * 6] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
     this.xWallMap[8 + this.xWallMapWidth * 6] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+
+    this.yWallMap[6 + this.yWallMapWidth * 7] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
   }
 
   private initFloorMap() {
@@ -929,9 +931,8 @@ class Raycaster {
           slice.Mipmap = image;
           slice.MipMapIdx = mipmap.WasmIdx;
 
-          // insert in correct descending/no increasing distance order in circular doubly linked list transpSlices[x]
+          // insert in correct decreasing distance order in circular doubly linked list transpSlices[x]
           const firstPtr = transpSlices[x] as Slice;
-          // const lastPtr = firstPtr.Prev;
           let curPtr = firstPtr;
 
           if (tY >= curPtr.Distance) {
