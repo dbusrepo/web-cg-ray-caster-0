@@ -153,7 +153,7 @@ class Renderer {
     }
   }
 
-  private renderViewFullVert() {
+  private renderWallsFloorsVert() {
     const {
       startFramePtr,
       frameBuf32,
@@ -300,7 +300,7 @@ class Renderer {
     }
   }
 
-  private renderViewFullVertTranspsF2B() {
+  private renderWallsFloorsVertOcclusionChk() {
     const {
       startFramePtr,
       frameBuf32,
@@ -310,7 +310,6 @@ class Renderer {
       raycaster,
       textures,
       occlusionBuf8,
-      occlusionBufRowPtrs,
     } = this;
 
     const {
@@ -318,7 +317,6 @@ class Renderer {
       WallSlices: wallSlices,
       MapWidth: mapWidth,
       ProjYCenter: projYCenter,
-      TranspSlices: transpSlices,
     } = raycaster;
 
     const {
@@ -375,8 +373,6 @@ class Renderer {
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
       // let occPtr = occlusionBufRowPtrs[top] + x; // TODO: remove
 
-      const isTranspCol = transpSlices[x] !== WASM_NULL_PTR;
-
       if (hit) {
         const {
           Buf32: mipPixels,
@@ -397,24 +393,16 @@ class Renderer {
         // }
 
         let offs = mipRowOffs + texY;
-        if (isTranspCol) {
-          for (
-            ;
-            framePtr < frameLimitPtr;
-            framePtr += frameStride, occPtr += frameStride
-          ) {
-            if (!occlusionBuf8[occPtr]) {
-              const color = mipPixels[offs | 0];
-              frameBuf32[framePtr] = color;
-            }
-            offs += texStepY;
-          }
-        } else {
-          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+        for (
+          ;
+          framePtr < frameLimitPtr;
+          framePtr += frameStride, occPtr += frameStride
+        ) {
+          if (!occlusionBuf8[occPtr]) {
             const color = mipPixels[offs | 0];
             frameBuf32[framePtr] = color;
-            offs += texStepY;
           }
+          offs += texStepY;
         }
       } else {
         // no hit untextured wall
@@ -447,82 +435,45 @@ class Renderer {
         let prevFloorMapIdx = null;
         let floorMip;
 
-        if (isTranspCol) {
-          for (
-            let y = bottom + 1;
-            y < vpHeight;
-            y++, framePtr += frameStride, occPtr += frameStride
-          ) {
-            if (occlusionBuf8[occPtr]) {
-              continue;
-            }
-            // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
-            const dist = posZ / (y - projYCenter);
-            let weight = dist / wallDistance;
-            // assert(weight >= 0);
-            // assert(weight <= 1);
-            let floorX = weight * floorWallX + (1 - weight) * posX;
-            let floorY = weight * floorWallY + (1 - weight) * posY;
-            const floorXidx = floorX | 0;
-            const floorYidx = floorY | 0;
-            const floorMapIdx = floorYidx * mapWidth + floorXidx;
-            const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
-            if (
-              sameFloorMapIdx ||
-              (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
-            ) {
-              if (!sameFloorMapIdx) {
-                const floorTexIdx = floorMap[floorMapIdx];
-                floorMip = textures[floorTexIdx].getMipmap(0).Image;
-                prevFloorMapIdx = floorMapIdx;
-              }
-              const mip = floorMip!;
-              const u = floorX - floorXidx;
-              const v = floorY - floorYidx;
-              // assert(floorX >= 0 && floorX < 1);
-              // assert(floorY >= 0 && floorY < 1);
-              const floorMipX = u * mip.Width;
-              const floorMipY = v * mip.Height;
-              const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
-              // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
-              const color = mip.Buf32[mipOffs];
-              frameBuf32[framePtr] = color;
-            }
+        for (
+          let y = bottom + 1;
+          y < vpHeight;
+          y++, framePtr += frameStride, occPtr += frameStride
+        ) {
+          if (occlusionBuf8[occPtr]) {
+            continue;
           }
-        } else {
-          for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
-            // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
-            const dist = posZ / (y - projYCenter);
-            let weight = dist / wallDistance;
-            // assert(weight >= 0);
-            // assert(weight <= 1);
-            let floorX = weight * floorWallX + (1 - weight) * posX;
-            let floorY = weight * floorWallY + (1 - weight) * posY;
-            const floorXidx = floorX | 0;
-            const floorYidx = floorY | 0;
-            const floorMapIdx = floorYidx * mapWidth + floorXidx;
-            const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
-            if (
-              sameFloorMapIdx ||
-              (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
-            ) {
-              if (!sameFloorMapIdx) {
-                const floorTexIdx = floorMap[floorMapIdx];
-                floorMip = textures[floorTexIdx].getMipmap(0).Image;
-                prevFloorMapIdx = floorMapIdx;
-              }
-              const mip = floorMip!;
-              const u = floorX - floorXidx;
-              const v = floorY - floorYidx;
-              // assert(floorX >= 0 && floorX < 1);
-              // assert(floorY >= 0 && floorY < 1);
-              const floorMipX = u * mip.Width;
-              const floorMipY = v * mip.Height;
-              const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
-              // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
-              const color = mip.Buf32[mipOffs];
-              frameBuf32[framePtr] = color;
+          // y in [bottom + 1, height), dist in [1, +inf), dist == 1 when y == height
+          const dist = posZ / (y - projYCenter);
+          let weight = dist / wallDistance;
+          // assert(weight >= 0);
+          // assert(weight <= 1);
+          let floorX = weight * floorWallX + (1 - weight) * posX;
+          let floorY = weight * floorWallY + (1 - weight) * posY;
+          const floorXidx = floorX | 0;
+          const floorYidx = floorY | 0;
+          const floorMapIdx = floorYidx * mapWidth + floorXidx;
+          const sameFloorMapIdx = floorMapIdx === prevFloorMapIdx;
+          if (
+            sameFloorMapIdx ||
+            (floorMapIdx >= 0 && floorMapIdx < floorMap.length)
+          ) {
+            if (!sameFloorMapIdx) {
+              const floorTexIdx = floorMap[floorMapIdx];
+              floorMip = textures[floorTexIdx].getMipmap(0).Image;
+              prevFloorMapIdx = floorMapIdx;
             }
+            const mip = floorMip!;
+            const u = floorX - floorXidx;
+            const v = floorY - floorYidx;
+            // assert(floorX >= 0 && floorX < 1);
+            // assert(floorY >= 0 && floorY < 1);
+            const floorMipX = u * mip.Width;
+            const floorMipY = v * mip.Height;
+            const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+            // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
+            const color = mip.Buf32[mipOffs];
+            frameBuf32[framePtr] = color;
           }
         }
       }
@@ -530,7 +481,7 @@ class Renderer {
     }
   }
 
-  private renderViewFullVert2() {
+  private renderWallsFloorsVert2() {
     const {
       startFramePtr,
       frameBuf32,
@@ -1109,90 +1060,89 @@ class Renderer {
     }
   }
 
-  private renderTranspSlicesF2B() {
-    const {
-      startFramePtr,
-      frameBuf32,
-      occlusionBuf8,
-      occlusionBufRowPtrs,
-      frameStride,
-      frameRowPtrs,
-      raycaster,
-      textures,
-    } = this;
-
-    // memset occlusion buffer TODO:
+  private initOcclusionBuf() {
+    const { occlusionBuf8, frameBuf32 } = this;
     const occlusionBufSize = occlusionBuf8.length;
     for (let i = 0; i < occlusionBufSize; ++i) {
       occlusionBuf8[i] = 0;
     }
+  }
+
+  private renderSliceF2B(slice: Slice, x: number) {
+    const {
+      frameBuf32,
+      frameStride,
+      frameRowPtrs,
+      occlusionBuf8,
+      occlusionBufRowPtrs,
+    } = this;
+
+    const {
+      Top: top,
+      Bottom: bottom,
+      TexX: texX,
+      TexStepY: texStepY,
+      TexY: texY,
+      Mipmap: mipmap,
+    } = slice;
+
+    const {
+      Buf32: mipPixels,
+      // Width: texWidth,
+      // Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = mipmap;
+
+    const { transpColor } = Texture;
+
+    let offs = (texX << lg2Pitch) + texY;
+
+    let framePtr = frameRowPtrs[top] + x;
+    let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+
+    let occPtr = occlusionBufRowPtrs[top] + x;
+
+    for (
+      ;
+      framePtr < frameLimitPtr;
+      framePtr += frameStride, offs += texStepY, occPtr += frameStride
+    ) {
+      if (!occlusionBuf8[occPtr]) {
+        const color = mipPixels[offs | 0];
+        if (color !== transpColor) {
+          frameBuf32[framePtr] = color;
+          occlusionBuf8[occPtr] = 1;
+        }
+      }
+    }
+    // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+  }
+
+  private renderTranspSlicesF2B() {
+    const { raycaster } = this;
 
     const {
       TranspSlices: transpSlices,
       NumTranspSlicesList: numTranspSlicesList,
-      MapWidth: mapWidth,
     } = raycaster;
 
     const {
       // StartX: vpStartX,
       // StartY: vpStartY,
       Width: vpWidth,
-      Height: vpHeight,
+      // Height: vpHeight,
     } = raycaster.Viewport;
 
     if (!numTranspSlicesList) {
       return;
     }
 
-    const renderSlice = (slice: Slice, x: number) => {
-      const {
-        Hit: hit,
-        Top: top,
-        Bottom: bottom,
-        TexX: texX,
-        TexStepY: texStepY,
-        TexY: texY,
-        Mipmap: mipmap,
-        Side: side,
-      } = slice;
-
-      const {
-        Buf32: mipPixels,
-        // Width: texWidth,
-        // Height: texHeight,
-        Lg2Pitch: lg2Pitch,
-      } = mipmap;
-
-      const { transpColor } = Texture;
-
-      let offs = (texX << lg2Pitch) + texY;
-
-      let framePtr = frameRowPtrs[top] + x;
-      let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-
-      let occPtr = occlusionBufRowPtrs[top] + x;
-
-      for (
-        ;
-        framePtr < frameLimitPtr;
-        framePtr += frameStride, occPtr += frameStride
-      ) {
-        const color = mipPixels[offs | 0];
-        if (!occlusionBuf8[occPtr] && color !== transpColor) {
-          frameBuf32[framePtr] = color;
-          occlusionBuf8[occPtr] = 1;
-        }
-        offs += texStepY;
-      }
-      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
-    };
-
     for (let x = 0; x < vpWidth; x++) {
       if (transpSlices[x] !== WASM_NULL_PTR) {
-        const startPtr = (transpSlices[x] as Slice).Prev as Slice; // double linked list
+        const startPtr = (transpSlices[x] as Slice).Prev as Slice;
         let curPtr = startPtr;
         do {
-          renderSlice(curPtr, x);
+          this.renderSliceF2B(curPtr, x);
           curPtr = curPtr.Prev as Slice;
         } while (curPtr !== startPtr);
       }
@@ -1255,33 +1205,111 @@ class Renderer {
     }
   }
 
-  private renderSprites() {
+  private renderSpriteF2B(sprite: Sprite) {
+    const {
+      frameBuf32,
+      frameStride,
+      frameRowPtrs,
+      raycaster,
+      occlusionBuf8,
+      occlusionBufRowPtrs,
+    } = this;
+
+    const { TranspSlices: transpSlices, WallZBuffer: wallZBuffer } = raycaster;
+
+    const {
+      Distance: distance,
+      Mipmap: mipmap,
+      StartX: startX,
+      EndX: endX,
+      TexX: startTexX,
+      TexStepX: texStepX,
+      StartY: startY,
+      EndY: endY,
+      YOffsets: yOffsets,
+      // TexY: texY,
+      // TexStepY: texStepY,
+    } = sprite;
+
+    const {
+      Buf32: mipPixels,
+      // Width: texWidth,
+      // Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = mipmap;
+
+    const { transpColor } = Texture;
+
+    // y start and end of cur sprite slice
+    let startYPtr = frameRowPtrs[startY] + startX;
+    let endYPtr = frameRowPtrs[endY + 1] + startX;
+
+    let texX = startTexX;
+
+    for (
+      let x = startX;
+      x <= endX;
+      x++, startYPtr++, endYPtr++, texX += texStepX
+    ) {
+      if (distance <= wallZBuffer[x] && transpSlices[x] === WASM_NULL_PTR) {
+        const mipRowOffs = texX << lg2Pitch;
+        let framePtr = startYPtr;
+        let occPtr = occlusionBufRowPtrs[startY] + x;
+        for (
+          let y = startY;
+          y <= endY;
+          y++, framePtr += frameStride, occPtr += frameStride
+        ) {
+          if (!occlusionBuf8[occPtr]) {
+            const color = mipPixels[mipRowOffs + yOffsets[y]];
+            if (color !== transpColor) {
+              frameBuf32[framePtr] = color;
+              occlusionBuf8[occPtr] = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private renderSpritesB2F() {
     const { raycaster } = this;
     const { ViewSprites: viewSprites } = raycaster;
     const { NumViewSprites: numViewSprites } = raycaster;
 
-    if (this.back2front) {
-      for (let i = 1; i <= numViewSprites; ++i) {
-        this.renderSpriteB2F(viewSprites[i]);
-      }
-    } else {
-      // TODO:
+    // from farthest to nearest
+    for (let i = 1; i <= numViewSprites; ++i) {
+      this.renderSpriteB2F(viewSprites[i]);
     }
   }
 
-  private renderWalls() {
+  private renderSpritesF2B() {
+    const { raycaster } = this;
+    const { ViewSprites: viewSprites } = raycaster;
+    const { NumViewSprites: numViewSprites } = raycaster;
+
+    // from nearest to farthest
+    for (let i = numViewSprites; i > 0; --i) {
+      this.renderSpriteF2B(viewSprites[i]);
+    }
+  }
+
+  private isOcclusionCheckNeeded() {
+    const { raycaster } = this;
+    const {
+      NumTranspSlicesList: numTranspSlicesList,
+      NumViewSprites: numViewSprites,
+    } = raycaster;
+    return numTranspSlicesList || numViewSprites;
+  }
+
+  private renderWallsFloorsF2B() {
     const { raycaster } = this;
     if (this.VertFloor) {
-      if (this.back2front) {
-        this.renderViewFullVert();
-        // this.renderViewFullVert2();
+      if (this.isOcclusionCheckNeeded()) {
+        this.renderWallsFloorsVertOcclusionChk();
       } else {
-        const { NumTranspSlicesList } = raycaster;
-        if (NumTranspSlicesList) {
-          this.renderViewFullVertTranspsF2B();
-        } else {
-          this.renderViewFullVert();
-        }
+        this.renderWallsFloorsVert();
       }
     } else {
       // TODO: impl f2b rend
@@ -1290,15 +1318,25 @@ class Renderer {
     }
   }
 
+  private renderWallsFloorsB2F() {
+    if (this.VertFloor) {
+      this.renderWallsFloorsVert();
+    } else {
+      // this.renderViewWallsVertFloorsHorz();
+      // this.renderViewFullHorz(); // TODO:
+    }
+  }
+
   public render() {
     if (this.back2front) {
-      this.renderWalls();
+      this.renderWallsFloorsB2F();
       this.renderTranspSlicesB2F();
-      this.renderSprites();
+      this.renderSpritesB2F();
     } else {
+      this.initOcclusionBuf();
+      this.renderSpritesF2B();
       this.renderTranspSlicesF2B();
-      this.renderSprites();
-      this.renderWalls();
+      this.renderWallsFloorsF2B();
     }
   }
 }

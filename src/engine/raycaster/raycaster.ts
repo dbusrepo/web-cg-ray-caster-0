@@ -3,15 +3,15 @@ import { raycasterCfg } from './config';
 // import { mainConfig } from '../../config/mainConfig';
 // import type { InputEvent } from '../../app/events';
 // import { AssetManager } from '../assets/assetManager';
-import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
+import { BitImageRGBA /* , BPP_RGBA */ } from '../assets/images/bitImageRGBA';
 // import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 // import { sleep } from '../utils';
 
 // import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 // import { WasmEngine } from '../wasmEngine/wasmEngine';
 import type { WasmViews } from '../wasmEngine/wasmViews';
-import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
-import type { WasmRunParams, WasmNullPtr } from '../wasmEngine/wasmRun';
+import type { WasmEngineModule } from '../wasmEngine/wasmLoader';
+import type { WasmNullPtr } from '../wasmEngine/wasmRun';
 import { WasmRun, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
@@ -33,7 +33,7 @@ import {
 import { Texture, initTextureWasmView } from '../wasmEngine/texture';
 import {
   FrameColorRGBAWasm,
-  getFrameColorRGBAWasmView,
+  // getFrameColorRGBAWasmView,
 } from '../wasmEngine/frameColorRGBAWasm';
 
 type RaycasterParams = {
@@ -81,6 +81,7 @@ const MAX_SPRITE_DIST = 1000; // TODO:
 
 class Raycaster {
   private params: RaycasterParams;
+
   private wasmRun: WasmRun;
   private wasmViews: WasmViews;
   private wasmEngineModule: WasmEngineModule;
@@ -128,7 +129,7 @@ class Raycaster {
 
   private floorMap: Uint8Array;
 
-  private backgroundColor: number; // TODO:
+  private backgroundColor: number;
 
   private frameIdx: number;
   private renderer: Renderer;
@@ -189,7 +190,7 @@ class Raycaster {
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
     this.renderer.VertFloor = true;
-    this.renderer.Back2Front = true;
+    this.renderer.Back2Front = false;
   }
 
   private initData() {
@@ -291,7 +292,7 @@ class Raycaster {
   }
 
   private initSprites(): void {
-    const NUM_SPRITES = 1;
+    const NUM_SPRITES = 3;
     const SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
 
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
@@ -300,14 +301,34 @@ class Raycaster {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
 
       // test sprite
-      const sprite = this.sprites[0];
-      sprite.PosX = 7.5;
-      sprite.PosY = 0.5;
-      sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-      sprite.TexIdx = 0;
-      sprite.Visible = 1;
+      {
+        const sprite = this.sprites[0];
+        sprite.PosX = 7.5;
+        sprite.PosY = 0.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = this.findTex(wallTexKeys.EAGLE).WallMapIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
 
-      sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      {
+        const sprite = this.sprites[1];
+        sprite.PosX = 3.5;
+        sprite.PosY = 3.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = this.findTex(wallTexKeys.EAGLE).WallMapIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
+      {
+        const sprite = this.sprites[2];
+        sprite.PosX = 3.5;
+        sprite.PosY = 4.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = this.findTex(wallTexKeys.REDBRICK).WallMapIdx;
+        sprite.Visible = 1;
+        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      }
     }
   }
 
@@ -899,7 +920,7 @@ class Raycaster {
       const tex = textures[texIdx];
       const mipmap = tex.getMipmap(0); // TODO:
       const { Image: image } = mipmap;
-      const { Width: texWidth, Height: texHeight, Lg2Pitch: lg2Pitch } = image;
+      const { Width: texWidth, Height: texHeight } = image;
 
       const texStepX = texWidth / spriteWidth;
       const texX = clipX * texStepX;
@@ -919,7 +940,7 @@ class Raycaster {
             isOccluded = false;
           }
         } else {
-          const slice = this.newTranspSlice(x);
+          const slice = this.newTranspSlice();
           slice.Side = 0;
           slice.Distance = tY;
           slice.ClipTop = clipY;
@@ -1016,7 +1037,7 @@ class Raycaster {
     return newSlice;
   }
 
-  private newTranspSlice(idx: number): Slice {
+  private newTranspSlice(): Slice {
     const newSlice = newSliceView(this.wasmEngineModule);
     return newSlice;
   }
