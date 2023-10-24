@@ -5,6 +5,7 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 class Sprite {
   private mipmap: BitImageRGBA;
   private yOffsets: Uint32Array; // precalcd row offsets
+  private mipLevel: number; // current mip level
 
   constructor(
     // private spritePtr: number,
@@ -40,6 +41,14 @@ class Sprite {
     if (!this.yOffsets) {
       this.yOffsets = new Uint32Array(length);
     }
+  }
+
+  get MipLevel(): number {
+    return this.mipLevel;
+  }
+
+  set MipLevel(value: number) {
+    this.mipLevel = value;
   }
 
   get YOffsets(): Uint32Array {
