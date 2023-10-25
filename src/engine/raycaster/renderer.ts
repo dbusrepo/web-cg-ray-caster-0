@@ -1186,9 +1186,14 @@ class Renderer {
       occlusionBufRowPtrs,
     } = this;
 
-    const { TranspSlices: transpSlices, WallZBuffer: wallZBuffer } = raycaster;
+    const {
+      TranspSlices: transpSlices,
+      WallZBuffer: wallZBuffer,
+      TexSliceFullyTranspMap: texSliceFullyTranspMap,
+    } = raycaster;
 
     const {
+      TexIdx: texIdx,
       Distance: distance,
       Mipmap: mipmap,
       StartX: startX,
@@ -1198,6 +1203,7 @@ class Renderer {
       StartY: startY,
       EndY: endY,
       YOffsets: yOffsets,
+      MipLevel: mipLevel,
       // TexY: texY,
       // TexStepY: texStepY,
     } = sprite;
@@ -1217,12 +1223,18 @@ class Renderer {
 
     let texX = startTexX;
 
+    const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLevel];
+
     for (
       let x = startX;
       x <= endX;
       x++, startYPtr++, endYPtr++, texX += texStepX
     ) {
-      if (distance <= wallZBuffer[x] && transpSlices[x] === WASM_NULL_PTR) {
+      if (
+        !sliceFullyTranspMap[texX] &&
+        distance <= wallZBuffer[x] &&
+        transpSlices[x] === WASM_NULL_PTR
+      ) {
         const mipRowOffs = texX << lg2Pitch;
         let framePtr = startYPtr;
         let occPtr = occlusionBufRowPtrs[startY] + x;

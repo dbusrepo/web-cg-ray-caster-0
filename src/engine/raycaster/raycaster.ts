@@ -1083,17 +1083,17 @@ class Raycaster {
       let isOccluded = true;
 
       let sliceTexX = texX;
+
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
+        if (this.isSliceFullyTransp(texIdx, mipLvl, sliceTexX, image)) {
+          continue;
+        }
         if (transpSlices[x] === WASM_NULL_PTR) {
           useTranspSlicesOnly = false;
           if (wallZBuffer[x] >= tY) {
             isOccluded = false;
           }
         } else {
-          if (this.isSliceFullyTransp(texIdx, mipLvl, sliceTexX, image)) {
-            continue;
-          }
-
           const slice = this.newTranspSlice();
           slice.Side = 0;
           slice.Distance = tY;
@@ -1132,8 +1132,7 @@ class Raycaster {
         }
       }
 
-      const removeFromSortingList = isOccluded || useTranspSlicesOnly;
-      if (removeFromSortingList) {
+      if (isOccluded || useTranspSlicesOnly) {
         // sprite removed from the sorting list
         // if it has cols shared with transp walls slices it will be rendered later with them
         continue;
@@ -1151,7 +1150,7 @@ class Raycaster {
       sprite.TexY = texY;
       sprite.TexStepY = texStepY;
 
-      // precalc row offsets
+      // precalc y offsets
       const { YOffsets: yOffsets } = sprite;
       let curTexY = texY;
       for (let y = startY; y <= endY; y++) {
