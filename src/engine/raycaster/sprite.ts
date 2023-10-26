@@ -3,6 +3,8 @@ import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 
 class Sprite {
+  public static SPRITE_HEIGHT_LIMIT: number;
+
   private mipmap: BitImageRGBA;
   private yOffsets: Uint32Array; // precalcd row offsets
   private mipLevel: number; // current mip level
@@ -53,10 +55,6 @@ class Sprite {
 
   get YOffsets(): Uint32Array {
     return this.yOffsets;
-  }
-
-  get MaxHeight(): number {
-    return this.yOffsets.length;
   }
 
   get Mipmap(): BitImageRGBA {

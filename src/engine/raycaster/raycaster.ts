@@ -296,8 +296,10 @@ class Raycaster {
   }
 
   private initSprites(): void {
+    Sprite.SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
+    const YOFFSETS_ARR_LENGTH = this.viewport.Height;
+
     const NUM_SPRITES = 7;
-    const SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
 
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
@@ -314,7 +316,7 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+      //   sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       // }
 
       {
@@ -326,7 +328,7 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -338,7 +340,7 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -350,7 +352,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -362,7 +364,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -374,7 +376,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -386,7 +388,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -398,7 +400,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(SPRITE_HEIGHT_LIMIT);
+        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
       }
     }
   }
@@ -483,7 +485,7 @@ class Raycaster {
       const { Image: image } = mipmap;
       const { Width: texWidth } = image;
       for (let texX = 0; texX < texWidth; texX++) {
-        this.isColPartiallyTransp(tex.WasmIdx, mipLvl, texX, image);
+        this.isSlicePartiallyTransp(tex.WasmIdx, mipLvl, texX, image);
         this.isSliceFullyTransp(tex.WasmIdx, mipLvl, texX, image);
       }
     });
@@ -643,17 +645,17 @@ class Raycaster {
       texSliceFullyTranspMap[texIdx] = {};
     }
 
-    const mipLvl2IsColFullyTransp = texSliceFullyTranspMap[texIdx];
+    const mipLvl2IsSliceFullyTransp = texSliceFullyTranspMap[texIdx];
 
-    if (!mipLvl2IsColFullyTransp[mipLvl]) {
-      mipLvl2IsColFullyTransp[mipLvl] = {};
+    if (!mipLvl2IsSliceFullyTransp[mipLvl]) {
+      mipLvl2IsSliceFullyTransp[mipLvl] = {};
     }
 
-    const isColFullyTranspMap = mipLvl2IsColFullyTransp[mipLvl];
+    const isSliceFullyTranspMap = mipLvl2IsSliceFullyTransp[mipLvl];
 
-    if (isColFullyTranspMap[texX] !== undefined) {
+    if (isSliceFullyTranspMap[texX] !== undefined) {
       // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
-      return isColFullyTranspMap[texX];
+      return isSliceFullyTranspMap[texX];
     }
 
     const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
@@ -664,10 +666,10 @@ class Raycaster {
     let y = 0;
     for (; y < texWidth && mipPixels[rowOffs + y] === transpColor; y++) {}
 
-    return (isColFullyTranspMap[texX] = y === texWidth);
+    return (isSliceFullyTranspMap[texX] = y === texWidth);
   }
 
-  private isColPartiallyTransp(
+  private isSlicePartiallyTransp(
     texIdx: number,
     mipLvl: number,
     texX: number,
@@ -679,17 +681,17 @@ class Raycaster {
       texSlicePartialTranspMap[texIdx] = {};
     }
 
-    const mipLvl2isColTransp = texSlicePartialTranspMap[texIdx];
+    const mipLvl2isSliceTransp = texSlicePartialTranspMap[texIdx];
 
-    if (!mipLvl2isColTransp[mipLvl]) {
-      mipLvl2isColTransp[mipLvl] = {};
+    if (!mipLvl2isSliceTransp[mipLvl]) {
+      mipLvl2isSliceTransp[mipLvl] = {};
     }
 
-    const isColTranspMap = mipLvl2isColTransp[mipLvl];
+    const isSliceTranspMap = mipLvl2isSliceTransp[mipLvl];
 
-    if (isColTranspMap[texX] !== undefined) {
+    if (isSliceTranspMap[texX] !== undefined) {
       // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
-      return isColTranspMap[texX];
+      return isSliceTranspMap[texX];
     }
 
     const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
@@ -700,7 +702,7 @@ class Raycaster {
     let y = 0;
     for (; y < texWidth && mipPixels[rowOffs + y] !== transpColor; y++) {}
 
-    return (isColTranspMap[texX] = y < texWidth);
+    return (isSliceTranspMap[texX] = y < texWidth);
   }
 
   private calcWallsVis() {
@@ -887,7 +889,7 @@ class Raycaster {
 
           const isTranspWall =
             wallCode & WALL_FLAGS.TRANSP &&
-            this.isColPartiallyTransp(texIdx, mipLvl, texX, image);
+            this.isSlicePartiallyTransp(texIdx, mipLvl, texX, image);
 
           if (isTranspWall) {
             slice = this.newWallTranspSlice(x);
@@ -1014,8 +1016,7 @@ class Raycaster {
       }
 
       // too big
-      if (spriteHeight > sprite.MaxHeight) {
-        // console.log('spriteHeight >= vpHeight * 3');
+      if (spriteHeight > Sprite.SPRITE_HEIGHT_LIMIT) {
         continue;
       }
 
@@ -1092,6 +1093,11 @@ class Raycaster {
           useTranspSlicesOnly = false;
           if (wallZBuffer[x] >= tY) {
             isOccluded = false;
+            if (
+              !this.isSlicePartiallyTransp(texIdx, mipLvl, sliceTexX, image)
+            ) {
+              continue;
+            }
           }
         } else {
           const slice = this.newTranspSlice();
