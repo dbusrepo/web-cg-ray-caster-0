@@ -114,6 +114,8 @@ class Raycaster {
   private wallSlices: Slice[];
   private wallZBuffer: Float32Array;
 
+  private wallSlicesOccluded: Uint8Array;
+
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
   private texSlicePartialTranspMap: {
@@ -427,6 +429,7 @@ class Raycaster {
       this.wasmEngineModule,
       this.raycasterPtr,
     );
+    this.wallSlicesOccluded = new Uint8Array(this.wallSlices.length);
   }
 
   private initTranspSlices() {
@@ -629,6 +632,7 @@ class Raycaster {
 
   private preRender() {
     this.freeTranspSlices();
+    this.wallSlicesOccluded.fill(0);
   }
 
   private postRender() {}
@@ -748,9 +752,6 @@ class Raycaster {
 
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
     assert(posY >= 0 && posY < mapHeight, 'posY out of map bounds');
-
-    const isFloorVertTextured =
-      this.renderer.IsFloorTextured && this.renderer.VertFloor;
 
     const projYcenter = this.ProjYCenter;
 
@@ -937,7 +938,7 @@ class Raycaster {
         maxWallTop = Math.max(maxWallTop, wallTop);
         minWallBottom = Math.min(minWallBottom, wallBottom);
         maxWallBottom = Math.max(maxWallBottom, wallBottom);
-        if (isFloorVertTextured) {
+        if (this.IsFloorTextured) {
           floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
           const floorWallXOffs =
             checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
@@ -973,6 +974,7 @@ class Raycaster {
       textures,
       ProjYCenter: projYCenter,
       transpSlices,
+      wallSlices,
     } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
@@ -1091,11 +1093,14 @@ class Raycaster {
         }
         if (transpSlices[x] === WASM_NULL_PTR) {
           useTranspSlicesOnly = false;
-          if (wallZBuffer[x] >= tY) {
+          if (tY < wallZBuffer[x]) {
             isOccluded = false;
             if (
               !this.isSlicePartiallyTransp(texIdx, mipLvl, sliceTexX, image)
             ) {
+              // sprite slice fully opaque
+              this.wallSlicesOccluded[x] = 1;
+              wallZBuffer[x] = tY;
               continue;
             }
           }
@@ -1237,6 +1242,10 @@ class Raycaster {
       }
       this.resetTranspSlices();
     }
+  }
+
+  private get IsFloorTextured(): boolean {
+    return this.renderer.IsFloorTextured && this.renderer.VertFloor;
   }
 
   public update(time: number) {
@@ -1443,6 +1452,10 @@ class Raycaster {
 
   get TexSliceFullyTranspMap() {
     return this.texSliceFullyTranspMap;
+  }
+
+  get WallSlicesOccluded() {
+    return this.wallSlicesOccluded;
   }
 }
 

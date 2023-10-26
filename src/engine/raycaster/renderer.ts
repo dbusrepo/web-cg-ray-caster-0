@@ -170,6 +170,7 @@ class Renderer {
       WallSlices: wallSlices,
       MapWidth: mapWidth,
       ProjYCenter: projYCenter,
+      WallSlicesOccluded: wallSlicesOccluded,
     } = raycaster;
 
     const {
@@ -216,38 +217,42 @@ class Renderer {
       // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
-      if (hit) {
-        const {
-          Buf32: mipPixels,
-          // Width: texWidth,
-          // Height: texHeight,
-          Lg2Pitch: lg2Pitch,
-        } = mipmap;
+      if (!wallSlicesOccluded[x]) {
+        if (hit) {
+          const {
+            Buf32: mipPixels,
+            // Width: texWidth,
+            // Height: texHeight,
+            Lg2Pitch: lg2Pitch,
+          } = mipmap;
 
-        // mipmap is rotated 90ccw
-        // const mipStride = 1 << pitchLg2;
-        const mipRowOffs = texX << lg2Pitch;
+          // mipmap is rotated 90ccw
+          // const mipStride = 1 << pitchLg2;
+          const mipRowOffs = texX << lg2Pitch;
 
-        // let offs = mipRowOffs + texY;
-        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   const color = mipPixels[offs | 0];
-        //   frameBuf32[framePtr] = color;
-        //   offs += texStepY;
-        // }
+          // let offs = mipRowOffs + texY;
+          // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+          //   const color = mipPixels[offs | 0];
+          //   frameBuf32[framePtr] = color;
+          //   offs += texStepY;
+          // }
 
-        let offs = mipRowOffs + texY;
-        for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-          const color = mipPixels[offs | 0];
-          frameBuf32[framePtr] = color;
-          offs += texStepY;
+          let offs = mipRowOffs + texY;
+          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+            const color = mipPixels[offs | 0];
+            frameBuf32[framePtr] = color;
+            offs += texStepY;
+          }
+        } else {
+          // no hit untextured wall
+          const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
+          // for (let y = top; y <= bottom; y++) {
+          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+            frameBuf32[framePtr] = color;
+          }
         }
       } else {
-        // no hit untextured wall
-        const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
-        // for (let y = top; y <= bottom; y++) {
-        for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-          frameBuf32[framePtr] = color;
-        }
+        framePtr = frameLimitPtr;
       }
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
@@ -316,6 +321,7 @@ class Renderer {
       WallSlices: wallSlices,
       MapWidth: mapWidth,
       ProjYCenter: projYCenter,
+      WallSlicesOccluded: wallSlicesOccluded,
     } = raycaster;
 
     const {
@@ -371,49 +377,53 @@ class Renderer {
       // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
-      if (hit) {
-        const {
-          Buf32: mipPixels,
-          // Width: texWidth,
-          // Height: texHeight,
-          Lg2Pitch: lg2Pitch,
-        } = mipmap;
+      if (!wallSlicesOccluded[x]) {
+        if (hit) {
+          const {
+            Buf32: mipPixels,
+            // Width: texWidth,
+            // Height: texHeight,
+            Lg2Pitch: lg2Pitch,
+          } = mipmap;
 
-        // mipmap is rotated 90ccw
-        // const mipStride = 1 << pitchLg2;
-        const mipRowOffs = texX << lg2Pitch;
+          // mipmap is rotated 90ccw
+          // const mipStride = 1 << pitchLg2;
+          const mipRowOffs = texX << lg2Pitch;
 
-        // let offs = mipRowOffs + texY;
-        // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-        //   const color = mipPixels[offs | 0];
-        //   frameBuf32[framePtr] = color;
-        //   offs += texStepY;
-        // }
+          // let offs = mipRowOffs + texY;
+          // for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+          //   const color = mipPixels[offs | 0];
+          //   frameBuf32[framePtr] = color;
+          //   offs += texStepY;
+          // }
 
-        let offs = mipRowOffs + texY;
-        for (
-          ;
-          framePtr < frameLimitPtr;
-          framePtr += frameStride, offs += texStepY, occPtr += frameStride
-        ) {
-          if (!occlusionBuf8[occPtr]) {
-            const color = mipPixels[offs | 0];
-            frameBuf32[framePtr] = color;
+          let offs = mipRowOffs + texY;
+          for (
+            ;
+            framePtr < frameLimitPtr;
+            framePtr += frameStride, offs += texStepY, occPtr += frameStride
+          ) {
+            if (!occlusionBuf8[occPtr]) {
+              const color = mipPixels[offs | 0];
+              frameBuf32[framePtr] = color;
+            }
+          }
+        } else {
+          // no hit untextured wall
+          const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
+          // for (let y = top; y <= bottom; y++) {
+          for (
+            ;
+            framePtr < frameLimitPtr;
+            framePtr += frameStride, occPtr += frameStride
+          ) {
+            if (!occlusionBuf8[occPtr]) {
+              frameBuf32[framePtr] = color;
+            }
           }
         }
       } else {
-        // no hit untextured wall
-        const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
-        // for (let y = top; y <= bottom; y++) {
-        for (
-          ;
-          framePtr < frameLimitPtr;
-          framePtr += frameStride, occPtr += frameStride
-        ) {
-          if (!occlusionBuf8[occPtr]) {
-            frameBuf32[framePtr] = color;
-          }
-        }
+        framePtr = frameLimitPtr;
       }
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
@@ -661,6 +671,7 @@ class Renderer {
       MinWallTop: minWallTop,
       MinWallBottom: minWallBottom,
       MaxWallBottom: maxWallBottom,
+      WallSlicesOccluded: wallSlicesOccluded,
     } = raycaster;
 
     const {
@@ -729,27 +740,31 @@ class Renderer {
 
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
-      if (hit) {
-        const {
-          Buf32: mipPixels,
-          // Width: texWidth,
-          // Height: texHeight,
-          Lg2Pitch: lg2Pitch,
-        } = mipmap;
+      if (!wallSlicesOccluded[x]) {
+        if (hit) {
+          const {
+            Buf32: mipPixels,
+            // Width: texWidth,
+            // Height: texHeight,
+            Lg2Pitch: lg2Pitch,
+          } = mipmap;
 
-        const mipRowOffs = texX << lg2Pitch;
-        let offs = mipRowOffs + texY;
+          const mipRowOffs = texX << lg2Pitch;
+          let offs = mipRowOffs + texY;
 
-        for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-          const color = mipPixels[offs | 0];
-          frameBuf32[framePtr] = color;
-          offs += texStepY;
+          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+            const color = mipPixels[offs | 0];
+            frameBuf32[framePtr] = color;
+            offs += texStepY;
+          }
+        } else {
+          const color = side === 0 ? 0xff0000ee : 0xff0000aa;
+          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+            frameBuf32[framePtr] = color;
+          }
         }
       } else {
-        const color = side === 0 ? 0xff0000ee : 0xff0000aa;
-        for (; framePtr < frameLimitPtr; framePtr += frameStride) {
-          frameBuf32[framePtr] = color;
-        }
+        framePtr = frameLimitPtr;
       }
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
@@ -811,6 +826,7 @@ class Renderer {
       MinWallTop: minWallTop,
       MinWallBottom: minWallBottom,
       MaxWallBottom: maxWallBottom,
+      WallSlicesOccluded: wallSlicesOccluded,
     } = raycaster;
 
     const {
@@ -886,38 +902,42 @@ class Renderer {
 
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
-      if (hit) {
-        const {
-          Buf32: mipPixels,
-          // Width: texWidth,
-          // Height: texHeight,
-          Lg2Pitch: lg2Pitch,
-        } = mipmap;
+      if (!wallSlicesOccluded[x]) {
+        if (hit) {
+          const {
+            Buf32: mipPixels,
+            // Width: texWidth,
+            // Height: texHeight,
+            Lg2Pitch: lg2Pitch,
+          } = mipmap;
 
-        const mipRowOffs = texX << lg2Pitch;
-        let offs = mipRowOffs + texY;
+          const mipRowOffs = texX << lg2Pitch;
+          let offs = mipRowOffs + texY;
 
-        for (
-          ;
-          framePtr < frameLimitPtr;
-          framePtr += frameStride, offs += texStepY, occPtr += frameStride
-        ) {
-          if (!occlusionBuf8[occPtr]) {
-            const color = mipPixels[offs | 0];
-            frameBuf32[framePtr] = color;
+          for (
+            ;
+            framePtr < frameLimitPtr;
+            framePtr += frameStride, offs += texStepY, occPtr += frameStride
+          ) {
+            if (!occlusionBuf8[occPtr]) {
+              const color = mipPixels[offs | 0];
+              frameBuf32[framePtr] = color;
+            }
+          }
+        } else {
+          const color = side === 0 ? 0xff0000ee : 0xff0000aa;
+          for (
+            ;
+            framePtr < frameLimitPtr;
+            framePtr += frameStride, occPtr += frameStride
+          ) {
+            if (!occlusionBuf8[occPtr]) {
+              frameBuf32[framePtr] = color;
+            }
           }
         }
       } else {
-        const color = side === 0 ? 0xff0000ee : 0xff0000aa;
-        for (
-          ;
-          framePtr < frameLimitPtr;
-          framePtr += frameStride, occPtr += frameStride
-        ) {
-          if (!occlusionBuf8[occPtr]) {
-            frameBuf32[framePtr] = color;
-          }
-        }
+        framePtr = frameLimitPtr;
       }
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
@@ -1025,9 +1045,10 @@ class Renderer {
 
   private initOcclusionBuf() {
     const { occlusionBuf8 } = this;
-    for (let i = 0; i < occlusionBuf8.length; ++i) {
-      occlusionBuf8[i] = 0;
-    }
+    occlusionBuf8.fill(0);
+    // for (let i = 0; i < occlusionBuf8.length; ++i) {
+    //   occlusionBuf8[i] = 0;
+    // }
   }
 
   private renderSliceF2B(slice: Slice, x: number) {
