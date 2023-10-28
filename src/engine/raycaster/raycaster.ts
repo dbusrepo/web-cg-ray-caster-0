@@ -122,10 +122,10 @@ class Raycaster {
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
   private texSlicePartialTranspMap: {
-    [texIdx: number]: { [mipLvl: number]: { [texX: number]: boolean } };
+    [texIdx: number]: { [mipLvl: number]: Uint8Array };
   };
   private texSliceFullyTranspMap: {
-    [texIdx: number]: { [mipLvl: number]: { [texX: number]: boolean } };
+    [texIdx: number]: { [mipLvl: number]: Uint8Array };
   };
 
   private mapWidth: number;
@@ -521,9 +521,21 @@ class Raycaster {
       const mipmap = tex.getMipmap(mipLvl);
       const { Image: image } = mipmap;
       const { Width: texWidth } = image;
+      const { WasmIdx: texIdx } = tex;
+      this.texSlicePartialTranspMap[texIdx] = {};
+      this.texSliceFullyTranspMap[texIdx] = {};
+      const transpSlicesMap = (this.texSlicePartialTranspMap[texIdx][mipLvl] =
+        new Uint8Array(texWidth));
+      const fullyTranspSlicesMap = (this.texSliceFullyTranspMap[texIdx][
+        mipLvl
+      ] = new Uint8Array(texWidth));
       for (let texX = 0; texX < texWidth; texX++) {
-        this.isSlicePartiallyTransp(tex.WasmIdx, mipLvl, texX, image);
-        this.isSliceFullyTransp(tex.WasmIdx, mipLvl, texX, image);
+        transpSlicesMap[texX] = this.isSlicePartiallyTransp(texX, image)
+          ? 1
+          : 0;
+        fullyTranspSlicesMap[texX] = this.isSliceFullyTransp(texX, image)
+          ? 1
+          : 0;
       }
     });
   }
@@ -671,80 +683,36 @@ class Raycaster {
 
   private postRender() {}
 
-  private isSliceFullyTransp(
-    texIdx: number,
-    mipLvl: number,
-    srcTexX: number,
-    image: BitImageRGBA,
-  ) {
-    const { texSliceFullyTranspMap } = this;
-
-    if (!texSliceFullyTranspMap[texIdx]) {
-      texSliceFullyTranspMap[texIdx] = {};
-    }
-
-    const mipLvl2IsSliceFullyTransp = texSliceFullyTranspMap[texIdx];
-
-    if (!mipLvl2IsSliceFullyTransp[mipLvl]) {
-      mipLvl2IsSliceFullyTransp[mipLvl] = {};
-    }
-
-    const isSliceFullyTranspMap = mipLvl2IsSliceFullyTransp[mipLvl];
-
-    const texX = srcTexX | 0;
-
-    if (isSliceFullyTranspMap[texX] !== undefined) {
-      // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
-      return isSliceFullyTranspMap[texX];
-    }
-
+  private isSliceFullyTransp(texX: number, image: BitImageRGBA) {
     const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
 
     // image is rotated 90ccw
-    const { transpColor } = Texture;
     const rowOffs = texX << lg2Pitch;
-    let y = 0;
-    for (; y < texWidth && mipPixels[rowOffs + y] === transpColor; y++) {}
+    const { transpColor } = Texture;
 
-    return (isSliceFullyTranspMap[texX] = y === texWidth);
+    for (let y = 0; y < texWidth; y++) {
+      if (mipPixels[rowOffs + y] !== transpColor) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  private isSlicePartiallyTransp(
-    texIdx: number,
-    mipLvl: number,
-    srcTexX: number,
-    image: BitImageRGBA,
-  ) {
-    const { texSlicePartialTranspMap } = this;
-
-    if (!texSlicePartialTranspMap[texIdx]) {
-      texSlicePartialTranspMap[texIdx] = {};
-    }
-
-    const mipLvl2isSliceTransp = texSlicePartialTranspMap[texIdx];
-
-    if (!mipLvl2isSliceTransp[mipLvl]) {
-      mipLvl2isSliceTransp[mipLvl] = {};
-    }
-
-    const isSliceTranspMap = mipLvl2isSliceTransp[mipLvl];
-
-    const texX = srcTexX | 0;
-
-    if (isSliceTranspMap[texX] !== undefined) {
-      // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
-      return isSliceTranspMap[texX];
-    }
-
+  private isSlicePartiallyTransp(texX: number, image: BitImageRGBA): boolean {
     const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
 
     // image is rotated 90ccw
-    const { transpColor } = Texture;
     const rowOffs = texX << lg2Pitch;
-    let y = 0;
-    for (; y < texWidth && mipPixels[rowOffs + y] !== transpColor; y++) {}
+    const { transpColor } = Texture;
 
-    return (isSliceTranspMap[texX] = y < texWidth);
+    for (let y = 0; y < texWidth; y++) {
+      if (mipPixels[rowOffs + y] === transpColor) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private calcWallsVis() {
