@@ -1170,7 +1170,7 @@ class Renderer {
       StartY: startY,
       EndY: endY,
       YOffsets: yOffsets,
-      MipLevel: mipLevel,
+      MipLevel: mipLvl,
       // TexY: texY,
       // TexStepY: texStepY,
     } = sprite;
@@ -1188,7 +1188,7 @@ class Renderer {
 
     let texX = startTexX;
 
-    const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLevel];
+    const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLvl];
     const { transpColor } = Texture;
 
     for (

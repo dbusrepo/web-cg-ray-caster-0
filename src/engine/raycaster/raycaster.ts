@@ -517,7 +517,7 @@ class Raycaster {
     this.texSlicePartialTranspMap = {}; // [texIdx][mipLvl][texX] = 1 if texId,mipLvl has transp col at texX
     this.texSliceFullyTranspMap = {}; // [texIdx][mipLvl][texX] = 1 if texId,mipLvl has fully transp col at texX
     this.textures.forEach((tex) => {
-      const mipLvl = 0; // TODO:
+      const mipLvl = 0; // TODO: loop through mip levels
       const mipmap = tex.getMipmap(mipLvl);
       const { Image: image } = mipmap;
       const { Width: texWidth } = image;
@@ -912,6 +912,8 @@ class Raycaster {
           const mipLvl = 0; // TODO:
           const mipmap = tex.getMipmap(mipLvl);
           const { Image: image } = mipmap;
+          const slicePartiallyTranspMap =
+            this.texSlicePartialTranspMap[texIdx][mipLvl];
 
           const {
             Width: texWidth,
@@ -927,8 +929,7 @@ class Raycaster {
           let slice = wallSlice;
 
           const isTranspWall =
-            wallCode & WALL_FLAGS.TRANSP &&
-            this.isSlicePartiallyTransp(texIdx, mipLvl, texX, image);
+            wallCode & WALL_FLAGS.TRANSP && slicePartiallyTranspMap[texX];
 
           if (isTranspWall) {
             slice = this.newWallTranspSlice(x);
@@ -1135,17 +1136,19 @@ class Raycaster {
       let isOccluded = true;
       let sliceTexX = texX;
 
+      const sliceFullyTranspMap = this.texSliceFullyTranspMap[texIdx][mipLvl];
+      const slicePartiallyTranspMap =
+        this.texSlicePartialTranspMap[texIdx][mipLvl];
+
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
-        if (this.isSliceFullyTransp(texIdx, mipLvl, sliceTexX, image)) {
+        if (sliceFullyTranspMap[sliceTexX | 0]) {
           continue;
         }
         if (transpSlices[x] === WASM_NULL_PTR) {
           useTranspSlicesOnly = false;
           if (tY < wallZBuffer[x]) {
             isOccluded = false;
-            if (
-              !this.isSlicePartiallyTransp(texIdx, mipLvl, sliceTexX, image)
-            ) {
+            if (!slicePartiallyTranspMap[sliceTexX | 0]) {
               // sprite slice fully opaque
               wallSlicesOccludedBySprites[x] = 1;
               spritesTop[x] = startY;
@@ -1213,7 +1216,7 @@ class Raycaster {
       sprite.TexY = texY;
       sprite.TexStepY = texStepY;
 
-      // precalc y offsets
+      // precalc y offsets (used for each col)
       const { YOffsets: yOffsets } = sprite;
       let curTexY = texY;
       for (let y = startY; y <= endY; y++) {
