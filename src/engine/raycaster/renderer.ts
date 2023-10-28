@@ -1349,7 +1349,7 @@ class Renderer {
     if (this.back2front) {
       this.renderWallsFloorsB2F();
       this.renderTranspSlicesB2F();
-      this.renderSpritesB2F(); // TODO: move after renderTranspSlicesB2F
+      this.renderSpritesB2F();
     } else {
       this.initOcclusionBuf();
       this.renderSpritesF2B();

@@ -110,6 +110,7 @@ class Raycaster {
 
   private viewSprites: Sprite[];
   private numViewSprites: number;
+  private viewSpritesSrcIdxs: number[];
 
   private wallSlices: Slice[];
   private wallZBuffer: Float32Array;
@@ -313,6 +314,7 @@ class Raycaster {
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
+      this.viewSpritesSrcIdxs = new Array<number>(1 + this.sprites.length);
 
       // // test sprite
       // {
@@ -461,7 +463,6 @@ class Raycaster {
     this.initTexturesViews();
     this.genDarkWallTextures();
     this.precTexIsTranspCols();
-    console.log('AHOOO');
   }
 
   private initTexturesViews() {
@@ -996,6 +997,7 @@ class Raycaster {
       WallHeight,
       wallZBuffer,
       viewSprites,
+      viewSpritesSrcIdxs,
       textures,
       ProjYCenter: projYCenter,
       transpSlices,
@@ -1016,6 +1018,7 @@ class Raycaster {
 
     for (let i = 0; i < sprites.length; i++) {
       const sprite = sprites[i];
+      sprite.SrcIdx = i;
 
       if (!sprite.Visible) {
         continue;
@@ -1202,14 +1205,24 @@ class Raycaster {
       }
 
       // insertion sort on viewSprites[1...numViewSprites] on increasing distance
-      let j = numViewSprites++;
+      let j = numViewSprites;
       viewSprites[0] = sprite; // sentinel at 0
       const spriteDist = sprite.Distance; // get float dist value
       for (; viewSprites[j].Distance > spriteDist; j--) {
         viewSprites[j + 1] = viewSprites[j];
       }
       viewSprites[j + 1] = sprite;
-      // viewSprites[1...numViewSprites] is sorted on descending distance
+      // viewSprites[1...numViewSprites] is sorted on increasing distance
+
+      viewSpritesSrcIdxs[numViewSprites] = sprite.SrcIdx;
+      numViewSprites++;
+      // viewSpritesSrcIdxs[0...numViewSprites-1] contains the src idxs (wrt to sprites arr) of the sprites in viewSprites[1...numViewSprites]
+    }
+
+    // remap view sprites in sprites array with their sorted order by increasing distance
+    for (let i = 0; i < numViewSprites; i++) {
+      const srcIdx = viewSpritesSrcIdxs[i];
+      sprites[srcIdx] = viewSprites[i + 1];
     }
 
     this.numViewSprites = numViewSprites;
