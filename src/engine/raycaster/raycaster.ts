@@ -200,7 +200,7 @@ class Raycaster {
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
     this.renderer.VertFloor = false;
-    this.renderer.Back2Front = false;
+    this.renderer.Back2Front = true;
   }
 
   private initData() {
@@ -314,7 +314,19 @@ class Raycaster {
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
 
-      // test sprite
+      // // test sprite
+      // {
+      //   const tex = this.findTex(wallTexKeys.PILLAR);
+      //   assert(tex);
+      //   const sprite = this.sprites[0];
+      //   sprite.PosX = 7.5;
+      //   sprite.PosY = 8.5;
+      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+      //   sprite.Visible = 1;
+      //   sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+      // }
+
       // {
       //   const tex = this.findTex(wallTexKeys.PILLAR);
       //   assert(tex);
@@ -343,8 +355,8 @@ class Raycaster {
         const tex = this.findTex(wallTexKeys.PILLAR);
         assert(tex);
         const sprite = this.sprites[1];
-        sprite.PosX = 7.5;
-        sprite.PosY = 8.5;
+        sprite.PosX = 5.5;
+        sprite.PosY = 6.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
@@ -449,6 +461,7 @@ class Raycaster {
     this.initTexturesViews();
     this.genDarkWallTextures();
     this.precTexIsTranspCols();
+    console.log('AHOOO');
   }
 
   private initTexturesViews() {
@@ -646,7 +659,7 @@ class Raycaster {
   private isSliceFullyTransp(
     texIdx: number,
     mipLvl: number,
-    texX: number,
+    srcTexX: number,
     image: BitImageRGBA,
   ) {
     const { texSliceFullyTranspMap } = this;
@@ -662,6 +675,8 @@ class Raycaster {
     }
 
     const isSliceFullyTranspMap = mipLvl2IsSliceFullyTransp[mipLvl];
+
+    const texX = srcTexX | 0;
 
     if (isSliceFullyTranspMap[texX] !== undefined) {
       // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);
@@ -682,7 +697,7 @@ class Raycaster {
   private isSlicePartiallyTransp(
     texIdx: number,
     mipLvl: number,
-    texX: number,
+    srcTexX: number,
     image: BitImageRGBA,
   ) {
     const { texSlicePartialTranspMap } = this;
@@ -698,6 +713,8 @@ class Raycaster {
     }
 
     const isSliceTranspMap = mipLvl2isSliceTransp[mipLvl];
+
+    const texX = srcTexX | 0;
 
     if (isSliceTranspMap[texX] !== undefined) {
       // console.log(`Wall texture col transparency cache hit at texIdx ${texIdx}, texX ${texX}, value ${isColTranspMap[texX]}`);

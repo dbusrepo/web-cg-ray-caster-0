@@ -1200,7 +1200,7 @@ class Renderer {
       x++, startYPtr++, endYPtr++, texX += texStepX
     ) {
       if (
-        !sliceFullyTranspMap[texX] &&
+        !sliceFullyTranspMap[texX | 0] &&
         distance <= wallZBuffer[x] &&
         transpSlices[x] === WASM_NULL_PTR
       ) {
