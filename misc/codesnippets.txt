@@ -1816,3 +1816,53 @@ private renderViewFullHorz() {
     this.renderFloorSpan(y, 0, vpWidth - 1);
   }
 }
+
+for (
+  let x = startX;
+  x <= endX;
+  x++, startYPtr++, endYPtr++, texX += texStepX
+) {
+  if (
+    !sliceFullyTranspMap[texX | 0] &&
+    distance <= wallZBuffer[x] &&
+    transpSlices[x] === WASM_NULL_PTR
+  ) {
+    const mipRowOffs = texX << lg2Pitch;
+    let framePtr = startYPtr;
+    for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+      const color = mipPixels[mipRowOffs + texYOffsets[y]];
+      if (color !== transpColor) {
+        frameBuf32[framePtr] = color;
+      }
+    }
+  }
+}
+
+for (
+  let x = startX;
+  x <= endX;
+  x++, startYPtr++, texX += texStepX
+) {
+  if (
+    !sliceFullyTranspMap[texX | 0] &&
+    distance <= wallZBuffer[x] &&
+    transpSlices[x] === WASM_NULL_PTR
+  ) {
+    const mipRowOffs = texX << lg2Pitch;
+    let framePtr = startYPtr;
+    let occPtr = occlusionBufRowPtrs[startY] + x;
+    for (
+      let y = startY;
+      y <= endY;
+      y++, framePtr += frameStride, occPtr += frameStride
+    ) {
+      if (!occlusionBuf8[occPtr]) {
+        const color = mipPixels[mipRowOffs + texYOffsets[y]];
+        if (color !== transpColor) {
+          frameBuf32[framePtr] = color;
+          occlusionBuf8[occPtr] = 1;
+        }
+      }
+    }
+  }
+}

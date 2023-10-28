@@ -301,15 +301,15 @@ class Raycaster {
   }
 
   private initSprites(): void {
-    Sprite.SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
-    const YOFFSETS_ARR_LENGTH = this.viewport.Height;
+    const { viewport } = this;
+    Sprite.SPRITE_HEIGHT_LIMIT = viewport.Height * 3;
 
     this.numViewSprites = 0;
-    this.spritesTop = new Array<number>(this.viewport.Width);
-    this.spritesBottom = new Array<number>(this.viewport.Width);
+    this.spritesTop = new Array<number>(viewport.Width);
+    this.spritesBottom = new Array<number>(viewport.Width);
 
     const NUM_SPRITES = 8;
-    // const NUM_SPRITES = 2; // 8
+    // const NUM_SPRITES = 1; // 8
 
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
@@ -327,7 +327,8 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
       // }
 
       // {
@@ -339,7 +340,8 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
       // }
 
       {
@@ -348,10 +350,13 @@ class Raycaster {
         const sprite = this.sprites[0];
         sprite.PosX = 5.5;
         sprite.PosY = 6.5;
+        // sprite.PosX = 3.5;
+        // sprite.PosY = 1.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
 
       {
@@ -363,9 +368,9 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
-
 
       {
         const tex = this.findTex(wallTexKeys.BARREL);
@@ -376,7 +381,8 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
 
       {
@@ -388,7 +394,8 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
 
       {
@@ -400,7 +407,8 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
 
       {
@@ -412,7 +420,8 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
 
       {
@@ -424,7 +433,8 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
 
       {
@@ -436,7 +446,8 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
       }
     }
   }
@@ -1100,22 +1111,26 @@ class Raycaster {
       const texX = texWidth - (srcTexX | 0) - 1;
 
       // occlusion test with walls and slice gen with cols with transp walls
-      let useTranspSlicesOnly = true;
-      let isOccluded = true;
       let sliceTexX = texX;
 
       const sliceFullyTranspMap = this.texSliceFullyTranspMap[texIdx][mipLvl];
       const slicePartiallyTranspMap =
         this.texSlicePartialTranspMap[texIdx][mipLvl];
 
+      sprite.NumRenderXs = 0;
+      const { RenderXs: renderXs, TexXOffsets: texXOffsets } = sprite;
+      renderXs.fill(0); // TODO: remove
+      texXOffsets.fill(0);
+
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
         if (sliceFullyTranspMap[sliceTexX | 0]) {
           continue;
         }
         if (transpSlices[x] === WASM_NULL_PTR) {
-          useTranspSlicesOnly = false;
           if (tY < wallZBuffer[x]) {
-            isOccluded = false;
+            renderXs[sprite.NumRenderXs] = x;
+            texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
+            sprite.NumRenderXs++;
             if (!slicePartiallyTranspMap[sliceTexX | 0]) {
               // sprite slice fully opaque
               wallSlicesOccludedBySprites[x] = 1;
@@ -1166,7 +1181,7 @@ class Raycaster {
         }
       }
 
-      if (isOccluded || useTranspSlicesOnly) {
+      if (!sprite.NumRenderXs) {
         // sprite removed from the sorting list
         // if it has cols shared with transp walls slices it will be rendered later with them
         continue;

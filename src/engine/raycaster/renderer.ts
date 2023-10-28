@@ -1150,27 +1150,23 @@ class Renderer {
   }
 
   private renderSpriteB2F(sprite: Sprite) {
-    const { frameBuf32, frameStride, frameRowPtrs, raycaster } = this;
+    const { frameBuf32, frameStride, frameRowPtrs } = this;
 
     const {
-      TranspSlices: transpSlices,
-      // NumTranspSlicesList: numTranspSlicesList, // TODO: not used
-      WallZBuffer: wallZBuffer,
-      TexSliceFullyTranspMap: texSliceFullyTranspMap,
-    } = raycaster;
-
-    const {
-      TexIdx: texIdx,
-      Distance: distance,
+      // TexIdx: texIdx,
+      // Distance: distance,
       Mipmap: mipmap,
-      StartX: startX,
-      EndX: endX,
-      TexX: startTexX,
-      TexStepX: texStepX,
+      // StartX: startX,
+      // EndX: endX,
+      // TexX: startTexX,
+      // TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
       TexYOffsets: texYOffsets,
-      MipLevel: mipLvl,
+      // MipLevel: mipLvl,
+      RenderXs: renderXs,
+      NumRenderXs: numRenderXs,
+      TexXOffsets: texXOffsets,
       // TexY: texY,
       // TexStepY: texStepY,
     } = sprite;
@@ -1182,32 +1178,15 @@ class Renderer {
       Lg2Pitch: lg2Pitch,
     } = mipmap;
 
-    // y start and end of cur sprite slice
-    let startYPtr = frameRowPtrs[startY] + startX;
-    let endYPtr = frameRowPtrs[endY + 1] + startX;
-
-    let texX = startTexX;
-
-    const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLvl];
     const { transpColor } = Texture;
 
-    for (
-      let x = startX;
-      x <= endX;
-      x++, startYPtr++, endYPtr++, texX += texStepX
-    ) {
-      if (
-        !sliceFullyTranspMap[texX | 0] &&
-        distance <= wallZBuffer[x] &&
-        transpSlices[x] === WASM_NULL_PTR
-      ) {
-        const mipRowOffs = texX << lg2Pitch;
-        let framePtr = startYPtr;
-        for (let y = startY; y <= endY; y++, framePtr += frameStride) {
-          const color = mipPixels[mipRowOffs + texYOffsets[y]];
-          if (color !== transpColor) {
-            frameBuf32[framePtr] = color;
-          }
+    for (let ix = 0; ix < numRenderXs; ++ix) {
+      const mipRowOffs = texXOffsets[ix] << lg2Pitch;
+      let framePtr = frameRowPtrs[startY] + renderXs[ix];
+      for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+        const color = mipPixels[mipRowOffs + texYOffsets[y]];
+        if (color !== transpColor) {
+          frameBuf32[framePtr] = color;
         }
       }
     }
@@ -1218,29 +1197,25 @@ class Renderer {
       frameBuf32,
       frameStride,
       frameRowPtrs,
-      raycaster,
       occlusionBuf8,
       occlusionBufRowPtrs,
     } = this;
 
     const {
-      TranspSlices: transpSlices,
-      WallZBuffer: wallZBuffer,
-      TexSliceFullyTranspMap: texSliceFullyTranspMap,
-    } = raycaster;
-
-    const {
-      TexIdx: texIdx,
-      Distance: distance,
+      // TexIdx: texIdx,
+      // Distance: distance,
       Mipmap: mipmap,
-      StartX: startX,
-      EndX: endX,
-      TexX: startTexX,
-      TexStepX: texStepX,
+      // StartX: startX,
+      // EndX: endX,
+      // TexX: startTexX,
+      // TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
       TexYOffsets: texYOffsets,
-      MipLevel: mipLevel,
+      // MipLevel: mipLvl,
+      RenderXs: renderXs,
+      NumRenderXs: numRenderXs,
+      TexXOffsets: texXOffsets,
       // TexY: texY,
       // TexStepY: texStepY,
     } = sprite;
@@ -1252,39 +1227,22 @@ class Renderer {
       Lg2Pitch: lg2Pitch,
     } = mipmap;
 
-    // y start and end of cur sprite slice
-    let startYPtr = frameRowPtrs[startY] + startX;
-    let endYPtr = frameRowPtrs[endY + 1] + startX;
-
-    let texX = startTexX;
-
     const { transpColor } = Texture;
-    const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLevel];
 
-    for (
-      let x = startX;
-      x <= endX;
-      x++, startYPtr++, endYPtr++, texX += texStepX
-    ) {
-      if (
-        !sliceFullyTranspMap[texX | 0] &&
-        distance <= wallZBuffer[x] &&
-        transpSlices[x] === WASM_NULL_PTR
+    for (let ix = 0; ix < numRenderXs; ++ix) {
+      const mipRowOffs = texXOffsets[ix] << lg2Pitch;
+      let framePtr = frameRowPtrs[startY] + renderXs[ix];
+      let occPtr = occlusionBufRowPtrs[startY] + renderXs[ix];
+      for (
+        let y = startY;
+        y <= endY;
+        y++, framePtr += frameStride, occPtr += frameStride
       ) {
-        const mipRowOffs = texX << lg2Pitch;
-        let framePtr = startYPtr;
-        let occPtr = occlusionBufRowPtrs[startY] + x;
-        for (
-          let y = startY;
-          y <= endY;
-          y++, framePtr += frameStride, occPtr += frameStride
-        ) {
-          if (!occlusionBuf8[occPtr]) {
-            const color = mipPixels[mipRowOffs + texYOffsets[y]];
-            if (color !== transpColor) {
-              frameBuf32[framePtr] = color;
-              occlusionBuf8[occPtr] = 1;
-            }
+        if (!occlusionBuf8[occPtr]) {
+          const color = mipPixels[mipRowOffs + texYOffsets[y]];
+          if (color !== transpColor) {
+            frameBuf32[framePtr] = color;
+            occlusionBuf8[occPtr] = 1;
           }
         }
       }

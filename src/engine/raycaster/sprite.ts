@@ -8,6 +8,9 @@ class Sprite {
   private srcIdx: number;
   private mipmap: BitImageRGBA;
   private texYOffsets: Uint32Array;
+  private texXOffsets: Uint32Array;
+  private renderXs: Uint32Array;
+  private numRenderXs: number;
   private mipLevel: number; // current mip level
 
   constructor(
@@ -44,6 +47,31 @@ class Sprite {
     if (!this.texYOffsets) {
       this.texYOffsets = new Uint32Array(length);
     }
+  }
+
+  allocXOffsets(length: number): void {
+    if (!this.texXOffsets) {
+      this.texXOffsets = new Uint32Array(length);
+    }
+    if (!this.renderXs) {
+      this.renderXs = new Uint32Array(length);
+    }
+  }
+
+  get NumRenderXs(): number {
+    return this.numRenderXs;
+  }
+
+  set NumRenderXs(value: number) {
+    this.numRenderXs = value;
+  }
+
+  get RenderXs(): Uint32Array {
+    return this.renderXs;
+  }
+
+  get TexXOffsets(): Uint32Array {
+    return this.texXOffsets;
   }
 
   get SrcIdx(): number {
