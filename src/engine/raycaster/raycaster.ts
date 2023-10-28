@@ -351,7 +351,7 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -363,7 +363,7 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
 
@@ -376,7 +376,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -388,7 +388,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -400,7 +400,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -412,7 +412,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -424,7 +424,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
 
       {
@@ -436,7 +436,7 @@ class Raycaster {
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocYOffsets(YOFFSETS_ARR_LENGTH);
+        sprite.allocTexYOffsets(YOFFSETS_ARR_LENGTH);
       }
     }
   }
@@ -1185,11 +1185,13 @@ class Raycaster {
       sprite.TexStepY = texStepY;
 
       // precalc y offsets (used for each col)
-      const { YOffsets: yOffsets } = sprite;
-      let curTexY = texY;
-      for (let y = startY; y <= endY; y++) {
-        yOffsets[y] = curTexY;
-        curTexY += texStepY;
+      const { TexYOffsets: texYOffsets } = sprite;
+      for (
+        let y = startY, curTexY = texY;
+        y <= endY;
+        y++, curTexY += texStepY
+      ) {
+        texYOffsets[y] = curTexY;
       }
 
       // insertion sort on viewSprites[1...numViewSprites] on increasing distance

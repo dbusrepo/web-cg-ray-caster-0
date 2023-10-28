@@ -7,7 +7,7 @@ class Sprite {
 
   private srcIdx: number;
   private mipmap: BitImageRGBA;
-  private yOffsets: Uint32Array; // precalcd row offsets
+  private texYOffsets: Uint32Array;
   private mipLevel: number; // current mip level
 
   constructor(
@@ -40,9 +40,9 @@ class Sprite {
   //   return this.spritePtr;
   // }
 
-  allocYOffsets(length: number): void {
-    if (!this.yOffsets) {
-      this.yOffsets = new Uint32Array(length);
+  allocTexYOffsets(length: number): void {
+    if (!this.texYOffsets) {
+      this.texYOffsets = new Uint32Array(length);
     }
   }
 
@@ -62,8 +62,8 @@ class Sprite {
     this.mipLevel = value;
   }
 
-  get YOffsets(): Uint32Array {
-    return this.yOffsets;
+  get TexYOffsets(): Uint32Array {
+    return this.texYOffsets;
   }
 
   get Mipmap(): BitImageRGBA {

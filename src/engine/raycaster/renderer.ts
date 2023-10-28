@@ -1169,7 +1169,7 @@ class Renderer {
       TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
-      YOffsets: yOffsets,
+      TexYOffsets: texYOffsets,
       MipLevel: mipLvl,
       // TexY: texY,
       // TexStepY: texStepY,
@@ -1204,7 +1204,7 @@ class Renderer {
         const mipRowOffs = texX << lg2Pitch;
         let framePtr = startYPtr;
         for (let y = startY; y <= endY; y++, framePtr += frameStride) {
-          const color = mipPixels[mipRowOffs + yOffsets[y]];
+          const color = mipPixels[mipRowOffs + texYOffsets[y]];
           if (color !== transpColor) {
             frameBuf32[framePtr] = color;
           }
@@ -1239,7 +1239,7 @@ class Renderer {
       TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
-      YOffsets: yOffsets,
+      TexYOffsets: texYOffsets,
       MipLevel: mipLevel,
       // TexY: texY,
       // TexStepY: texStepY,
@@ -1280,7 +1280,7 @@ class Renderer {
           y++, framePtr += frameStride, occPtr += frameStride
         ) {
           if (!occlusionBuf8[occPtr]) {
-            const color = mipPixels[mipRowOffs + yOffsets[y]];
+            const color = mipPixels[mipRowOffs + texYOffsets[y]];
             if (color !== transpColor) {
               frameBuf32[framePtr] = color;
               occlusionBuf8[occPtr] = 1;
