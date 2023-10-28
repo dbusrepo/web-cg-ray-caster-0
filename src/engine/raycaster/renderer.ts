@@ -1014,12 +1014,11 @@ class Renderer {
       Lg2Pitch: lg2Pitch,
     } = mipmap;
 
-    const { transpColor } = Texture;
-
     let offs = (texX << lg2Pitch) + texY;
 
     let framePtr = frameRowPtrs[top] + x;
     let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+    const { transpColor } = Texture;
 
     for (; framePtr < frameLimitPtr; framePtr += frameStride) {
       const color = mipPixels[offs | 0];
@@ -1095,14 +1094,13 @@ class Renderer {
       Lg2Pitch: lg2Pitch,
     } = mipmap;
 
-    const { transpColor } = Texture;
-
     let offs = (texX << lg2Pitch) + texY;
 
     let framePtr = frameRowPtrs[top] + x;
     let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
     let occPtr = occlusionBufRowPtrs[top] + x;
+    const { transpColor } = Texture;
 
     for (
       ;
@@ -1184,8 +1182,6 @@ class Renderer {
       Lg2Pitch: lg2Pitch,
     } = mipmap;
 
-    const { transpColor } = Texture;
-
     // y start and end of cur sprite slice
     let startYPtr = frameRowPtrs[startY] + startX;
     let endYPtr = frameRowPtrs[endY + 1] + startX;
@@ -1193,6 +1189,7 @@ class Renderer {
     let texX = startTexX;
 
     const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLevel];
+    const { transpColor } = Texture;
 
     for (
       let x = startX;
@@ -1255,14 +1252,13 @@ class Renderer {
       Lg2Pitch: lg2Pitch,
     } = mipmap;
 
-    const { transpColor } = Texture;
-
     // y start and end of cur sprite slice
     let startYPtr = frameRowPtrs[startY] + startX;
     let endYPtr = frameRowPtrs[endY + 1] + startX;
 
     let texX = startTexX;
 
+    const { transpColor } = Texture;
     const sliceFullyTranspMap = texSliceFullyTranspMap[texIdx][mipLevel];
 
     for (
@@ -1271,7 +1267,7 @@ class Renderer {
       x++, startYPtr++, endYPtr++, texX += texStepX
     ) {
       if (
-        !sliceFullyTranspMap[texX] &&
+        !sliceFullyTranspMap[texX | 0] &&
         distance <= wallZBuffer[x] &&
         transpSlices[x] === WASM_NULL_PTR
       ) {
@@ -1301,7 +1297,7 @@ class Renderer {
     const { NumViewSprites: numViewSprites } = raycaster;
 
     // from farthest to nearest
-    for (let i = 1; i <= numViewSprites; ++i) {
+    for (let i = numViewSprites; i > 0; --i) {
       this.renderSpriteB2F(viewSprites[i]);
     }
   }
@@ -1312,7 +1308,7 @@ class Renderer {
     const { NumViewSprites: numViewSprites } = raycaster;
 
     // from nearest to farthest
-    for (let i = numViewSprites; i > 0; --i) {
+    for (let i = 1; i <= numViewSprites; ++i) {
       this.renderSpriteF2B(viewSprites[i]);
     }
   }
