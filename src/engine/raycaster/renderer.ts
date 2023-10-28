@@ -29,6 +29,7 @@ class Renderer {
   private spansFloorLX: Float32Array;
   private spansFloorLY: Float32Array;
   private frameCnt: number;
+  private useWasmRenderer = false;
   private isFloorTextured = false;
   private back2front = false;
   private vertFloor = false;
@@ -80,6 +81,14 @@ class Renderer {
 
     this.textures = raycaster.Textures;
   }
+
+  public get UseWasmRenderer(): boolean {
+    return this.useWasmRenderer;
+  }
+
+  // public set UseWasmRenderer(useWasmRenderer: boolean) { // not used
+  //   this.useWasmRenderer = useWasmRenderer;
+  // }
 
   public set IsFloorTextured(isFloorTextured: boolean) {
     this.isFloorTextured = isFloorTextured;
@@ -170,7 +179,9 @@ class Renderer {
       WallSlices: wallSlices,
       MapWidth: mapWidth,
       ProjYCenter: projYCenter,
-      WallSlicesOccluded: wallSlicesOccluded,
+      WallSlicesOccludedBySprites: wallSlicesOccludedBySprites,
+      SpritesTop: spritesTop,
+      SpritesBottom: spritesBottom,
     } = raycaster;
 
     const {
@@ -201,23 +212,20 @@ class Renderer {
       } = wallSlices[x];
 
       const colPtr = startFramePtr + x;
-      let framePtr = colPtr;
+      const isWallSliceOccludedBySprite = wallSlicesOccludedBySprites[x];
+      top = isWallSliceOccludedBySprite ? spritesTop[x] : top;
       let frameLimitPtr = frameRowPtrs[top] + x;
+      let framePtr = colPtr;
 
       // render ceil
-
       // for (let y = 0; y < top; y++) {
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
         frameBuf32[framePtr] = CEIL_COLOR;
       }
       // assert(framePtr === colPtr + top * frameStride);
 
-      // const wallSliceHeight = bottom - top + 1;
-      // frameLimitPtr = framePtr + wallSliceHeight * frameStride;
-      // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
-      frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-
-      if (!wallSlicesOccluded[x]) {
+      if (!isWallSliceOccludedBySprite) {
+        frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
           const {
             Buf32: mipPixels,
@@ -251,11 +259,12 @@ class Renderer {
             frameBuf32[framePtr] = color;
           }
         }
+        // assert(framePtr === colPtr + (bottom + 1) * frameStride);
       } else {
-        framePtr = frameLimitPtr;
+        // framePtr = frameLimitPtr;
+        bottom = spritesBottom[x];
+        framePtr = frameRowPtrs[bottom + 1] + x;
       }
-
-      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
       if (!isFloorTextured) {
         for (let y = bottom + 1; y < vpHeight; y++, framePtr += frameStride) {
@@ -321,7 +330,9 @@ class Renderer {
       WallSlices: wallSlices,
       MapWidth: mapWidth,
       ProjYCenter: projYCenter,
-      WallSlicesOccluded: wallSlicesOccluded,
+      WallSlicesOccludedBySprites: wallSlicesOccludedBySprites,
+      SpritesTop: spritesTop,
+      SpritesBottom: spritesBottom,
     } = raycaster;
 
     const {
@@ -353,12 +364,13 @@ class Renderer {
       } = wallSlices[x];
 
       const colPtr = startFramePtr + x;
-      let framePtr = colPtr;
+      const isWallSliceOccludedBySprite = wallSlicesOccludedBySprites[x];
+      top = isWallSliceOccludedBySprite ? spritesTop[x] : top;
       let frameLimitPtr = frameRowPtrs[top] + x;
+      let framePtr = colPtr;
       let occPtr = colPtr;
 
       // render ceil
-
       // for (let y = 0; y < top; y++) {
       for (
         ;
@@ -371,12 +383,9 @@ class Renderer {
       }
       // assert(framePtr === colPtr + top * frameStride);
 
-      // const wallSliceHeight = bottom - top + 1;
-      // frameLimitPtr = framePtr + wallSliceHeight * frameStride;
-      // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
-      frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-
-      if (!wallSlicesOccluded[x]) {
+      if (!isWallSliceOccludedBySprite) {
+        frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+        // assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
         if (hit) {
           const {
             Buf32: mipPixels,
@@ -421,12 +430,12 @@ class Renderer {
             }
           }
         }
+        // assert(framePtr === colPtr + (bottom + 1) * frameStride);
       } else {
-        framePtr = frameLimitPtr;
-        occPtr = frameLimitPtr;
+        bottom = spritesBottom[x];
+        framePtr = frameRowPtrs[bottom + 1] + x;
+        occPtr = framePtr;
       }
-
-      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
       if (!isFloorTextured) {
         for (
@@ -671,7 +680,9 @@ class Renderer {
       MinWallTop: minWallTop,
       MinWallBottom: minWallBottom,
       MaxWallBottom: maxWallBottom,
-      WallSlicesOccluded: wallSlicesOccluded,
+      WallSlicesOccludedBySprites: wallSlicesOccludedBySprites,
+      SpritesTop: spritesTop,
+      SpritesBottom: spritesBottom,
     } = raycaster;
 
     const {
@@ -730,17 +741,19 @@ class Renderer {
 
       // const colPtr = startFramePtr + x;
       let framePtr = frameRowPtrs[minWallTop] + x;
+      const isWallSliceOccludedBySprite = wallSlicesOccludedBySprites[x];
+      top = isWallSliceOccludedBySprite ? spritesTop[x] : top;
       let frameLimitPtr = frameRowPtrs[top] + x;
 
+      // render ceil
       // for (let y = minWallTop; y < top; y++) {
       for (; framePtr < frameLimitPtr; framePtr += frameStride) {
         frameBuf32[framePtr] = CEIL_COLOR;
       }
       // assert(framePtr === colPtr + top * frameStride);
 
-      frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-
-      if (!wallSlicesOccluded[x]) {
+      if (!wallSlicesOccludedBySprites[x]) {
+        frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
           const {
             Buf32: mipPixels,
@@ -763,11 +776,11 @@ class Renderer {
             frameBuf32[framePtr] = color;
           }
         }
+        // assert(framePtr === colPtr + (bottom + 1) * frameStride);
       } else {
-        framePtr = frameLimitPtr;
+        // framePtr = frameLimitPtr;
+        bottom = spritesBottom[x];
       }
-
-      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
       let nr = prevWallBottom - bottom;
 
@@ -826,7 +839,9 @@ class Renderer {
       MinWallTop: minWallTop,
       MinWallBottom: minWallBottom,
       MaxWallBottom: maxWallBottom,
-      WallSlicesOccluded: wallSlicesOccluded,
+      WallSlicesOccludedBySprites: wallSlicesOccludedBySprites,
+      SpritesTop: spritesTop,
+      SpritesBottom: spritesBottom,
     } = raycaster;
 
     const {
@@ -885,9 +900,12 @@ class Renderer {
 
       // const colPtr = startFramePtr + x;
       let framePtr = frameRowPtrs[minWallTop] + x;
+      const isWallSliceOccludedBySprite = wallSlicesOccludedBySprites[x];
+      top = isWallSliceOccludedBySprite ? spritesTop[x] : top;
       let frameLimitPtr = frameRowPtrs[top] + x;
       let occPtr = occlusionBufRowPtrs[minWallTop] + x;
 
+      // render ceil
       // for (let y = minWallTop; y < top; y++) {
       for (
         ;
@@ -902,7 +920,7 @@ class Renderer {
 
       frameLimitPtr = frameRowPtrs[bottom + 1] + x;
 
-      if (!wallSlicesOccluded[x]) {
+      if (!wallSlicesOccludedBySprites[x]) {
         if (hit) {
           const {
             Buf32: mipPixels,
@@ -936,12 +954,12 @@ class Renderer {
             }
           }
         }
+        // assert(framePtr === colPtr + (bottom + 1) * frameStride);
       } else {
-        framePtr = frameLimitPtr;
+        // framePtr = frameLimitPtr;
         // occPtr = frameLimitPtr;
+        bottom = spritesBottom[x];
       }
-
-      // assert(framePtr === colPtr + (bottom + 1) * frameStride);
 
       let nr = prevWallBottom - bottom;
 
@@ -1335,7 +1353,7 @@ class Renderer {
     if (this.back2front) {
       this.renderWallsFloorsB2F();
       this.renderTranspSlicesB2F();
-      this.renderSpritesB2F();
+      this.renderSpritesB2F(); // TODO: move after renderTranspSlicesB2F
     } else {
       this.initOcclusionBuf();
       this.renderSpritesF2B();

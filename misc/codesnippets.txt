@@ -1498,6 +1498,10 @@ private renderViewFullVert() {
   // }
 }
 
+// const wallSliceHeight = bottom - top + 1;
+// frameLimitPtr = framePtr + wallSliceHeight * frameStride;
+// assert(frameLimitPtr === frameRowPtrs[bottom + 1] + x);
+
 // sprite processing by rows, not used
 // for (let y = startY; y <= endY; y++) {
 //   let framePtr = frameRowPtrs[y] + startX;

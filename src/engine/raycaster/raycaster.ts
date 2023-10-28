@@ -114,7 +114,9 @@ class Raycaster {
   private wallSlices: Slice[];
   private wallZBuffer: Float32Array;
 
-  private wallSlicesOccluded: Uint8Array;
+  private wallSlicesOccludedBySprites: Uint8Array;
+  private spritesTop: number[];
+  private spritesBottom: number[];
 
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
@@ -197,8 +199,8 @@ class Raycaster {
   private initRenderer() {
     this.renderer = new Renderer(this);
     this.renderer.IsFloorTextured = true;
-    this.renderer.VertFloor = true;
-    this.renderer.Back2Front = true;
+    this.renderer.VertFloor = false;
+    this.renderer.Back2Front = false;
   }
 
   private initData() {
@@ -300,6 +302,10 @@ class Raycaster {
   private initSprites(): void {
     Sprite.SPRITE_HEIGHT_LIMIT = this.viewport.Height * 3;
     const YOFFSETS_ARR_LENGTH = this.viewport.Height;
+
+    this.numViewSprites = 0;
+    this.spritesTop = new Array<number>(this.viewport.Width);
+    this.spritesBottom = new Array<number>(this.viewport.Width);
 
     const NUM_SPRITES = 7;
 
@@ -429,7 +435,7 @@ class Raycaster {
       this.wasmEngineModule,
       this.raycasterPtr,
     );
-    this.wallSlicesOccluded = new Uint8Array(this.wallSlices.length);
+    this.wallSlicesOccludedBySprites = new Uint8Array(this.wallSlices.length);
   }
 
   private initTranspSlices() {
@@ -632,7 +638,7 @@ class Raycaster {
 
   private preRender() {
     this.freeTranspSlices();
-    this.wallSlicesOccluded.fill(0);
+    this.wallSlicesOccludedBySprites.fill(0);
   }
 
   private postRender() {}
@@ -933,11 +939,6 @@ class Raycaster {
         wallSlice.Top = wallTop;
         wallSlice.Bottom = wallBottom;
 
-        maxWallDistance = Math.max(maxWallDistance, perpWallDist);
-        minWallTop = Math.min(minWallTop, wallTop);
-        maxWallTop = Math.max(maxWallTop, wallTop);
-        minWallBottom = Math.min(minWallBottom, wallBottom);
-        maxWallBottom = Math.max(maxWallBottom, wallBottom);
         if (this.IsFloorTextured) {
           floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
           const floorWallXOffs =
@@ -945,7 +946,14 @@ class Raycaster {
           floorWall[side] = curMapPos[side] + floorWallXOffs;
           [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
         }
-        break;
+
+        maxWallDistance = Math.max(maxWallDistance, perpWallDist);
+        minWallTop = Math.min(minWallTop, wallTop);
+        maxWallTop = Math.max(maxWallTop, wallTop);
+        minWallBottom = Math.min(minWallBottom, wallBottom);
+        maxWallBottom = Math.max(maxWallBottom, wallBottom);
+
+        break; // ray done
       }
     }
 
@@ -975,6 +983,9 @@ class Raycaster {
       ProjYCenter: projYCenter,
       transpSlices,
       wallSlices,
+      spritesTop,
+      spritesBottom,
+      wallSlicesOccludedBySprites,
     } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
@@ -1099,8 +1110,12 @@ class Raycaster {
               !this.isSlicePartiallyTransp(texIdx, mipLvl, sliceTexX, image)
             ) {
               // sprite slice fully opaque
-              this.wallSlicesOccluded[x] = 1;
+              wallSlicesOccludedBySprites[x] = 1;
+              spritesTop[x] = startY;
+              spritesBottom[x] = endY;
               wallZBuffer[x] = tY;
+              this.MinWallTop = Math.min(this.MinWallTop, startY);
+              this.MaxWallBottom = Math.max(this.MaxWallBottom, endY);
               continue;
             }
           }
@@ -1454,8 +1469,16 @@ class Raycaster {
     return this.texSliceFullyTranspMap;
   }
 
-  get WallSlicesOccluded() {
-    return this.wallSlicesOccluded;
+  get WallSlicesOccludedBySprites() {
+    return this.wallSlicesOccludedBySprites;
+  }
+
+  get SpritesTop() {
+    return this.spritesTop;
+  }
+
+  get SpritesBottom() {
+    return this.spritesBottom;
   }
 }
 
