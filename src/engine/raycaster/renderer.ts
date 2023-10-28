@@ -995,7 +995,7 @@ class Renderer {
     }
   }
 
-  private renderSlice(slice: Slice, x: number) {
+  private renderTranspSliceB2F(slice: Slice, x: number) {
     const { frameBuf32, frameRowPtrs, frameStride } = this;
 
     const {
@@ -1054,7 +1054,7 @@ class Renderer {
         // the circular doubly linked list is sort by decreasing distance
         let curPtr = startPtr;
         do {
-          this.renderSlice(curPtr, x);
+          this.renderTranspSliceB2F(curPtr, x);
           curPtr = curPtr.Next as Slice;
         } while (curPtr !== startPtr);
       }
@@ -1069,7 +1069,7 @@ class Renderer {
     // }
   }
 
-  private renderSliceF2B(slice: Slice, x: number) {
+  private renderTranspSliceF2B(slice: Slice, x: number) {
     const {
       frameBuf32,
       frameStride,
@@ -1142,7 +1142,7 @@ class Renderer {
         const startPtr = (transpSlices[x] as Slice).Prev as Slice;
         let curPtr = startPtr;
         do {
-          this.renderSliceF2B(curPtr, x);
+          this.renderTranspSliceF2B(curPtr, x);
           curPtr = curPtr.Prev as Slice;
         } while (curPtr !== startPtr);
       }
