@@ -355,7 +355,6 @@ class Renderer {
       const colPtr = startFramePtr + x;
       let framePtr = colPtr;
       let frameLimitPtr = frameRowPtrs[top] + x;
-
       let occPtr = colPtr;
 
       // render ceil
@@ -424,6 +423,7 @@ class Renderer {
         }
       } else {
         framePtr = frameLimitPtr;
+        occPtr = frameLimitPtr;
       }
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
@@ -805,7 +805,7 @@ class Renderer {
 
   private renderWallsFloorsHorzOcclusionChk() {
     const {
-      startFramePtr,
+      // startFramePtr,
       frameBuf32,
       frameStride,
       spansStepX,
@@ -938,6 +938,7 @@ class Renderer {
         }
       } else {
         framePtr = frameLimitPtr;
+        // occPtr = frameLimitPtr;
       }
 
       // assert(framePtr === colPtr + (bottom + 1) * frameStride);
