@@ -23,6 +23,8 @@ import { logi } from '../importVars';
   private floorWallX: f32;
   private floorWallY: f32;
 
+  private isSprite: u8 = 0;
+
   private prevPtr: PTR_T = NULL_PTR;
   private nextPtr: PTR_T = NULL_PTR;
 
@@ -137,6 +139,14 @@ import { logi } from '../importVars';
   set NextPtr(nextPtr: PTR_T) {
     this.nextPtr = nextPtr;
   }
+
+  get IsSprite(): u8 {
+    return this.isSprite;
+  }
+
+  set IsSprite(isSprite: u8) {
+    this.isSprite = isSprite;
+  }
 }
 
 let wallSliceAllocator = changetype<ObjectAllocator<Slice>>(NULL_PTR);
@@ -209,6 +219,10 @@ function getSliceNextPtrPtr(slicePtr: PTR_T): PTR_T {
   return slicePtr + offsetof<Slice>('nextPtr');
 }
 
+function getSliceIsSpritePtr(slicePtr: PTR_T): PTR_T {
+  return slicePtr + offsetof<Slice>('isSprite');
+}
+
 function allocSlice(): PTR_T {
   return changetype<PTR_T>(newSlice());
 }
@@ -231,4 +245,5 @@ export {
   getSliceClipTopPtr,
   getSlicePrevPtrPtr,
   getSliceNextPtrPtr,
+  getSliceIsSpritePtr,
 };

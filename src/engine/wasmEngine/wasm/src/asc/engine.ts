@@ -122,6 +122,7 @@ import {
   getSliceClipTopPtr,
   getSlicePrevPtrPtr,
   getSliceNextPtrPtr,
+  getSliceIsSpritePtr,
 } from './raycaster/slice';
 import {
   FrameColorRGBA, 
@@ -320,6 +321,7 @@ export {
   getSliceClipTopPtr,
   getSlicePrevPtrPtr,
   getSliceNextPtrPtr,
+  getSliceIsSpritePtr,
 
   getFrameColorRGBAPtr,
   getRedLightTablePtr,

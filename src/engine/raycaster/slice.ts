@@ -25,6 +25,7 @@ class Slice {
     private floorWallYPtr: number,
     private prevPtrPtr: number,
     private nextPtrPtr: number,
+    private isSpritePtr: number,
   ) {}
 
   init(
@@ -43,6 +44,7 @@ class Slice {
     floorWallYPtr: number,
     prevPtrPtr: number,
     nextPtrPtr: number,
+    isSpritePtr: number,
   ) {
     this.slicePtr = slicePtr;
     this.distancePtr = distancePtr;
@@ -59,6 +61,7 @@ class Slice {
     this.floorWallYPtr = floorWallYPtr;
     this.prevPtrPtr = prevPtrPtr;
     this.nextPtrPtr = nextPtrPtr;
+    this.isSpritePtr = isSpritePtr;
   }
 
   get Prev(): Slice | WasmNullPtr {
@@ -210,6 +213,14 @@ class Slice {
   set NextPtr(nextPtr: number) {
     gWasmView.setUint32(this.nextPtrPtr, nextPtr, true);
   }
+
+  get IsSprite(): boolean {
+    return gWasmView.getUint8(this.isSpritePtr) !== 0;
+  }
+
+  set IsSprite(isSprite: boolean) {
+    gWasmView.setUint8(this.isSpritePtr, isSprite ? 1 : 0);
+  }
 }
 
 let freeList: Slice | WasmNullPtr = WASM_NULL_PTR;
@@ -256,6 +267,7 @@ function createSliceView(wasmEngineModule: WasmEngineModule, slicePtr: number) {
     wasmEngineModule.getSliceFloorWallYPtr(slicePtr),
     wasmEngineModule.getSlicePrevPtrPtr(slicePtr),
     wasmEngineModule.getSliceNextPtrPtr(slicePtr),
+    wasmEngineModule.getSliceIsSpritePtr(slicePtr),
   );
 }
 

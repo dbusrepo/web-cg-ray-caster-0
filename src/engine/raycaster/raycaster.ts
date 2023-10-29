@@ -309,7 +309,7 @@ class Raycaster {
     this.spritesBottom = new Array<number>(viewport.Width);
 
     const NUM_SPRITES = 8;
-    // const NUM_SPRITES = 1; // 8
+    // const NUM_SPRITES = 2; // 8
 
     this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
@@ -348,7 +348,7 @@ class Raycaster {
         const tex = this.findTex(wallTexKeys.PILLAR);
         assert(tex);
         const sprite = this.sprites[0];
-        sprite.PosX = 5.5;
+        sprite.PosX = 4.5;
         sprite.PosY = 6.5;
         // sprite.PosX = 3.5;
         // sprite.PosY = 1.5;
@@ -363,8 +363,10 @@ class Raycaster {
         const tex = this.findTex(wallTexKeys.PILLAR);
         assert(tex);
         const sprite = this.sprites[1];
-        sprite.PosX = 4.5;
-        sprite.PosY = 8.5;
+        // sprite.PosX = 5.5;
+        // sprite.PosY = 1.5;
+        sprite.PosX = 8.5;
+        sprite.PosY = 9.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
@@ -535,16 +537,16 @@ class Raycaster {
       const { WasmIdx: texIdx } = tex;
       this.texSlicePartialTranspMap[texIdx] = {};
       this.texSliceFullyTranspMap[texIdx] = {};
-      const transpSlicesMap = (this.texSlicePartialTranspMap[texIdx][mipLvl] =
+      const isTranspSliceArr = (this.texSlicePartialTranspMap[texIdx][mipLvl] =
         new Uint8Array(texWidth));
-      const fullyTranspSlicesMap = (this.texSliceFullyTranspMap[texIdx][
+      const isFullyTranspSliceArr = (this.texSliceFullyTranspMap[texIdx][
         mipLvl
       ] = new Uint8Array(texWidth));
       for (let texX = 0; texX < texWidth; texX++) {
-        transpSlicesMap[texX] = this.isSlicePartiallyTransp(texX, image)
+        isTranspSliceArr[texX] = this.isSlicePartiallyTransp(texX, image)
           ? 1
           : 0;
-        fullyTranspSlicesMap[texX] = this.isSliceFullyTransp(texX, image)
+        isFullyTranspSliceArr[texX] = this.isSliceFullyTransp(texX, image)
           ? 1
           : 0;
       }
@@ -891,7 +893,7 @@ class Raycaster {
           const mipLvl = 0; // TODO:
           const mipmap = tex.getMipmap(mipLvl);
           const { Image: image } = mipmap;
-          const slicePartiallyTranspMap =
+          const isTranspSliceArr =
             this.texSlicePartialTranspMap[texIdx][mipLvl];
 
           const {
@@ -908,7 +910,7 @@ class Raycaster {
           let slice = wallSlice;
 
           const isTranspWall =
-            wallCode & WALL_FLAGS.TRANSP && slicePartiallyTranspMap[texX];
+            wallCode & WALL_FLAGS.TRANSP && isTranspSliceArr[texX];
 
           if (isTranspWall) {
             slice = this.newWallTranspSlice(x);
@@ -917,6 +919,7 @@ class Raycaster {
             slice.ClipTop = clipTop;
             slice.Top = wallTop;
             slice.Bottom = wallBottom;
+            slice.IsSprite = false;
           }
 
           const texStepY = texHeight / wallSliceProjHeight;
@@ -984,6 +987,20 @@ class Raycaster {
     this.postRender();
   }
 
+  private occludeWallSlice(
+    startY: number,
+    endY: number,
+    tY: number,
+    x: number,
+  ) {
+    this.wallSlicesOccludedBySprites[x] = 1;
+    this.spritesTop[x] = startY;
+    this.spritesBottom[x] = endY;
+    this.wallZBuffer[x] = tY;
+    this.MinWallTop = Math.min(this.MinWallTop, startY);
+    this.MaxWallBottom = Math.max(this.MaxWallBottom, endY);
+  }
+
   private processSprites(): void {
     const {
       sprites,
@@ -995,10 +1012,6 @@ class Raycaster {
       textures,
       ProjYCenter: projYCenter,
       transpSlices,
-      wallSlices,
-      spritesTop,
-      spritesBottom,
-      wallSlicesOccludedBySprites,
     } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
@@ -1113,9 +1126,8 @@ class Raycaster {
       // occlusion test with walls and slice gen with cols with transp walls
       let sliceTexX = texX;
 
-      const sliceFullyTranspMap = this.texSliceFullyTranspMap[texIdx][mipLvl];
-      const slicePartiallyTranspMap =
-        this.texSlicePartialTranspMap[texIdx][mipLvl];
+      const isTranspSliceArr = this.texSlicePartialTranspMap[texIdx][mipLvl];
+      const isFullyTranspSliceArr = this.texSliceFullyTranspMap[texIdx][mipLvl];
 
       sprite.NumRenderXs = 0;
       const { RenderXs: renderXs, TexXOffsets: texXOffsets } = sprite;
@@ -1123,27 +1135,45 @@ class Raycaster {
       texXOffsets.fill(0);
 
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
-        if (sliceFullyTranspMap[sliceTexX | 0]) {
+        if (isFullyTranspSliceArr[sliceTexX | 0]) {
           continue;
         }
         if (transpSlices[x] === WASM_NULL_PTR) {
-          if (tY < wallZBuffer[x]) {
+          if (tY <= wallZBuffer[x]) {
             renderXs[sprite.NumRenderXs] = x;
             texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
             sprite.NumRenderXs++;
-            if (!slicePartiallyTranspMap[sliceTexX | 0]) {
+            if (!isTranspSliceArr[sliceTexX | 0]) {
               // sprite slice fully opaque
-              wallSlicesOccludedBySprites[x] = 1;
-              spritesTop[x] = startY;
-              spritesBottom[x] = endY;
-              wallZBuffer[x] = tY;
-              this.MinWallTop = Math.min(this.MinWallTop, startY);
-              this.MaxWallBottom = Math.max(this.MaxWallBottom, endY);
+              this.occludeWallSlice(startY, endY, tY, x);
               continue;
             }
           }
         } else {
-          const slice = this.newTranspSlice();
+          // insert in correct decreasing distance order in circular doubly linked list transpSlices[x]
+          let firstPtr = transpSlices[x] as Slice;
+          let curPtr = firstPtr;
+          let slice = null;
+
+          if (tY >= firstPtr.Distance && tY > wallZBuffer[x]) {
+            // sprite slice is the farthest and is occuluded by the wall slice at x
+            continue;
+          }
+
+          let insertLast = false;
+
+          // search insert position for the sprite slice
+          while (tY < curPtr.Distance) {
+            curPtr = curPtr.Next as Slice;
+            if (curPtr === firstPtr) {
+              insertLast = true;
+              break;
+            }
+          }
+
+          slice = this.newTranspSlice();
+          // assert(slice);
+
           slice.Side = 0;
           slice.Distance = tY;
           slice.ClipTop = clipY;
@@ -1154,30 +1184,45 @@ class Raycaster {
           slice.TexStepY = texStepY;
           slice.Mipmap = image;
           slice.MipMapIdx = mipmap.WasmIdx;
+          slice.IsSprite = true;
 
-          // insert in correct decreasing distance order in circular doubly linked list transpSlices[x]
-          const firstPtr = transpSlices[x] as Slice;
-          let curPtr = firstPtr;
-
-          if (tY >= curPtr.Distance) {
-            // insert at front, the sprite slice is the farthest, check wall occlusion
-            if (wallZBuffer[x] >= tY) {
-              this.updateTranspSliceArrayIdx(x, slice);
-            } else {
-              // sprite slice occluded by wall, free it
-              freeSliceView(slice);
-              continue;
-            }
-          } else {
-            do {
-              curPtr = curPtr.Next as Slice;
-            } while (tY < curPtr.Distance && curPtr !== firstPtr);
-          }
           // insert before curPtr
           slice.Prev = curPtr.Prev;
           curPtr.Prev = slice;
           slice.Next = curPtr;
           (slice.Prev as Slice).Next = slice;
+
+          if (curPtr === firstPtr && !insertLast) {
+            this.updateTranspSliceArrayIdx(x, slice);
+            firstPtr = slice;
+          }
+
+          if (!isTranspSliceArr[sliceTexX | 0]) {
+            // sprite slice fully opaque
+            this.occludeWallSlice(startY, endY, tY, x);
+            // remove transp slices behind it (so in front in the transp list)
+            if (insertLast) {
+              // sprite slice at the end of the list, it is the nearest slice, remove the entire transp list
+              freeTranspSliceViewsList(firstPtr);
+              this.updateTranspSliceArrayIdx(x, WASM_NULL_PTR);
+              this.numTranspSlicesLists--;
+              renderXs[sprite.NumRenderXs] = x;
+              texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
+              sprite.NumRenderXs++;
+            } else if (slice !== firstPtr) {
+              // remove the transp slices behind the sprite slice
+              curPtr = firstPtr;
+              while (curPtr !== slice) {
+                const nextPtr = curPtr.Next as Slice;
+                freeSliceView(curPtr);
+                curPtr = nextPtr;
+              }
+              slice.Prev = firstPtr.Prev;
+              (slice.Prev as Slice).Next = slice;
+              this.updateTranspSliceArrayIdx(x, slice);
+              firstPtr = slice;
+            }
+          }
         }
       }
 
@@ -1498,10 +1543,6 @@ class Raycaster {
 
   get WallZBuffer() {
     return this.wallZBuffer;
-  }
-
-  get TexSliceFullyTranspMap() {
-    return this.texSliceFullyTranspMap;
   }
 
   get WallSlicesOccludedBySprites() {

@@ -1880,3 +1880,21 @@ for (; framePtr < frameLimitPtr; framePtr += frameStride) {
   frameBuf32[framePtr] = color;
   offs += texStepY;
 }
+
+if (tY >= firstPtr.Distance) {
+  // insert at front, the sprite slice is the farthest, check wall occlusion
+  if (tY <= wallZBuffer[x]) {
+    slice = this.newTranspSlice();
+    this.updateTranspSliceArrayIdx(x, slice);
+  } else {
+    // sprite slice occluded by wall, skip
+    continue;
+  }
+} else {
+  slice = this.newTranspSlice();
+  do {
+    curPtr = curPtr.Next as Slice;
+  } while (tY < curPtr.Distance && curPtr !== firstPtr);
+}
+
+
