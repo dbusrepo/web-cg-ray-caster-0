@@ -121,6 +121,9 @@ class Raycaster {
 
   private transpSlices: (Slice | WasmNullPtr)[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
+  private transpSplicesListsXs: number[]; // x coords of transp slices lists
+  private transpSlicesListsXsIdxs: number[]; // inv map of transpSplicesListsXs
+
   private texSlicePartialTranspMap: {
     [texIdx: number]: { [mipLvl: number]: Uint8Array };
   };
@@ -483,6 +486,8 @@ class Raycaster {
     assert(this.viewport, 'viewport not initialized');
     this.wasmEngineModule.allocTranspSlices(this.raycasterPtr);
     this.transpSlices = new Array<Slice | WasmNullPtr>(this.viewport.Width);
+    this.transpSplicesListsXs = new Array<number>(this.viewport.Width);
+    this.transpSlicesListsXsIdxs = new Array<number>(this.viewport.Width);
     this.resetTranspSlices();
   }
 
@@ -646,24 +651,38 @@ class Raycaster {
     assert(darkTransp2);
     const transp2 = this.findTex(wallTexKeys.TRANSP2);
     assert(transp2);
-    this.yWallMap[3 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[3 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[4 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[4 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[5 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[5 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[6 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[6 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[7 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[7 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.yWallMap[8 + this.yWallMapWidth * 6] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
-    this.xWallMap[8 + this.xWallMapWidth * 6] = transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[3 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[3 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[4 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[4 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[5 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[5 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[6 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[6 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[7 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[7 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[8 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.xWallMap[8 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
 
-    this.yWallMap[6 + this.yWallMapWidth * 7] = darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[6 + this.yWallMapWidth * 7] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
 
     const darkTransp0 = this.findTex(darkWallTexKeys.TRANSP0);
     assert(darkTransp0);
-    this.yWallMap[8 + this.yWallMapWidth * 6] = darkTransp0.WallMapIdx | WALL_FLAGS.TRANSP;
+    this.yWallMap[8 + this.yWallMapWidth * 6] =
+      darkTransp0.WallMapIdx | WALL_FLAGS.TRANSP;
   }
 
   private initFloorMap() {
@@ -767,6 +786,7 @@ class Raycaster {
       iCheckWallIdxOffsX,
       iCheckWallIdxOffsY,
       iCheckWallIdxOffsDivFactorY,
+      transpSplicesListsXs,
     } = this;
 
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
@@ -1131,8 +1151,6 @@ class Raycaster {
 
       sprite.NumRenderXs = 0;
       const { RenderXs: renderXs, TexXOffsets: texXOffsets } = sprite;
-      renderXs.fill(0); // TODO: remove
-      texXOffsets.fill(0);
 
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
         if (isFullyTranspSliceArr[sliceTexX | 0]) {
@@ -1205,7 +1223,6 @@ class Raycaster {
               // sprite slice at the end of the list, it is the nearest slice, remove the entire transp list
               freeTranspSliceViewsList(firstPtr);
               this.updateTranspSliceArrayIdx(x, WASM_NULL_PTR);
-              this.numTranspSlicesLists--;
               renderXs[sprite.NumRenderXs] = x;
               texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
               sprite.NumRenderXs++;
@@ -1282,6 +1299,19 @@ class Raycaster {
     idx: number,
     newSlice: Slice | WasmNullPtr,
   ) {
+    if (
+      newSlice === WASM_NULL_PTR &&
+      this.transpSlices[idx] !== WASM_NULL_PTR
+    ) {
+      this.numTranspSlicesLists--;
+      const listXsPos = this.transpSlicesListsXsIdxs[idx];
+      if (listXsPos !== this.numTranspSlicesLists) {
+        this.transpSplicesListsXs[listXsPos] =
+          this.transpSplicesListsXs[this.numTranspSlicesLists];
+        this.transpSlicesListsXsIdxs[this.transpSplicesListsXs[listXsPos]] =
+          listXsPos;
+      }
+    }
     this.transpSlices[idx] = newSlice;
     // set ptr to first slice in transp wall slice array in wasm mem
     this.wasmEngineModule.setTranspSliceAtIdx(
@@ -1312,6 +1342,8 @@ class Raycaster {
       // assert(newSlice.Prev !== WASM_NULL_PTR, 'invalid prev slice');
       (newSlice.Prev as Slice).Next = newSlice;
     } else {
+      this.transpSplicesListsXs[this.numTranspSlicesLists] = idx;
+      this.transpSlicesListsXsIdxs[idx] = this.numTranspSlicesLists;
       this.numTranspSlicesLists++;
       newSlice.Prev = newSlice.Next = newSlice;
     }
@@ -1367,7 +1399,7 @@ class Raycaster {
   }
 
   private updatePlayer(time: number) {
-    const MOVE_SPEED = 0.010; // 0.009; // TODO:
+    const MOVE_SPEED = 0.01; // 0.009; // TODO:
     const ROT_SPEED = 0.006; // TODO:
     const moveSpeed = time * MOVE_SPEED;
     const rotSpeed = time * ROT_SPEED;
@@ -1533,7 +1565,7 @@ class Raycaster {
     return this.wasmRun;
   }
 
-  get NumTranspSlicesList() {
+  get NumTranspSlicesLists() {
     return this.numTranspSlicesLists;
   }
 
@@ -1555,6 +1587,10 @@ class Raycaster {
 
   get SpritesBottom() {
     return this.spritesBottom;
+  }
+
+  get TranspSplicesListsXs() {
+    return this.transpSplicesListsXs;
   }
 }
 

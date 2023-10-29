@@ -982,30 +982,23 @@ class Renderer {
 
     const {
       TranspSlices: transpSlices,
-      NumTranspSlicesList: numTranspSlicesList,
+      TranspSplicesListsXs: transpSlicesListsXs, // xs of not empty transp slices lists
+      NumTranspSlicesLists: numTranspSlicesLists,
     } = raycaster;
 
-    if (!numTranspSlicesList) {
+    if (!numTranspSlicesLists) {
       return;
     }
 
-    const {
-      // StartX: vpStartX,
-      // StartY: vpStartY,
-      Width: vpWidth,
-      // Height: vpHeight,
-    } = raycaster.Viewport;
-
-    for (let x = 0; x < vpWidth; x++) {
-      const startPtr = transpSlices[x];
-      if (startPtr !== WASM_NULL_PTR) {
-        // the circular doubly linked list is sort by decreasing distance
-        let curPtr = startPtr;
-        do {
-          this.renderTranspSliceB2F(curPtr, x);
-          curPtr = curPtr.Next as Slice;
-        } while (curPtr !== startPtr);
-      }
+    for (let ix = 0; ix < numTranspSlicesLists; ix++) {
+      const x = transpSlicesListsXs[ix];
+      const startPtr = transpSlices[x] as Slice;
+      // the circular doubly linked list is sort by decreasing distance
+      let curPtr = startPtr;
+      do {
+        this.renderTranspSliceB2F(curPtr, x);
+        curPtr = curPtr.Next as Slice;
+      } while (curPtr !== startPtr);
     }
   }
 
@@ -1063,29 +1056,22 @@ class Renderer {
 
     const {
       TranspSlices: transpSlices,
-      NumTranspSlicesList: numTranspSlicesList,
+      TranspSplicesListsXs: transpSlicesListsXs,
+      NumTranspSlicesLists: numTranspSlicesLists,
     } = raycaster;
 
-    if (!numTranspSlicesList) {
+    if (!numTranspSlicesLists) {
       return;
     }
 
-    const {
-      // StartX: vpStartX,
-      // StartY: vpStartY,
-      Width: vpWidth,
-      // Height: vpHeight,
-    } = raycaster.Viewport;
-
-    for (let x = 0; x < vpWidth; x++) {
-      if (transpSlices[x] !== WASM_NULL_PTR) {
-        const startPtr = (transpSlices[x] as Slice).Prev as Slice;
-        let curPtr = startPtr;
-        do {
-          this.renderTranspSliceF2B(curPtr, x);
-          curPtr = curPtr.Prev as Slice;
-        } while (curPtr !== startPtr);
-      }
+    for (let ix = 0; ix < numTranspSlicesLists; ix++) {
+      const x = transpSlicesListsXs[ix];
+      const startPtr = (transpSlices[x] as Slice).Prev as Slice;
+      let curPtr = startPtr;
+      do {
+        this.renderTranspSliceF2B(curPtr, x);
+        curPtr = curPtr.Prev as Slice;
+      } while (curPtr !== startPtr);
     }
   }
 
@@ -1204,10 +1190,10 @@ class Renderer {
   private isOcclusionCheckNeeded() {
     const { raycaster } = this;
     const {
-      NumTranspSlicesList: numTranspSlicesList,
+      NumTranspSlicesLists: numTranspSlicesLists,
       NumViewSprites: numViewSprites,
     } = raycaster;
-    return numTranspSlicesList || numViewSprites;
+    return numTranspSlicesLists || numViewSprites;
   }
 
   private renderWallsFloorsF2B() {
