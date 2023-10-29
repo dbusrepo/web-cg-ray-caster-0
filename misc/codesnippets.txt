@@ -1866,3 +1866,17 @@ for (
     }
   }
 }
+
+let offs = mipRowOffs + texY;
+for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+  const color = mipPixels[offs | 0];
+  frameBuf32[framePtr] = color;
+  offs += texStepY;
+}
+
+let offs = mipRowOffs + texY;
+for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+  const color = mipPixels[offs | 0];
+  frameBuf32[framePtr] = color;
+  offs += texStepY;
+}
