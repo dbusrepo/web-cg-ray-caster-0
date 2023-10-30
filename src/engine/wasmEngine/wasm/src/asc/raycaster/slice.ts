@@ -229,7 +229,7 @@ function allocSlice(): PTR_T {
 
 export {
   Slice,
-  newSlice,
+  // newSlice,
   allocSlice,
   getSliceDistancePtr,
   getSliceHitPtr,

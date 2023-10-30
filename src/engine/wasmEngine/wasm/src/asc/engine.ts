@@ -28,15 +28,16 @@ import {
   mipmapsPtr,
   raycasterPtr,
 } from './importVars';
-import { GREYSTONE } from './gen_importImages';
+// import { GREYSTONE } from './gen_importImages';
 import { Texture, initTextures, initMipMaps } from './texture';
 import { BitImageRGBA } from './bitImageRGBA';
 // import { DArray, newDArray, deleteDArray } from './darray';
-import { Pointer } from './pointer';
-import { SArray, newSArray } from './sarray';
-import { test } from './test/test';
+// import { Pointer } from './pointer';
+import { SArray } from './sarray';
+// import { test } from './test/test';
 import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
-import { Viewport, newViewport,
+import {
+  Viewport, newViewport,
   getViewportStartXPtr, getViewportStartYPtr, 
   getViewportWidthPtr, getViewportHeightPtr,
 } from './raycaster/viewport';
@@ -69,6 +70,21 @@ import {
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
 } from './raycaster/sprite';
+import {
+  Door,
+  newDoor,
+  allocDoor,
+  getDoorMposPtr,
+  getDoorMpos1Ptr,
+  getDoorMcodePtr,
+  getDoorMcode1Ptr,
+  getDoorTypePtr,
+  getDoorFlagsPtr,
+  getDoorColOffsetPtr,
+  getDoorSpeedPtr,
+  getDoorPrevPtrPtr,
+  getDoorNextPtrPtr,
+} from './raycaster/door';
 import { Map, newMap } from './raycaster/map';
 import { 
   Raycaster,
@@ -105,6 +121,7 @@ import {
   allocTranspSlices,
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
+  getDoorsListPtr,
 } from './raycaster/raycaster';
 import { 
   allocSlice,
@@ -264,6 +281,7 @@ export {
   getSpritePtr,
   getSpriteObjSizeLg2,
   allocSpritesArr,
+
   getSpritePosXPtr,
   getSpritePosYPtr,
   getSpritePosZPtr,
@@ -278,6 +296,19 @@ export {
   getSpriteEndYPtr,
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
+
+  allocDoor,
+  getDoorMposPtr,
+  getDoorMpos1Ptr,
+  getDoorMcodePtr,
+  getDoorMcode1Ptr,
+  getDoorTypePtr,
+  getDoorFlagsPtr,
+  getDoorColOffsetPtr,
+  getDoorSpeedPtr,
+  getDoorPrevPtrPtr,
+  getDoorNextPtrPtr,
+
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,
@@ -338,4 +369,5 @@ export {
   allocTranspSlices,
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
+  getDoorsListPtr,
 };

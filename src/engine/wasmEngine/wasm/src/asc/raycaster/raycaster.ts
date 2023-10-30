@@ -1,15 +1,17 @@
 import { myAssert } from '../myAssert';
-import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
+import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from '../memUtils';
 import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { SArray, newSArray } from '../sarray';
 import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
-import { Sprite, newSprite } from './sprite';
-import { Map, newMap } from './map';
-import { Slice, newSlice } from './slice';
+import { Sprite } from './sprite';
+import { Door } from './door';
+import { Map } from './map';
+import { Slice } from './slice';
 import { Texture } from '../texture';
 import { BitImageRGBA } from '../bitImageRGBA';
 import { Ref } from '../ref';
+import { Pointer } from '../pointer';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -47,6 +49,7 @@ import { RaycasterParams } from './raycasterParams';
   private textures: SArray<Texture>;
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
+  private doorsList: Pointer<Door>;
   private wallSlices: SArray<Slice>;
   private wallZBuffer: SArray<f32>;
   private transpSlices: SArray<Ref<Slice>>;
@@ -224,6 +227,14 @@ import { RaycasterParams } from './raycasterParams';
   get Renderer(): Renderer {
     return this.renderer;
   }
+
+  get DoorsList(): Pointer<Door> {
+    return this.doorsList;
+  }
+
+  set DoorsList(doorsList: Pointer<Door>) {
+    this.doorsList = doorsList;
+  }
 }
 
 let raycasterAlloc = changetype<ObjectAllocator<Raycaster>>(NULL_PTR);
@@ -382,6 +393,10 @@ function getMaxWallDistancePtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("maxWallDistance");
 }
 
+function getDoorsListPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("doorsList");
+}
+
 function allocSpritesArr(raycasterPtr: PTR_T, numSprites: SIZE_T): void {
   const raycaster = getRaycaster(raycasterPtr);
   raycaster.allocSpritesArr(numSprites);
@@ -442,4 +457,6 @@ export {
   allocTranspSlices,
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
+
+  getDoorsListPtr,
 };

@@ -16,6 +16,7 @@ import { WasmRun, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { Sprite, getWasmSpritesView } from './sprite';
+import { Door, newDoorView, freeDoorView } from './door';
 import {
   Slice,
   getWasmWallSlicesView,
@@ -93,6 +94,7 @@ class Raycaster {
 
   private inputKeys: Uint8Array;
 
+  private raycasterPtr: number;
   private borderWidthPtr: number;
   private borderColorPtr: number;
   private wallHeightPtr: number;
@@ -102,7 +104,7 @@ class Raycaster {
   private maxWallTopPtr: number;
   private minWallBottomPtr: number;
   private maxWallBottomPtr: number;
-  private raycasterPtr: number;
+  private doorsListPtr: number;
 
   private viewport: Viewport;
   private player: Player;
@@ -111,6 +113,8 @@ class Raycaster {
   private viewSprites: Sprite[];
   private numViewSprites: number;
   private viewSpritesSrcIdxs: number[];
+
+  private doorsList: Door | WasmNullPtr = WASM_NULL_PTR;
 
   private wallSlices: Slice[];
   private wallZBuffer: Float32Array;
@@ -228,6 +232,7 @@ class Raycaster {
 
     this.initPlayer();
     this.initSprites();
+    this.initDoors();
     this.initMap();
   }
 
@@ -272,6 +277,10 @@ class Raycaster {
     this.maxWallDistancePtr = this.wasmEngineModule.getMaxWallDistancePtr(
       this.raycasterPtr,
     );
+
+    this.doorsListPtr = this.wasmEngineModule.getDoorsListPtr(
+      this.raycasterPtr,
+    );
   }
 
   private initViewport() {
@@ -303,8 +312,13 @@ class Raycaster {
     // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
   }
 
+  private initDoors() {
+    const { viewport, wasmEngineModule } = this;
+    // TODO:
+  }
+
   private initSprites(): void {
-    const { viewport } = this;
+    const { viewport, wasmEngineModule } = this;
     Sprite.SPRITE_HEIGHT_LIMIT = viewport.Height * 3;
 
     this.numViewSprites = 0;
@@ -314,8 +328,8 @@ class Raycaster {
     const NUM_SPRITES = 8;
     // const NUM_SPRITES = 2; // 8
 
-    this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
-    this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
+    wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
+    this.sprites = getWasmSpritesView(wasmEngineModule, this.raycasterPtr);
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
       this.viewSpritesSrcIdxs = new Array<number>(1 + this.sprites.length);
@@ -1529,11 +1543,24 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
   }
 
-  public get ViewSprites(): Sprite[] {
+  private get DoorsList(): Door | WasmNullPtr {
+    return this.doorsList;
+  }
+
+  private set DoorsList(door: Door | WasmNullPtr) {
+    this.doorsList = door;
+    this.wasmRun.WasmViews.view.setUint32(
+      this.doorsListPtr,
+      door === WASM_NULL_PTR ? door : door.WasmPtr,
+      true,
+    );
+  }
+
+  get ViewSprites(): Sprite[] {
     return this.viewSprites;
   }
 
-  public get NumViewSprites(): number {
+  get NumViewSprites(): number {
     return this.numViewSprites;
   }
 

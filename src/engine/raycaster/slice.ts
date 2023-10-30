@@ -70,11 +70,7 @@ class Slice {
 
   set Prev(prev: Slice | WasmNullPtr) {
     this.prev = prev;
-    gWasmView.setUint32(
-      this.prevPtrPtr,
-      prev ? prev.WasmPtr : WASM_NULL_PTR,
-      true,
-    );
+    this.PrevPtr = prev === WASM_NULL_PTR ? prev : prev.WasmPtr;
   }
 
   get Next(): Slice | WasmNullPtr {
@@ -83,11 +79,7 @@ class Slice {
 
   set Next(next: Slice | WasmNullPtr) {
     this.next = next;
-    gWasmView.setUint32(
-      this.nextPtrPtr,
-      next ? next.WasmPtr : WASM_NULL_PTR,
-      true,
-    );
+    this.NextPtr = next === WASM_NULL_PTR ? next : next.WasmPtr;
   }
 
   get WasmPtr(): number {
@@ -234,7 +226,7 @@ const newSliceView = (wasmEngineModule: WasmEngineModule) => {
     const slicePtr = wasmEngineModule.allocSlice();
     sliceView = createSliceView(wasmEngineModule, slicePtr);
   }
-  sliceView.Next = sliceView.Prev = WASM_NULL_PTR; // init
+  sliceView.Next = sliceView.Prev = WASM_NULL_PTR;
   return sliceView;
 };
 
