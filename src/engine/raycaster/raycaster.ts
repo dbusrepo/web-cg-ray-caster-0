@@ -46,7 +46,6 @@ const wallTexKeys = {
   GREYSTONE: imageKeys.GREYSTONE,
   BLUESTONE: imageKeys.BLUESTONE,
   REDBRICK: imageKeys.REDBRICK,
-  EAGLE: imageKeys.EAGLE,
   BRICK1: imageKeys.BRICK1,
   TRANSP0: imageKeys.TRANSP0,
   TRANSP1: imageKeys.TRANSP1,
@@ -58,14 +57,20 @@ const wallTexKeys = {
   PLANT: imageKeys.PLANT,
 };
 
-const WALL_FLAGS_OFFSET = 13;
+// wall map codes use 16 bits, low 8 bits are the code, high 8 bits are the flags
+const WALL_FLAGS_OFFSET = 8;
 const WALL_CODE_MASK = (1 << WALL_FLAGS_OFFSET) - 1;
 
 const WALL_FLAGS = {
-  TRANSP: 1 << WALL_FLAGS_OFFSET,
+  IS_TRANSP: 1 << WALL_FLAGS_OFFSET,
   IS_DOOR: 1 << (WALL_FLAGS_OFFSET + 1),
-  IS_SECRET: 1 << (WALL_FLAGS_OFFSET + 2),
 };
+
+// two types of doors, use 1 bit mask for door type
+const DOOR_TYPE_OFFSET = WALL_FLAGS_OFFSET + 2;
+const DOOR_TYPE_MASK = 1 << DOOR_TYPE_OFFSET;
+const DOOR_TYPE_SLIDE = 0;
+const DOOR_TYPE_SPLIT = 1;
 
 const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
   (acc, [key, val]) => {
@@ -645,6 +650,42 @@ class Raycaster {
       this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
     }
 
+    // test door
+    {
+      {
+        // y door
+        const tex = this.findTex(wallTexKeys.REDBRICK);
+        assert(tex);
+        this.xWallMap[1 + this.xWallMapWidth * 2] = tex.WallMapIdx;
+        this.xWallMap[2 + this.xWallMapWidth * 2] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(wallTexKeys.BLUESTONE);
+        assert(doorTex);
+        this.yWallMap[1 + this.yWallMapWidth * 2] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.yWallMap[1 + this.yWallMapWidth * 3] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+      }
+
+      {
+        // x door
+        const tex = this.findTex(wallTexKeys.REDBRICK);
+        assert(tex);
+        this.yWallMap[2 + this.yWallMapWidth * 8] = tex.WallMapIdx;
+        this.yWallMap[2 + this.yWallMapWidth * 9] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(wallTexKeys.BLUESTONE);
+        assert(doorTex);
+        this.xWallMap[2 + this.xWallMapWidth * 8] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.xWallMap[3 + this.xWallMapWidth * 8] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+      }
+
+      // hole with door code
+      // this.xWallMap[0] = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+    }
+
     // test transp wall
     {
       // const transpTex0 = this.findTex(wallTexKeys.TRANSP0);
@@ -666,37 +707,37 @@ class Raycaster {
     const transp2 = this.findTex(wallTexKeys.TRANSP2);
     assert(transp2);
     this.yWallMap[3 + this.yWallMapWidth * 6] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.xWallMap[3 + this.xWallMapWidth * 6] =
-      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.yWallMap[4 + this.yWallMapWidth * 6] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.xWallMap[4 + this.xWallMapWidth * 6] =
-      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.yWallMap[5 + this.yWallMapWidth * 6] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.xWallMap[5 + this.xWallMapWidth * 6] =
-      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.yWallMap[6 + this.yWallMapWidth * 6] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.xWallMap[6 + this.xWallMapWidth * 6] =
-      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.yWallMap[7 + this.yWallMapWidth * 6] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.xWallMap[7 + this.xWallMapWidth * 6] =
-      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.yWallMap[8 + this.yWallMapWidth * 6] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
     this.xWallMap[8 + this.xWallMapWidth * 6] =
-      transp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
 
     this.yWallMap[6 + this.yWallMapWidth * 7] =
-      darkTransp2.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
 
     const darkTransp0 = this.findTex(darkWallTexKeys.TRANSP0);
     assert(darkTransp0);
     this.yWallMap[8 + this.yWallMapWidth * 6] =
-      darkTransp0.WallMapIdx | WALL_FLAGS.TRANSP;
+      darkTransp0.WallMapIdx | WALL_FLAGS.IS_TRANSP;
   }
 
   private initFloorMap() {
@@ -906,9 +947,31 @@ class Raycaster {
             continue;
           }
         }
-        const perpWallDist = sideDist[side];
-        const wallX = (pos[side ^ 1] + perpWallDist * rayDir[side ^ 1]) % 1;
 
+        let perpWallDist = sideDist[side];
+        let wallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
+
+        if (wallCode & WALL_FLAGS.IS_DOOR) {
+          const fBound = wallX | 0;
+          const halfDist = deltaDist[side] * 0.5;
+          wallX += halfDist * rayDir[side ^ 1];
+          if (wallX < fBound || wallX > fBound + 1) {
+            nextPos = curMapPos[side] + step[side];
+            isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+            if (isRayValid) {
+              curMapPos[side] = nextPos;
+              sideDist[side] += deltaDist[side];
+              wallMapOffs[side] += wallMapIncOffs[side];
+              wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+              continue;
+            }
+          } else {
+            perpWallDist += halfDist;
+            // TODO:
+          }
+        }
+
+        const texWallX = wallX % 1;
         const ratio = 1 / perpWallDist;
         const wallSliceProjHeight = (wallHeight * ratio) | 0;
         const srcWallBottom = (projYcenter + posZ * ratio) | 0;
@@ -927,8 +990,6 @@ class Raycaster {
           const mipLvl = 0; // TODO:
           const mipmap = tex.getMipmap(mipLvl);
           const { Image: image } = mipmap;
-          const isTranspSliceArr =
-            this.texSlicePartialTranspMap[texIdx][mipLvl];
 
           const {
             Width: texWidth,
@@ -936,15 +997,17 @@ class Raycaster {
             // Lg2Pitch: lg2Pitch,
           } = image;
 
-          const srcTexX = (wallX * texWidth) | 0;
+          const srcTexX = (texWallX * texWidth) | 0;
           const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
           const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
           // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
           let slice = wallSlice;
 
+          const isTranspSliceArr =
+            this.texSlicePartialTranspMap[texIdx][mipLvl];
           const isTranspWall =
-            wallCode & WALL_FLAGS.TRANSP && isTranspSliceArr[texX];
+            wallCode & WALL_FLAGS.IS_TRANSP && isTranspSliceArr[texX];
 
           if (isTranspWall) {
             slice = this.newWallTranspSlice(x);
@@ -989,7 +1052,7 @@ class Raycaster {
         wallSlice.Bottom = wallBottom;
 
         if (this.IsFloorTextured) {
-          floorWall[side ^ 1] = curMapPos[side ^ 1] + wallX;
+          floorWall[side ^ 1] = curMapPos[side ^ 1] + texWallX;
           const floorWallXOffs =
             checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
           floorWall[side] = curMapPos[side] + floorWallXOffs;
