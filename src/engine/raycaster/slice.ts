@@ -4,10 +4,12 @@ import { BitImageRGBA } from '../assets/images/bitImageRGBA';
 import type { WasmNullPtr } from '../wasmEngine/wasmRun';
 import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 
+type SliceRef = Slice | null;
+
 class Slice {
   private mipmap: BitImageRGBA;
-  private next: Slice | WasmNullPtr = WASM_NULL_PTR;
-  private prev: Slice | WasmNullPtr = WASM_NULL_PTR;
+  private next: SliceRef = null;
+  private prev: SliceRef = null;
 
   constructor(
     private slicePtr: number,
@@ -64,22 +66,22 @@ class Slice {
     this.isSpritePtr = isSpritePtr;
   }
 
-  get Prev(): Slice | WasmNullPtr {
+  get Prev(): SliceRef {
     return this.prev;
   }
 
-  set Prev(prev: Slice | WasmNullPtr) {
+  set Prev(prev: SliceRef) {
     this.prev = prev;
-    this.PrevPtr = prev === WASM_NULL_PTR ? prev : prev.WasmPtr;
+    this.PrevPtr = prev ? prev.WasmPtr : WASM_NULL_PTR;
   }
 
-  get Next(): Slice | WasmNullPtr {
+  get Next(): SliceRef {
     return this.next;
   }
 
-  set Next(next: Slice | WasmNullPtr) {
+  set Next(next: SliceRef) {
     this.next = next;
-    this.NextPtr = next === WASM_NULL_PTR ? next : next.WasmPtr;
+    this.NextPtr = next ? next.WasmPtr : WASM_NULL_PTR;
   }
 
   get WasmPtr(): number {
@@ -215,7 +217,7 @@ class Slice {
   }
 }
 
-let freeList: Slice | WasmNullPtr = WASM_NULL_PTR;
+let freeList: SliceRef = null;
 
 const newSliceView = (wasmEngineModule: WasmEngineModule) => {
   let sliceView;
@@ -224,9 +226,9 @@ const newSliceView = (wasmEngineModule: WasmEngineModule) => {
     freeList = freeList.Next;
   } else {
     const slicePtr = wasmEngineModule.allocSlice();
-    sliceView = createSliceView(wasmEngineModule, slicePtr);
+    sliceView = allocSliceView(wasmEngineModule, slicePtr);
   }
-  sliceView.Next = sliceView.Prev = WASM_NULL_PTR;
+  sliceView.Next = sliceView.Prev = null;
   return sliceView;
 };
 
@@ -242,7 +244,7 @@ const freeTranspSliceViewsList = (slice: Slice) => {
   freeList = slice;
 };
 
-function createSliceView(wasmEngineModule: WasmEngineModule, slicePtr: number) {
+function allocSliceView(wasmEngineModule: WasmEngineModule, slicePtr: number) {
   return new Slice(
     slicePtr,
     wasmEngineModule.getSliceDistancePtr(slicePtr),
@@ -271,13 +273,14 @@ function getWasmWallSlicesView(
   const wallSlices = new Array<Slice>(numWallSlices);
   for (let i = 0; i < numWallSlices; i++) {
     const wallSlicePtr = wasmEngineModule.getWallSlicePtr(wasmRaycasterPtr, i);
-    wallSlices[i] = createSliceView(wasmEngineModule, wallSlicePtr);
+    wallSlices[i] = allocSliceView(wasmEngineModule, wallSlicePtr);
   }
   return wallSlices;
 }
 
+export type { Slice, SliceRef };
+
 export {
-  Slice,
   getWasmWallSlicesView,
   newSliceView,
   freeSliceView,

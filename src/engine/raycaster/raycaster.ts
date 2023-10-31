@@ -17,8 +17,8 @@ import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { Sprite, getWasmSpritesView } from './sprite';
 import { Door, newDoorView, freeDoorView } from './door';
+import type { Slice, SliceRef } from './slice';
 import {
-  Slice,
   getWasmWallSlicesView,
   newSliceView,
   freeSliceView,
@@ -128,7 +128,7 @@ class Raycaster {
   private spritesTop: number[];
   private spritesBottom: number[];
 
-  private transpSlices: (Slice | WasmNullPtr)[];
+  private transpSlices: SliceRef[];
   private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
   private transpSplicesListsXs: number[]; // x coords of transp slices lists
   private transpSlicesListsXsIdxs: number[]; // inv map of transpSplicesListsXs
@@ -504,7 +504,7 @@ class Raycaster {
   private initTranspSlices() {
     assert(this.viewport, 'viewport not initialized');
     this.wasmEngineModule.allocTranspSlices(this.raycasterPtr);
-    this.transpSlices = new Array<Slice | WasmNullPtr>(this.viewport.Width);
+    this.transpSlices = new Array<SliceRef>(this.viewport.Width);
     this.transpSplicesListsXs = new Array<number>(this.viewport.Width);
     this.transpSlicesListsXsIdxs = new Array<number>(this.viewport.Width);
     this.resetTranspSlices();
@@ -1233,7 +1233,7 @@ class Raycaster {
         if (isFullyTranspSliceArr[sliceTexX | 0]) {
           continue;
         }
-        if (transpSlices[x] === WASM_NULL_PTR) {
+        if (!transpSlices[x]) {
           if (tY <= wallZBuffer[x]) {
             renderXs[sprite.NumRenderXs] = x;
             texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
@@ -1299,7 +1299,7 @@ class Raycaster {
             if (insertLast) {
               // sprite slice at the end of the list, it is the nearest slice, remove the entire transp list
               freeTranspSliceViewsList(firstPtr);
-              this.updateTranspSliceArrayIdx(x, WASM_NULL_PTR);
+              this.updateTranspSliceArrayIdx(x, null);
               renderXs[sprite.NumRenderXs] = x;
               texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
               sprite.NumRenderXs++;
@@ -1372,14 +1372,8 @@ class Raycaster {
     this.numViewSprites = numViewSprites;
   }
 
-  private updateTranspSliceArrayIdx(
-    idx: number,
-    newSlice: Slice | WasmNullPtr,
-  ) {
-    if (
-      newSlice === WASM_NULL_PTR &&
-      this.transpSlices[idx] !== WASM_NULL_PTR
-    ) {
+  private updateTranspSliceArrayIdx(idx: number, newSlice: SliceRef) {
+    if (!newSlice && this.transpSlices[idx]) {
       this.numTranspSlicesLists--;
       const listXsPos = this.transpSlicesListsXsIdxs[idx];
       if (listXsPos !== this.numTranspSlicesLists) {
@@ -1432,7 +1426,7 @@ class Raycaster {
     this.numTranspSlicesLists = 0;
     this.wasmEngineModule.resetTranspSlicesPtrs(this.raycasterPtr);
     for (let i = 0; i < this.transpSlices.length; i++) {
-      this.transpSlices[i] = 0;
+      this.transpSlices[i] = null;
     }
   }
 
