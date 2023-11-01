@@ -309,7 +309,7 @@ class Raycaster {
   private initPlayer() {
     this.player = getWasmPlayerView(this.wasmEngineModule, this.raycasterPtr);
     this.player.PosX = 0.5;
-    this.player.PosY = 0.5;
+    this.player.PosY = 1.5;
     assert(this.WallHeight);
     this.player.PosZ = this.WallHeight / 2; // TODO:
     // rotated east
@@ -645,7 +645,6 @@ class Raycaster {
           tex.WallMapIdx;
       }
     }
-    // this.yMap[2] = 0; // test hole
 
     {
       const tex = this.findTex(darkWallTexKeys.REDBRICK);
@@ -656,6 +655,40 @@ class Raycaster {
 
     // test door
     {
+      {
+        // edge cases y door
+        const tex = this.findTex(wallTexKeys.REDBRICK);
+        assert(tex);
+        this.xWallMap[1 + this.xWallMapWidth * 0] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        assert(doorTex);
+        // edge case door on y edge of map
+        // this.yWallMap[0 + this.yWallMapWidth * 0] =
+        //   doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.yWallMap[0 + this.yWallMapWidth * 1] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        this.xWallMap[0] = 0; // test hole
+      }
+
+      {
+        // edge case x door
+        const tex = this.findTex(wallTexKeys.REDBRICK);
+        assert(tex);
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        assert(doorTex);
+        this.xWallMap[1 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // edge case: door on x edge of map
+        // this.xWallMap[0 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
+        //   doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 1)] = 0; // test hole
+      }
+
       {
         // y door
         const tex = this.findTex(wallTexKeys.REDBRICK);
@@ -977,59 +1010,61 @@ class Raycaster {
         let wallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
 
         if (wallCode & WALL_FLAGS.IS_DOOR) {
-          const wBound = wallX | 0;
-          const halfDist = deltaDist[side] * 0.5;
-          wallX += halfDist * rayDir[side ^ 1];
-          if (wallX < wBound || wallX > wBound + 1) {
-            nextPos = curMapPos[side] + step[side];
-            isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
-            if (isRayValid) {
+          // check first case door code on map edge (should not happen if map is ok)
+          nextPos = curMapPos[side] + step[side];
+          isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+          if (isRayValid) {
+            const halfDist = deltaDist[side] * 0.5; // TODO: precalc
+            const nextWallX = wallX + halfDist * rayDir[side ^ 1];
+            const cNextWallX = nextWallX - (wallX | 0);
+            if (cNextWallX < 0 || cNextWallX > 1) {
               curMapPos[side] = nextPos;
               sideDist[side] += deltaDist[side];
               wallMapOffs[side] += wallMapIncOffs[side];
               wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
               continue;
+            } else {
+              wallX = nextWallX;
+              perpWallDist += halfDist;
+              // door map position: curMapPos[side] += step[side]; // + 0.5 ?
+              // door grid position: console.log('door side pos: ', curMapPos[0], curMapPos[1]);
+              const mPos = Math.min(
+                checkWallIdx,
+                checkWallIdx + checkWallIdxOffsDoor[side],
+              );
+              const door = this.findActiveDoor(side, mPos);
+              // if (door) {
+              //   const texIdx = (wallCode & WALL_CODE_MASK) - 1;
+              //   const mipLvl = 0;
+              //   const { Width: texWidth } =
+              //     textures[texIdx].getMipmap(mipLvl).Image;
+              //   const srcTexX = (texWallX * texWidth) | 0;
+              //
+              //   const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
+              //   if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
+              //     const j = door.ColOffset;
+              //     if (srcTexX + j >= texWidth) {
+              //       nextPos = curMapPos[side] + step[side];
+              //       isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+              //       if (isRayValid) {
+              //         // check side dist min e advance ray 1 (ok here) or another time
+              //         // if side ^ 1 is closer ok continue, else advance ray 1 time but check if valid !
+              //
+              //       } else {
+              //         perpWallDist += deltaDist[side];
+              //       }
+              //     } else {
+              //       perpWallDist += halfDist;
+              //     }
+              //   } else {
+              //     // TODO:
+              //   }
+              // }
             }
-          } else {
-            perpWallDist += halfDist;
-            // door map position: curMapPos[side] += step[side]; // + 0.5 ?
-            // door grid position: console.log('door side pos: ', curMapPos[0], curMapPos[1]);
-            const mPos = Math.min(
-              checkWallIdx,
-              checkWallIdx + checkWallIdxOffsDoor[side],
-            );
-            const door = this.findActiveDoor(side, mPos);
-            // if (door) {
-            //   const texIdx = (wallCode & WALL_CODE_MASK) - 1;
-            //   const mipLvl = 0;
-            //   const { Width: texWidth } =
-            //     textures[texIdx].getMipmap(mipLvl).Image;
-            //   const srcTexX = (texWallX * texWidth) | 0;
-            //
-            //   const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
-            //   if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
-            //     const j = door.ColOffset;
-            //     if (srcTexX + j >= texWidth) {
-            //       nextPos = curMapPos[side] + step[side];
-            //       isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
-            //       if (isRayValid) {
-            //         // check side dist min e advance ray 1 (ok here) or another time
-            //         // if side ^ 1 is closer ok continue, else advance ray 1 time but check if valid !
-            //
-            //       } else {
-            //         perpWallDist += deltaDist[side];
-            //       }
-            //     } else {
-            //       perpWallDist += halfDist;
-            //     }
-            //   } else {
-            //     // TODO:
-            //   }
-            // }
           }
         }
 
-        const texWallX = wallX % 1;
+        const fWallX = wallX % 1;
         const ratio = 1 / perpWallDist;
         const wallSliceProjHeight = (wallHeight * ratio) | 0;
         const srcWallBottom = (projYcenter + posZ * ratio) | 0;
@@ -1049,7 +1084,7 @@ class Raycaster {
           const { Image: image } = mipmap;
           const { Width: texWidth, Height: texHeight } = image;
 
-          const srcTexX = (texWallX * texWidth) | 0;
+          const srcTexX = (fWallX * texWidth) | 0;
           // const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
           // const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
           // const texX = texWidth - srcTexX - 1;
@@ -1106,7 +1141,7 @@ class Raycaster {
         wallSlice.Bottom = wallBottom;
 
         if (this.IsFloorVertTextured) {
-          floorWall[side ^ 1] = curMapPos[side ^ 1] + texWallX;
+          floorWall[side ^ 1] = curMapPos[side ^ 1] + fWallX;
           const floorWallXOffs =
             checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
           floorWall[side] = curMapPos[side] + floorWallXOffs;

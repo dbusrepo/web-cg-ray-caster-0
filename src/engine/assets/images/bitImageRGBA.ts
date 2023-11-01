@@ -76,16 +76,17 @@ class BitImageRGBA extends BitImage {
       // png texels are stored in rgba, read as abgr due to little endian
       const c = buf32[i]; // abgr
       if (c !== transpColor) {
-        const a = (c >> 24) & 0xff;
-        const b = (c >> 16) & 0xff;
-        const g = (c >> 8) & 0xff;
-        const r = c & 0xff;
-        const r2 = (r * 3) >> 2;
-        const g2 = (g * 3) >> 2;
-        const b2 = (b * 3) >> 2;
-        const a2 = a;
+        // const a = (c >> 24) & 0xff;
+        // const b = (c >> 16) & 0xff;
+        // const g = (c >> 8) & 0xff;
+        // const r = c & 0xff;
+        // const r2 = (r * 3) >> 2;
+        // const g2 = (g * 3) >> 2;
+        // const b2 = (b * 3) >> 2;
+        // const a2 = a;
         // stored as abgr, bytes swapped by endian, read as abgr
-        buf32[i] = FrameColorRGBA.colorABGR(a2, b2, g2, r2);
+        // buf32[i] = FrameColorRGBA.colorABGR(a2, b2, g2, r2);
+        buf32[i] = FrameColorRGBA.darkColor(c);
       }
     }
   }

@@ -5,12 +5,18 @@ import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
 import { Texture } from '../wasmEngine/texture';
 import { FrameColorRGBAWasm } from '../wasmEngine/frameColorRGBAWasm';
+import { FrameColorRGBA } from '../frameColorRGBA';
 import { Raycaster } from './raycaster';
 import { Sprite } from './sprite';
 import { Slice } from './slice';
 
 const CEIL_COLOR = 0xffbbbbbb;
 const FLOOR_COLOR = 0xff555555;
+const NO_HIT_WALL_COL = 0xff0000ee;
+const NO_HIT_WALL_SIDES_COL = [
+  NO_HIT_WALL_COL, // side 0
+  FrameColorRGBA.darkColor(NO_HIT_WALL_COL), // side 1
+];
 
 class Renderer {
   private raycaster: Raycaster;
@@ -239,9 +245,12 @@ class Renderer {
           }
         } else {
           // no hit untextured wall
-          const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
           // for (let y = top; y <= bottom; y++) {
-          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+          for (
+            const color = NO_HIT_WALL_SIDES_COL[side];
+            framePtr < frameLimitPtr;
+            framePtr += frameStride
+          ) {
             frameBuf32[framePtr] = color;
           }
         }
@@ -386,10 +395,9 @@ class Renderer {
           }
         } else {
           // no hit untextured wall
-          const color = side === 0 ? 0xff0000ee : 0xff0000aa; // TODO:
           // for (let y = top; y <= bottom; y++) {
           for (
-            ;
+            const color = NO_HIT_WALL_SIDES_COL[side];
             framePtr < frameLimitPtr;
             framePtr += frameStride, occPtr += frameStride
           ) {
@@ -734,8 +742,12 @@ class Renderer {
             frameBuf32[framePtr] = color;
           }
         } else {
-          const color = side === 0 ? 0xff0000ee : 0xff0000aa;
-          for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+          // no hit untextured wall
+          for (
+            const color = NO_HIT_WALL_SIDES_COL[side];
+            framePtr < frameLimitPtr;
+            framePtr += frameStride
+          ) {
             frameBuf32[framePtr] = color;
           }
         }
@@ -897,9 +909,9 @@ class Renderer {
             }
           }
         } else {
-          const color = side === 0 ? 0xff0000ee : 0xff0000aa;
+          // no hit untextured wall
           for (
-            ;
+            const color = NO_HIT_WALL_SIDES_COL[side];
             framePtr < frameLimitPtr;
             framePtr += frameStride, occPtr += frameStride
           ) {
