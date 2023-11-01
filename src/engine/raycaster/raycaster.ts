@@ -16,7 +16,8 @@ import { WasmRun, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { Sprite, getWasmSpritesView } from './sprite';
-import { Door, newDoorView, freeDoorView } from './door';
+import type { Door, DoorRef } from './door';
+import { newDoorView, freeDoorView, getDoorView } from './door';
 import type { Slice, SliceRef } from './slice';
 import {
   getWasmWallSlicesView,
@@ -47,6 +48,8 @@ const wallTexKeys = {
   BLUESTONE: imageKeys.BLUESTONE,
   REDBRICK: imageKeys.REDBRICK,
   BRICK1: imageKeys.BRICK1,
+  STONE_0: imageKeys.STONE_0,
+  DOOR_0: imageKeys.DOOR_0,
   TRANSP0: imageKeys.TRANSP0,
   TRANSP1: imageKeys.TRANSP1,
   TRANSP2: imageKeys.TRANSP2,
@@ -67,10 +70,10 @@ const WALL_FLAGS = {
 };
 
 // two types of doors, use 1 bit mask for door type
-const DOOR_TYPE_OFFSET = WALL_FLAGS_OFFSET + 2;
-const DOOR_TYPE_MASK = 1 << DOOR_TYPE_OFFSET;
-const DOOR_TYPE_SLIDE = 0;
-const DOOR_TYPE_SPLIT = 1;
+const WALL_DOOR_TYPE_OFFSET = WALL_FLAGS_OFFSET + 2;
+const WALL_DOOR_TYPE_MASK = 1 << WALL_DOOR_TYPE_OFFSET;
+const WALL_DOOR_TYPE_SLIDE = 0 << WALL_DOOR_TYPE_OFFSET;
+const WALL_DOOR_TYPE_SPLIT = 1 << WALL_DOOR_TYPE_OFFSET;
 
 const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
   (acc, [key, val]) => {
@@ -109,17 +112,18 @@ class Raycaster {
   private maxWallTopPtr: number;
   private minWallBottomPtr: number;
   private maxWallBottomPtr: number;
-  private doorsListPtr: number;
+  private activeDoorsListPtrPtr: number;
 
   private viewport: Viewport;
   private player: Player;
   private sprites: Sprite[];
 
+  private activeDoors: Door[];
+  private numActiveDoors: number;
+
   private viewSprites: Sprite[];
   private numViewSprites: number;
   private viewSpritesSrcIdxs: number[];
-
-  private doorsList: Door | WasmNullPtr = WASM_NULL_PTR;
 
   private wallSlices: Slice[];
   private wallZBuffer: Float32Array;
@@ -164,7 +168,9 @@ class Raycaster {
   private iSideDistX = new Float32Array(2);
   private iSideDistY = new Float32Array(2);
   private iCheckWallIdxOffsX = new Int32Array(2);
+  private iCheckWallIdxOffsDoorX = new Int32Array(2);
   private iCheckWallIdxOffsY = new Int32Array(2);
+  private iCheckWallIdxOffsDoorY = new Int32Array(2);
   private iCheckWallIdxOffsDivFactorY = new Int32Array(2);
 
   private pos = new Float32Array(2);
@@ -175,6 +181,7 @@ class Raycaster {
   private wallMapOffs = new Int32Array(2);
   private wallMapIncOffs = new Int32Array(3);
   private checkWallIdxOffs = new Int32Array(2);
+  private checkWallIdxOffsDoor = new Int32Array(2);
   private checkWallIdxOffsDivFactor = new Int32Array(2);
   private curMapPos = new Int32Array(2);
   private wallMaps = new Array<Uint16Array>(2);
@@ -283,7 +290,7 @@ class Raycaster {
       this.raycasterPtr,
     );
 
-    this.doorsListPtr = this.wasmEngineModule.getDoorsListPtr(
+    this.activeDoorsListPtrPtr = this.wasmEngineModule.getActiveDoorsListPtr(
       this.raycasterPtr,
     );
   }
@@ -319,7 +326,7 @@ class Raycaster {
 
   private initDoors() {
     const { viewport, wasmEngineModule } = this;
-    // TODO:
+    this.activeDoors = [];
   }
 
   private initSprites(): void {
@@ -494,10 +501,7 @@ class Raycaster {
   private initWallSlices() {
     assert(this.viewport, 'viewport not initialized');
     this.wasmEngineModule.allocWallSlices(this.raycasterPtr);
-    this.wallSlices = getWasmWallSlicesView(
-      this.wasmEngineModule,
-      this.raycasterPtr,
-    );
+    this.wallSlices = getWasmWallSlicesView(this.raycasterPtr);
     this.wallSlicesOccludedBySprites = new Uint8Array(this.wallSlices.length);
   }
 
@@ -656,14 +660,14 @@ class Raycaster {
         // y door
         const tex = this.findTex(wallTexKeys.REDBRICK);
         assert(tex);
-        this.xWallMap[1 + this.xWallMapWidth * 2] = tex.WallMapIdx;
-        this.xWallMap[2 + this.xWallMapWidth * 2] = tex.WallMapIdx;
+        this.xWallMap[1 + this.xWallMapWidth * 3] = tex.WallMapIdx;
+        this.xWallMap[2 + this.xWallMapWidth * 3] = tex.WallMapIdx;
 
-        const doorTex = this.findTex(wallTexKeys.BLUESTONE);
+        const doorTex = this.findTex(wallTexKeys.DOOR_0);
         assert(doorTex);
-        this.yWallMap[1 + this.yWallMapWidth * 2] =
-          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
         this.yWallMap[1 + this.yWallMapWidth * 3] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.yWallMap[1 + this.yWallMapWidth * 4] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
       }
 
@@ -766,6 +770,7 @@ class Raycaster {
   private preRender() {
     this.freeTranspSlices();
     this.wallSlicesOccludedBySprites.fill(0);
+    this.initActiveDoorsList();
   }
 
   private postRender() {}
@@ -802,6 +807,17 @@ class Raycaster {
     return false;
   }
 
+  private findActiveDoor(side: number, mPos: number): DoorRef {
+    const { activeDoors } = this;
+    for (let i = 0; i < activeDoors.length; i++) {
+      const door = activeDoors[i];
+      if (door.Type === side && door.Mpos === mPos) {
+        return door;
+      }
+    }
+    return null;
+  }
+
   private calcWallsVis() {
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
@@ -823,6 +839,7 @@ class Raycaster {
       deltaDist,
       step,
       checkWallIdxOffs,
+      checkWallIdxOffsDoor,
       checkWallIdxOffsDivFactor,
       wallMapIncOffs,
       xWallMapWidth,
@@ -839,7 +856,9 @@ class Raycaster {
       iSideDistX,
       iSideDistY,
       iCheckWallIdxOffsX,
+      iCheckWallIdxOffsDoorX,
       iCheckWallIdxOffsY,
+      iCheckWallIdxOffsDoorY,
       iCheckWallIdxOffsDivFactorY,
       transpSplicesListsXs,
     } = this;
@@ -877,6 +896,10 @@ class Raycaster {
     iCheckWallIdxOffsX[P] = 1;
     iCheckWallIdxOffsY[N] = 0;
     iCheckWallIdxOffsY[P] = yWallMapWidth;
+    iCheckWallIdxOffsDoorX[N] = -1;
+    iCheckWallIdxOffsDoorX[P] = 1;
+    iCheckWallIdxOffsDoorY[N] = -yWallMapWidth;
+    iCheckWallIdxOffsDoorY[P] = yWallMapWidth;
     iCheckWallIdxOffsDivFactorY[N] = 1;
     iCheckWallIdxOffsDivFactorY[P] = yWallMapWidth;
 
@@ -905,12 +928,14 @@ class Raycaster {
       deltaDist[X] = iStep[sX] / rayDir[X];
       sideDist[X] = iSideDistX[sX] * deltaDist[X];
       checkWallIdxOffs[X] = iCheckWallIdxOffsX[sX];
+      checkWallIdxOffsDoor[X] = iCheckWallIdxOffsDoorX[sX];
       checkWallIdxOffsDivFactor[X] = 1;
 
       step[Y] = iStep[sY];
       deltaDist[Y] = iStep[sY] / rayDir[Y];
       sideDist[Y] = iSideDistY[sY] * deltaDist[Y];
       checkWallIdxOffs[Y] = iCheckWallIdxOffsY[sY];
+      checkWallIdxOffsDoor[Y] = iCheckWallIdxOffsDoorY[sY];
       checkWallIdxOffsDivFactor[Y] = iCheckWallIdxOffsDivFactorY[sY];
 
       wallMapIncOffs[0] = step[X];
@@ -952,10 +977,10 @@ class Raycaster {
         let wallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
 
         if (wallCode & WALL_FLAGS.IS_DOOR) {
-          const fBound = wallX | 0;
+          const wBound = wallX | 0;
           const halfDist = deltaDist[side] * 0.5;
           wallX += halfDist * rayDir[side ^ 1];
-          if (wallX < fBound || wallX > fBound + 1) {
+          if (wallX < wBound || wallX > wBound + 1) {
             nextPos = curMapPos[side] + step[side];
             isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
             if (isRayValid) {
@@ -967,7 +992,40 @@ class Raycaster {
             }
           } else {
             perpWallDist += halfDist;
-            // TODO:
+            // door map position: curMapPos[side] += step[side]; // + 0.5 ?
+            // door grid position: console.log('door side pos: ', curMapPos[0], curMapPos[1]);
+            const mPos = Math.min(
+              checkWallIdx,
+              checkWallIdx + checkWallIdxOffsDoor[side],
+            );
+            const door = this.findActiveDoor(side, mPos);
+            // if (door) {
+            //   const texIdx = (wallCode & WALL_CODE_MASK) - 1;
+            //   const mipLvl = 0;
+            //   const { Width: texWidth } =
+            //     textures[texIdx].getMipmap(mipLvl).Image;
+            //   const srcTexX = (texWallX * texWidth) | 0;
+            //
+            //   const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
+            //   if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
+            //     const j = door.ColOffset;
+            //     if (srcTexX + j >= texWidth) {
+            //       nextPos = curMapPos[side] + step[side];
+            //       isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+            //       if (isRayValid) {
+            //         // check side dist min e advance ray 1 (ok here) or another time
+            //         // if side ^ 1 is closer ok continue, else advance ray 1 time but check if valid !
+            //
+            //       } else {
+            //         perpWallDist += deltaDist[side];
+            //       }
+            //     } else {
+            //       perpWallDist += halfDist;
+            //     }
+            //   } else {
+            //     // TODO:
+            //   }
+            // }
           }
         }
 
@@ -986,20 +1044,16 @@ class Raycaster {
           const texIdx = (wallCode & WALL_CODE_MASK) - 1;
           // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
-          const tex = textures[texIdx];
-          const mipLvl = 0; // TODO:
-          const mipmap = tex.getMipmap(mipLvl);
+          const mipLvl = 0;
+          const mipmap = textures[texIdx].getMipmap(mipLvl);
           const { Image: image } = mipmap;
-
-          const {
-            Width: texWidth,
-            Height: texHeight,
-            // Lg2Pitch: lg2Pitch,
-          } = image;
+          const { Width: texWidth, Height: texHeight } = image;
 
           const srcTexX = (texWallX * texWidth) | 0;
-          const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
-          const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
+          // const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
+          // const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
+          // const texX = texWidth - srcTexX - 1;
+          const texX = srcTexX;
           // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
           let slice = wallSlice;
@@ -1051,7 +1105,7 @@ class Raycaster {
         wallSlice.Top = wallTop;
         wallSlice.Bottom = wallBottom;
 
-        if (this.IsFloorTextured) {
+        if (this.IsFloorVertTextured) {
           floorWall[side ^ 1] = curMapPos[side ^ 1] + texWallX;
           const floorWallXOffs =
             checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
@@ -1060,6 +1114,7 @@ class Raycaster {
         }
 
         maxWallDistance = Math.max(maxWallDistance, perpWallDist);
+        // TODO:
         minWallTop = Math.min(minWallTop, wallTop);
         maxWallTop = Math.max(maxWallTop, wallTop);
         minWallBottom = Math.min(minWallBottom, wallBottom);
@@ -1393,13 +1448,13 @@ class Raycaster {
   }
 
   private newWallTranspSlice(idx: number): Slice {
-    const newSlice = newSliceView(this.wasmEngineModule);
+    const newSlice = newSliceView();
     this.addTranspSliceAtFront(newSlice, idx);
     return newSlice;
   }
 
   private newTranspSlice(): Slice {
-    const newSlice = newSliceView(this.wasmEngineModule);
+    const newSlice = newSliceView();
     return newSlice;
   }
 
@@ -1442,13 +1497,94 @@ class Raycaster {
     }
   }
 
-  private get IsFloorTextured(): boolean {
+  private get IsFloorVertTextured(): boolean {
     return this.renderer.IsFloorTextured && this.renderer.VertFloor;
   }
 
   public update(time: number) {
     this.updateLookUpDown(time);
     this.updatePlayer(time);
+    this.updateDoors();
+  }
+
+  private get ActiveDoorsListPtr(): number {
+    return this.wasmRun.WasmViews.view.getUint32(
+      this.activeDoorsListPtrPtr,
+      true,
+    );
+  }
+
+  private set ActiveDoorsListPtr(ptr: number) {
+    this.wasmRun.WasmViews.view.setUint32(
+      this.activeDoorsListPtrPtr,
+      ptr,
+      true,
+    );
+  }
+
+  private initActiveDoorsList(): void {
+    this.activeDoors.length = 0;
+    let wasmDoorPtr = this.ActiveDoorsListPtr;
+    while (wasmDoorPtr !== WASM_NULL_PTR) {
+      const curDoor = getDoorView(wasmDoorPtr);
+      this.activeDoors.push(curDoor);
+      wasmDoorPtr = curDoor.Next ? curDoor.Next.WasmPtr : WASM_NULL_PTR;
+    }
+  }
+
+  private updateDoors() {
+    // const { player } = this;
+    // const { PosX: playerX, PosY: playerY } = player;
+    // const mapX = playerX | 0;
+    // const mapY = playerY | 0;
+    // const mapOffs = mapY * map.Width + mapX;
+    this.activateDoors();
+    this.updateActiveDoors();
+  }
+
+  private activateDoors() {
+    // TODO:
+    // use newActiveDoor
+  }
+
+  private newActiveDoor(): Door {
+    // insert new door at front, doubly linked list, not circular
+    const newDoor = newDoorView();
+    newDoor.Prev = newDoor.Next = null;
+    const doorListPtr = this.ActiveDoorsListPtr;
+    if (doorListPtr !== WASM_NULL_PTR) {
+      const doorList = getDoorView(doorListPtr);
+      newDoor.Next = doorList;
+      doorList.Prev = newDoor;
+    }
+    this.ActiveDoorsListPtr = newDoor.WasmPtr;
+    return newDoor;
+  }
+
+  private freeDoor(door: Door) {
+    // remove door from doubly linked list
+    const prevDoor = door.Prev;
+    const nextDoor = door.Next;
+    if (prevDoor) {
+      prevDoor.Next = nextDoor;
+    }
+    if (nextDoor) {
+      nextDoor.Prev = prevDoor;
+    }
+    if (door.WasmPtr === this.ActiveDoorsListPtr) {
+      this.ActiveDoorsListPtr = nextDoor ? nextDoor.WasmPtr : WASM_NULL_PTR;
+    }
+    freeDoorView(door);
+  }
+
+  private updateActiveDoors() {
+    this.initActiveDoorsList();
+    const { activeDoors } = this;
+    for (let i = 0; i < activeDoors.length; i++) {
+      const door = activeDoors[i];
+      // TODO: check state
+      // use freeDoor
+    }
   }
 
   // TODO:
@@ -1598,19 +1734,6 @@ class Raycaster {
 
   private set BorderColor(value: number) {
     this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
-  }
-
-  private get DoorsList(): Door | WasmNullPtr {
-    return this.doorsList;
-  }
-
-  private set DoorsList(door: Door | WasmNullPtr) {
-    this.doorsList = door;
-    this.wasmRun.WasmViews.view.setUint32(
-      this.doorsListPtr,
-      door === WASM_NULL_PTR ? door : door.WasmPtr,
-      true,
-    );
   }
 
   get ViewSprites(): Sprite[] {

@@ -2,10 +2,9 @@ import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import type { WasmNullPtr } from '../wasmEngine/wasmRun';
 import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 
-class Door {
-  private next: Door | WasmNullPtr = WASM_NULL_PTR;
-  private prev: Door | WasmNullPtr = WASM_NULL_PTR;
+type DoorRef = Door | null;
 
+class Door {
   constructor(
     private doorPtr: number,
     private mPosPtr: number,
@@ -14,8 +13,8 @@ class Door {
     private mCode1Ptr: number,
     private colOffsetPtr: number,
     private speedPtr: number,
-    private typePtr: number,
-    private flagsPtr: number,
+    private typePtr: number, // x side 0 or y side 1
+    private flagsPtr: number, // opening or closing
     private prevPtrPtr: number,
     private nextPtrPtr: number,
   ) {}
@@ -50,22 +49,20 @@ class Door {
     return this.doorPtr;
   }
 
-  get Prev(): Door | WasmNullPtr {
-    return this.prev;
+  get Prev(): DoorRef {
+    return this.PrevPtr === WASM_NULL_PTR ? null : getDoorView(this.PrevPtr);
   }
 
-  set Prev(prev: Door | WasmNullPtr) {
-    this.prev = prev;
-    this.PrevPtr = prev === WASM_NULL_PTR ? prev : prev.WasmPtr;
+  set Prev(prev: DoorRef) {
+    this.PrevPtr = prev ? prev.WasmPtr : WASM_NULL_PTR;
   }
 
-  get Next(): Door | WasmNullPtr {
-    return this.next;
+  get Next(): DoorRef {
+    return this.NextPtr === WASM_NULL_PTR ? null : getDoorView(this.NextPtr);
   }
 
-  set Next(next: Door | WasmNullPtr) {
-    this.next = next;
-    this.NextPtr = next === WASM_NULL_PTR ? next : next.WasmPtr;
+  set Next(next: DoorRef) {
+    this.NextPtr = next ? next.WasmPtr : WASM_NULL_PTR;
   }
 
   get Mpos(): number {
@@ -149,18 +146,19 @@ class Door {
   }
 }
 
-let freeList: Door | WasmNullPtr = WASM_NULL_PTR;
+let freeList: DoorRef = null;
 
-function newDoorView(wasmEngineModule: WasmEngineModule): Door {
+function newDoorView(): Door {
+  const wasmEngineModule = gWasmRun.WasmModules.engine;
   let doorView;
   if (freeList) {
     doorView = freeList;
     freeList = freeList.Next;
   } else {
     const doorPtr = wasmEngineModule.allocDoor();
-    doorView = createDoorView(wasmEngineModule, doorPtr);
+    doorView = getDoorView(doorPtr);
   }
-  doorView.Next = doorView.Prev = WASM_NULL_PTR;
+  doorView.Next = doorView.Prev = null;
   return doorView;
 }
 
@@ -169,29 +167,31 @@ const freeDoorView = (door: Door) => {
   freeList = door;
 };
 
-function createDoorView(wasmEngineModule: WasmEngineModule, doorPtr: number) {
-  return new Door(
-    doorPtr,
-    wasmEngineModule.getDoorMposPtr(doorPtr),
-    wasmEngineModule.getDoorMpos1Ptr(doorPtr),
-    wasmEngineModule.getDoorMcodePtr(doorPtr),
-    wasmEngineModule.getDoorMcode1Ptr(doorPtr),
-    wasmEngineModule.getDoorColOffsetPtr(doorPtr),
-    wasmEngineModule.getDoorSpeedPtr(doorPtr),
-    wasmEngineModule.getDoorTypePtr(doorPtr),
-    wasmEngineModule.getDoorFlagsPtr(doorPtr),
-    wasmEngineModule.getDoorPrevPtrPtr(doorPtr),
-    wasmEngineModule.getDoorNextPtrPtr(doorPtr),
-  );
+let doorViewMap = new Map<number, Door>();
+
+function getDoorView(doorPtr: number): Door {
+  const wasmEngineModule = gWasmRun.WasmModules.engine;
+  if (!doorViewMap.has(doorPtr)) {
+    doorViewMap.set(
+      doorPtr,
+      new Door(
+        doorPtr,
+        wasmEngineModule.getDoorMposPtr(doorPtr),
+        wasmEngineModule.getDoorMpos1Ptr(doorPtr),
+        wasmEngineModule.getDoorMcodePtr(doorPtr),
+        wasmEngineModule.getDoorMcode1Ptr(doorPtr),
+        wasmEngineModule.getDoorColOffsetPtr(doorPtr),
+        wasmEngineModule.getDoorSpeedPtr(doorPtr),
+        wasmEngineModule.getDoorTypePtr(doorPtr),
+        wasmEngineModule.getDoorFlagsPtr(doorPtr),
+        wasmEngineModule.getDoorPrevPtrPtr(doorPtr),
+        wasmEngineModule.getDoorNextPtrPtr(doorPtr),
+      ),
+    );
+  }
+  return doorViewMap.get(doorPtr) as Door;
 }
 
-// function getWasmDoorsView(
-//   wasmEngineMod: WasmEngineModule,
-//   wasmRaycasterPtr: number,
-// ): Door {
-//   // const doorPtr = wasmEngineMod.getDoorPtr(wasmRaycasterPtr, i);
-//   const mPosPtr = wasmEngineMod.getDoorMposPtr(doorPtr);
-//   const mPos1Ptr = wasmEngineMod.getDoorMpos1Ptr(doorPtr);
-// }
+export type { Door, DoorRef };
 
-export { Door, newDoorView, freeDoorView };
+export { newDoorView, freeDoorView, getDoorView };

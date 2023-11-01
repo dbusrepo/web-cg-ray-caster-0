@@ -49,7 +49,7 @@ import { RaycasterParams } from './raycasterParams';
   private textures: SArray<Texture>;
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
-  private doorsList: Pointer<Door>;
+  private activeDoorsList: Pointer<Door>;
   private wallSlices: SArray<Slice>;
   private wallZBuffer: SArray<f32>;
   private transpSlices: SArray<Ref<Slice>>;
@@ -228,12 +228,12 @@ import { RaycasterParams } from './raycasterParams';
     return this.renderer;
   }
 
-  get DoorsList(): Pointer<Door> {
-    return this.doorsList;
+  get ActiveDoorsList(): Pointer<Door> {
+    return this.activeDoorsList;
   }
 
-  set DoorsList(doorsList: Pointer<Door>) {
-    this.doorsList = doorsList;
+  set ActiveDoorsList(activeDoorsList: Pointer<Door>) {
+    this.activeDoorsList = activeDoorsList;
   }
 }
 
@@ -393,8 +393,8 @@ function getMaxWallDistancePtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("maxWallDistance");
 }
 
-function getDoorsListPtr(raycasterPtr: PTR_T): PTR_T {
-  return raycasterPtr + offsetof<Raycaster>("doorsList");
+function getActiveDoorsListPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("activeDoorsList");
 }
 
 function allocSpritesArr(raycasterPtr: PTR_T, numSprites: SIZE_T): void {
@@ -458,5 +458,5 @@ export {
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
 
-  getDoorsListPtr,
+  getActiveDoorsListPtr,
 };

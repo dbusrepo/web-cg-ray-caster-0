@@ -121,7 +121,7 @@ import {
   allocTranspSlices,
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
-  getDoorsListPtr,
+  getActiveDoorsListPtr,
 } from './raycaster/raycaster';
 import { 
   allocSlice,
@@ -369,5 +369,5 @@ export {
   allocTranspSlices,
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
-  getDoorsListPtr,
+  getActiveDoorsListPtr,
 };

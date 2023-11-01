@@ -1897,4 +1897,5 @@ if (tY >= firstPtr.Distance) {
   } while (tY < curPtr.Distance && curPtr !== firstPtr);
 }
 
-
+// door map position: curMapPos[side] += step[side]; // + 0.5 ?
+// door grid position: console.log('door side pos: ', curMapPos[0], curMapPos[1]);
