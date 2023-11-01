@@ -32,7 +32,7 @@ import {
   imageKeys,
   TRANSP_COLOR_RGB,
 } from '../../../assets/build/images';
-import { Texture, initTextureWasmView } from '../wasmEngine/texture';
+import { Texture, initTextureWasmView, Mipmap } from '../wasmEngine/texture';
 import {
   FrameColorRGBAWasm,
   // getFrameColorRGBAWasmView,
@@ -664,29 +664,24 @@ class Raycaster {
         const doorTex = this.findTex(wallTexKeys.DOOR_0);
         assert(doorTex);
         // edge case door on y edge of map
-        // this.yWallMap[0 + this.yWallMapWidth * 0] =
-        //   doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.yWallMap[0 + this.yWallMapWidth * 0] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
         this.yWallMap[0 + this.yWallMapWidth * 1] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
 
         this.xWallMap[0] = 0; // test hole
-      }
 
-      {
-        // edge case x door
-        const tex = this.findTex(wallTexKeys.REDBRICK);
-        assert(tex);
-        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] = tex.WallMapIdx;
-
-        const doorTex = this.findTex(wallTexKeys.DOOR_0);
-        assert(doorTex);
-        this.xWallMap[1 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
-          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        // edge case: door on x edge of map
-        // this.xWallMap[0 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
-        //   doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-
-        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 1)] = 0; // test hole
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 1;
+          door.Flags = 0;
+          door.Mpos = 0 + this.yWallMapWidth * 0;
+          door.Mpos1 = 0 + this.yWallMapWidth * 1;
+          door.ColOffset = 20;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
       }
 
       {
@@ -702,6 +697,47 @@ class Raycaster {
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
         this.yWallMap[1 + this.yWallMapWidth * 4] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 1;
+          door.Flags = 0;
+          door.Mpos = 1 + this.yWallMapWidth * 3;
+          door.Mpos1 = 1 + this.yWallMapWidth * 4;
+          door.ColOffset = 35;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
+      }
+
+      {
+        // edge case x door
+        const tex = this.findTex(wallTexKeys.REDBRICK);
+        assert(tex);
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        assert(doorTex);
+        this.xWallMap[1 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // edge case: door on x edge of map
+        this.xWallMap[0 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 1)] = 0; // test hole
+
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 0;
+          door.Flags = 0;
+          door.Mpos = 0 + this.xWallMapWidth * (this.xWallMapHeight - 1);
+          door.Mpos1 = 1 + this.xWallMapWidth * (this.xWallMapHeight - 1);
+          door.ColOffset = 40;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
       }
 
       {
@@ -711,12 +747,24 @@ class Raycaster {
         this.yWallMap[2 + this.yWallMapWidth * 8] = tex.WallMapIdx;
         this.yWallMap[2 + this.yWallMapWidth * 9] = tex.WallMapIdx;
 
-        const doorTex = this.findTex(wallTexKeys.BLUESTONE);
+        const doorTex = this.findTex(wallTexKeys.DOOR_0);
         assert(doorTex);
         this.xWallMap[2 + this.xWallMapWidth * 8] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
         this.xWallMap[3 + this.xWallMapWidth * 8] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 0;
+          door.Flags = 0;
+          door.Mpos = 2 + this.xWallMapWidth * 8;
+          door.Mpos1 = 3 + this.yWallMapWidth * 8;
+          door.ColOffset = 30;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
       }
 
       // hole with door code
@@ -1008,6 +1056,25 @@ class Raycaster {
 
         let perpWallDist = sideDist[side];
         let wallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
+        let iWallX = wallX | 0;
+        let fWallX = wallX - iWallX;
+
+        let texIdx: number;
+        let mipLvl: number;
+        let mipmap: Mipmap;
+        let image: BitImageRGBA;
+        let texWidth: number, texHeight: number;
+
+        if (isRayValid) {
+          texIdx = (wallCode & WALL_CODE_MASK) - 1;
+          // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
+
+          mipLvl = 0;
+          mipmap = textures[texIdx].getMipmap(mipLvl);
+          image = mipmap.Image;
+          texWidth = image.Width;
+          texHeight = image.Height;
+        }
 
         if (wallCode & WALL_FLAGS.IS_DOOR) {
           // check first case door code on map edge (should not happen if map is ok)
@@ -1015,56 +1082,60 @@ class Raycaster {
           isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
           if (isRayValid) {
             const halfDist = deltaDist[side] * 0.5; // TODO: precalc
-            const nextWallX = wallX + halfDist * rayDir[side ^ 1];
-            const cNextWallX = nextWallX - (wallX | 0);
-            if (cNextWallX < 0 || cNextWallX > 1) {
+            const nextFWallX = fWallX + halfDist * rayDir[side ^ 1];
+            if (nextFWallX < 0 || nextFWallX >= 1) {
               curMapPos[side] = nextPos;
               sideDist[side] += deltaDist[side];
               wallMapOffs[side] += wallMapIncOffs[side];
               wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
               continue;
             } else {
-              wallX = nextWallX;
+              // assert(fWallX >= 0 && fWallX < 1, `invalid door fWallX ${fWallX}`)
+              fWallX = nextFWallX;
               perpWallDist += halfDist;
-              // door map position: curMapPos[side] += step[side]; // + 0.5 ?
-              // door grid position: console.log('door side pos: ', curMapPos[0], curMapPos[1]);
               const mPos = Math.min(
                 checkWallIdx,
                 checkWallIdx + checkWallIdxOffsDoor[side],
               );
-              const door = this.findActiveDoor(side, mPos);
-              // if (door) {
-              //   const texIdx = (wallCode & WALL_CODE_MASK) - 1;
-              //   const mipLvl = 0;
-              //   const { Width: texWidth } =
-              //     textures[texIdx].getMipmap(mipLvl).Image;
-              //   const srcTexX = (texWallX * texWidth) | 0;
-              //
-              //   const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
-              //   if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
-              //     const j = door.ColOffset;
-              //     if (srcTexX + j >= texWidth) {
-              //       nextPos = curMapPos[side] + step[side];
-              //       isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
-              //       if (isRayValid) {
-              //         // check side dist min e advance ray 1 (ok here) or another time
-              //         // if side ^ 1 is closer ok continue, else advance ray 1 time but check if valid !
-              //
-              //       } else {
-              //         perpWallDist += deltaDist[side];
-              //       }
-              //     } else {
-              //       perpWallDist += halfDist;
-              //     }
-              //   } else {
-              //     // TODO:
-              //   }
-              // }
+              const activeDoor = this.findActiveDoor(side, mPos);
+              if (activeDoor) {
+                const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
+                if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
+                  const doorOffsX = activeDoor.ColOffset / texWidth!;
+                  assert(doorOffsX >= 0 && doorOffsX < 1, 'invalid doorOffsX');
+                  // check door open at ColOffset
+                  fWallX += doorOffsX;
+                  if (fWallX >= 1) {
+                    curMapPos[side] = nextPos;
+                    sideDist[side] += deltaDist[side];
+                    wallMapOffs[side] += wallMapIncOffs[side];
+                    wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                    // if next int is of the same side advance 1 more time
+                    if (sideDist[side] <= sideDist[side ^ 1]) {
+                      nextPos = curMapPos[side] + step[side];
+                      isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+                      if (isRayValid) {
+                        curMapPos[side] = nextPos;
+                        sideDist[side] += deltaDist[side];
+                        wallMapOffs[side] += wallMapIncOffs[side];
+                        wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                      } else {
+                        // out of map, adjust dist to show not hit wall
+                        perpWallDist += halfDist;
+                      }
+                    }
+                    if (isRayValid) {
+                      continue;
+                    }
+                  }
+                } else {
+                  // TODO: split door type
+                }
+              }
             }
           }
         }
 
-        const fWallX = wallX % 1;
         const ratio = 1 / perpWallDist;
         const wallSliceProjHeight = (wallHeight * ratio) | 0;
         const srcWallBottom = (projYcenter + posZ * ratio) | 0;
@@ -1076,25 +1147,18 @@ class Raycaster {
         // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
         if (isRayValid) {
-          const texIdx = (wallCode & WALL_CODE_MASK) - 1;
-          // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
-
-          const mipLvl = 0;
-          const mipmap = textures[texIdx].getMipmap(mipLvl);
-          const { Image: image } = mipmap;
-          const { Width: texWidth, Height: texHeight } = image;
-
-          const srcTexX = (fWallX * texWidth) | 0;
+          assert(fWallX >= 0 && fWallX < 1, `invalid fWallX ${fWallX}`);
+          const srcTexX = (fWallX * texWidth!) | 0;
           // const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
           // const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
           // const texX = texWidth - srcTexX - 1;
-          const texX = srcTexX;
+          const texX = srcTexX!;
           // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
           let slice = wallSlice;
 
           const isTranspSliceArr =
-            this.texSlicePartialTranspMap[texIdx][mipLvl];
+            this.texSlicePartialTranspMap[texIdx!][mipLvl!];
           const isTranspWall =
             wallCode & WALL_FLAGS.IS_TRANSP && isTranspSliceArr[texX];
 
@@ -1108,14 +1172,14 @@ class Raycaster {
             slice.IsSprite = false;
           }
 
-          const texStepY = texHeight / wallSliceProjHeight;
+          const texStepY = texHeight! / wallSliceProjHeight;
           const texY = clipTop * texStepY;
 
           slice.TexX = texX;
           slice.TexY = texY;
           slice.TexStepY = texStepY;
-          slice.Mipmap = image; // used in render ts
-          slice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
+          slice.Mipmap = image!; // used in render ts
+          slice.MipMapIdx = mipmap!.WasmIdx; // used in render wasm
 
           if (isTranspWall) {
             nextPos = curMapPos[side] + step[side];

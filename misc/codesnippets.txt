@@ -1899,3 +1899,23 @@ if (tY >= firstPtr.Distance) {
 
 // door map position: curMapPos[side] += step[side]; // + 0.5 ?
 // door grid position: console.log('door side pos: ', curMapPos[0], curMapPos[1]);
+
+/******************************************************************/
+// const nextWallX = wallX + halfDist * rayDir[side ^ 1];
+// const nextFWallX = nextWallX - iWallX;
+
+// fWallX is wallX - iWallX, so we rewrite the expr for nextFWallX:
+const nextFWallX = fWallX + halfDist * rayDir[side ^ 1];
+// then to get nextWallX:
+// const nextWallX = nextFWallX + iWallX;
+
+then to update fWallX:
+wallX = nextFWallX + iWallX;
+fWallX = wallX - iWallX;
+which becomes:
+fWallX = nextFWallX;
+/******************************************************************/
+
+
+// const texX = (fWallX * texWidth!) | 0;
+// if (texX + j >= texWidth!) {
