@@ -87,6 +87,10 @@ const DOOR_FLAGS_AREA_STATUS_OFFSET = 1;
 const DOOR_FLAGS_AREA_STATUS_MASK = 1 << DOOR_FLAGS_AREA_STATUS_OFFSET;
 const DOOR_AREA_CLOSED_FLAG = 1 << DOOR_FLAGS_AREA_STATUS_OFFSET;
 
+const MAX_DOOR_COL_OFFSET = 1.5;
+const XDOOR_TYPE = 0;
+const YDOOR_TYPE = 1;
+
 const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
   (acc, [key, val]) => {
     const DARK_TEX_SUFFIX = '_D';
@@ -699,10 +703,12 @@ class Raycaster {
 
       {
         // y door
-        const tex = this.findTex(wallTexKeys.REDBRICK);
+        const tex = this.findTex(wallTexKeys.GREYSTONE);
         assert(tex);
         this.xWallMap[1 + this.xWallMapWidth * 3] = tex.WallMapIdx;
         this.xWallMap[2 + this.xWallMapWidth * 3] = tex.WallMapIdx;
+        // this.yWallMap[0 + this.yWallMapWidth * 3] = tex.WallMapIdx;
+        // this.yWallMap[2 + this.yWallMapWidth * 3] = tex.WallMapIdx;
 
         const doorTex = this.findTex(wallTexKeys.DOOR_0);
         assert(doorTex);
@@ -1697,10 +1703,11 @@ class Raycaster {
 
   private updateActiveDoors() {
     this.initActiveDoorsList();
-    const { activeDoors, wallMaps, xWallMap, yWallMap } = this;
+    const { activeDoors, wallMaps, xWallMap, yWallMap, player } = this;
     wallMaps[0] = xWallMap;
     wallMaps[1] = yWallMap;
     for (let door of activeDoors) {
+      const { ColOffset: srcOffset } = door;
       door.ColOffset += door.Speed;
       if (door.ColOffset >= 1) {
         if (door.Flags & DOOR_AREA_CLOSED_FLAG) {
@@ -1708,8 +1715,7 @@ class Raycaster {
           wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
           door.Flags &= ~DOOR_AREA_CLOSED_FLAG;
         } else {
-          // assert(!(door.Flags & DOOR_AREA_CLOSED_FLAG));
-          if (door.ColOffset >= 2) { // TODO: max door open
+          if (door.ColOffset >= MAX_DOOR_COL_OFFSET) {
             door.Speed = -door.Speed;
           }
         }
@@ -1720,17 +1726,26 @@ class Raycaster {
             if (door.ColOffset <= 0) {
               this.freeDoor(door);
               continue;
-              // to test opening <-> closing
+              // // to test opening <-> closing
               // door.ColOffset = 0;
               // door.Speed = -door.Speed;
             }
           } else {
-            // check if player is in the area TODO:
-            // close the area
-            const wallMap = wallMaps[door.Type];
-            wallMap[door.Mpos] = door.Mcode;
-            wallMap[door.Mpos1] = door.Mcode1;
-            door.Flags |= DOOR_AREA_CLOSED_FLAG;
+            const { PosX: posX, PosY: posY } = player;
+            const pMpos =
+              (posX | 0) +
+              (posY | 0) *
+                (door.Type ? this.yWallMapWidth : this.xWallMapWidth);
+            if (pMpos !== door.Mpos) {
+              // close the area
+              const wallMap = wallMaps[door.Type];
+              wallMap[door.Mpos] = door.Mcode;
+              wallMap[door.Mpos1] = door.Mcode1;
+              door.Flags |= DOOR_AREA_CLOSED_FLAG;
+            } else {
+              // player is in the door cell pos, undo door movement
+              door.ColOffset = srcOffset;
+            }
           }
         }
       }
