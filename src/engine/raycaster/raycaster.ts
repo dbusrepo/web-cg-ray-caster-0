@@ -694,7 +694,7 @@ class Raycaster {
         //   door.Flags = 0;
         //   door.Mpos = 0 + this.yWallMapWidth * 0;
         //   door.Mpos1 = 0 + this.yWallMapWidth * 1;
-        //   door.ColOffset = 20;
+        //   door.ColOffset = 0.2;
         //   door.Speed = 0.1;
         //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
         //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
@@ -735,6 +735,34 @@ class Raycaster {
       }
 
       {
+        // x door
+        const tex = this.findTex(wallTexKeys.REDBRICK);
+        assert(tex);
+        this.yWallMap[2 + this.yWallMapWidth * 8] = tex.WallMapIdx;
+        this.yWallMap[2 + this.yWallMapWidth * 9] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        assert(doorTex);
+        this.xWallMap[2 + this.xWallMapWidth * 8] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.xWallMap[3 + this.xWallMapWidth * 8] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 0;
+          door.Flags = 0;
+          door.Mpos = 2 + this.xWallMapWidth * 8;
+          door.Mpos1 = 3 + this.yWallMapWidth * 8;
+          door.ColOffset = 0.2;
+          door.Speed = 0.0;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
+      }
+
+      {
         // edge case x door
         const tex = this.findTex(wallTexKeys.REDBRICK);
         assert(tex);
@@ -757,35 +785,7 @@ class Raycaster {
         //   door.Flags = 0;
         //   door.Mpos = 0 + this.xWallMapWidth * (this.xWallMapHeight - 1);
         //   door.Mpos1 = 1 + this.xWallMapWidth * (this.xWallMapHeight - 1);
-        //   door.ColOffset = 40;
-        //   door.Speed = 0.1;
-        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        // }
-      }
-
-      {
-        // x door
-        const tex = this.findTex(wallTexKeys.REDBRICK);
-        assert(tex);
-        this.yWallMap[2 + this.yWallMapWidth * 8] = tex.WallMapIdx;
-        this.yWallMap[2 + this.yWallMapWidth * 9] = tex.WallMapIdx;
-
-        const doorTex = this.findTex(wallTexKeys.DOOR_0);
-        assert(doorTex);
-        this.xWallMap[2 + this.xWallMapWidth * 8] =
-          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        this.xWallMap[3 + this.xWallMapWidth * 8] =
-          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-
-        // {
-        //   // init an active door
-        //   const door = this.newActiveDoor();
-        //   door.Type = 0;
-        //   door.Flags = 0;
-        //   door.Mpos = 2 + this.xWallMapWidth * 8;
-        //   door.Mpos1 = 3 + this.yWallMapWidth * 8;
-        //   door.ColOffset = 30;
+        //   door.ColOffset = 0.4;
         //   door.Speed = 0.1;
         //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
         //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
