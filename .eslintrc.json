@@ -60,6 +60,7 @@
     "no-empty-function": "off",
     "no-loop-func": "off",
     "no-prototype-builtins": "off",
+    "no-lonely-if": "off",
     "class-methods-use-this": "off",
     "no-param-reassign": "off",
     "no-lone-blocks": "off",

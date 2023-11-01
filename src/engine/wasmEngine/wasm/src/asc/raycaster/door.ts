@@ -8,8 +8,8 @@ import { logi } from '../importVars';
   private mPos1: u32;
   private mCode: u16;
   private mCode1: u16;
-  private colOffset: u16;
-  private speed: u8;
+  private colOffset: f32;
+  private speed: f32;
   private type: u8;
   private flags: u8;
   private prevPtr: PTR_T = NULL_PTR;
@@ -79,16 +79,20 @@ import { logi } from '../importVars';
     this.flags = flags;
   }
 
-  get ColOffset(): u16 {
+  get ColOffset(): f32 {
     return this.colOffset;
   }
 
-  set ColOffset(colOffset: u16) {
+  set ColOffset(colOffset: f32) {
     this.colOffset = colOffset;
   }
 
-  get Speed(): u8 {
+  get Speed(): f32 {
     return this.speed;
+  }
+
+  set Speed(speed: f32) {
+    this.speed = speed;
   }
 }
 

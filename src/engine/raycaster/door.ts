@@ -13,8 +13,8 @@ class Door {
     private mCode1Ptr: number,
     private colOffsetPtr: number,
     private speedPtr: number,
-    private typePtr: number, // x side 0 or y side 1
-    private flagsPtr: number, // opening or closing
+    private typePtr: number, // xdoor 0, ydoor 1
+    private flagsPtr: number,
     private prevPtrPtr: number,
     private nextPtrPtr: number,
   ) {}
@@ -98,19 +98,19 @@ class Door {
   }
 
   get ColOffset(): number {
-    return gWasmView.getUint16(this.colOffsetPtr, true);
+    return gWasmView.getFloat32(this.colOffsetPtr, true);
   }
 
   set ColOffset(colOffset: number) {
-    gWasmView.setUint16(this.colOffsetPtr, colOffset, true);
+    gWasmView.setFloat32(this.colOffsetPtr, colOffset, true);
   }
 
   get Speed(): number {
-    return gWasmView.getUint8(this.speedPtr);
+    return gWasmView.getFloat32(this.speedPtr, true);
   }
 
   set Speed(speed: number) {
-    gWasmView.setUint8(this.speedPtr, speed);
+    gWasmView.setFloat32(this.speedPtr, speed, true);
   }
 
   get Type(): number {
