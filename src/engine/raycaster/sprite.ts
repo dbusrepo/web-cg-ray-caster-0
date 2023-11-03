@@ -6,7 +6,7 @@ class Sprite {
   public static SPRITE_HEIGHT_LIMIT: number;
 
   private srcIdx: number;
-  private mipmap: BitImageRGBA;
+  private image: BitImageRGBA;
   private texYOffsets: Uint32Array;
   private texXOffsets: Uint32Array;
   private renderXs: Uint32Array;
@@ -94,12 +94,12 @@ class Sprite {
     return this.texYOffsets;
   }
 
-  get Mipmap(): BitImageRGBA {
-    return this.mipmap;
+  get Image(): BitImageRGBA {
+    return this.image;
   }
 
-  set Mipmap(mipmap: BitImageRGBA) {
-    this.mipmap = mipmap;
+  set Image(mipmap: BitImageRGBA) {
+    this.image = mipmap;
   }
 
   get PosX(): number {

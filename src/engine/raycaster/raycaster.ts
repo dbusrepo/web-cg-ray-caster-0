@@ -159,6 +159,9 @@ class Raycaster {
   private texSliceFullyTranspMap: {
     [texIdx: number]: { [mipLvl: number]: Uint8Array };
   };
+  private texRowSliceFullyTranspMap: {
+    [texIdx: number]: { [mipLvl: number]: Uint8Array };
+  };
 
   private mapWidth: number;
   private mapHeight: number;
@@ -353,8 +356,8 @@ class Raycaster {
     this.spritesTop = new Array<number>(viewport.Width);
     this.spritesBottom = new Array<number>(viewport.Width);
 
-    const NUM_SPRITES = 8;
-    // const NUM_SPRITES = 2; // 8
+    // const NUM_SPRITES = 8;
+    const NUM_SPRITES = 1; // 8
 
     wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(wasmEngineModule, this.raycasterPtr);
@@ -376,126 +379,132 @@ class Raycaster {
       //   sprite.allocXOffsets(viewport.Width);
       // }
 
+      {
+        // const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+        const tex = this.findTex(wallTexKeys.BARREL);
+        // const tex = this.findTex(wallTexKeys.PILLAR);
+        assert(tex);
+        const sprite = this.sprites[0];
+        // sprite.PosX = 7.5;
+        // sprite.PosY = 8.5;
+        // sprite.PosX = 8.5;
+        // sprite.PosY = 0.5;
+        sprite.PosX = 4.5;
+        sprite.PosY = 1.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+        sprite.Visible = 1;
+        sprite.allocTexYOffsets(viewport.Height);
+        sprite.allocXOffsets(viewport.Width);
+      }
+
       // {
       //   const tex = this.findTex(wallTexKeys.PILLAR);
       //   assert(tex);
       //   const sprite = this.sprites[0];
-      //   sprite.PosX = 7.5;
-      //   sprite.PosY = 8.5;
+      //   sprite.PosX = 4.5;
+      //   sprite.PosY = 6.5;
+      //   // sprite.PosX = 3.5;
+      //   // sprite.PosY = 1.5;
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
       //   sprite.allocTexYOffsets(viewport.Height);
       //   sprite.allocXOffsets(viewport.Width);
       // }
-
-      {
-        const tex = this.findTex(wallTexKeys.PILLAR);
-        assert(tex);
-        const sprite = this.sprites[0];
-        sprite.PosX = 4.5;
-        sprite.PosY = 6.5;
-        // sprite.PosX = 3.5;
-        // sprite.PosY = 1.5;
-        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.PILLAR);
-        assert(tex);
-        const sprite = this.sprites[1];
-        // sprite.PosX = 5.5;
-        // sprite.PosY = 1.5;
-        sprite.PosX = 8.5;
-        sprite.PosY = 9.5;
-        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.BARREL);
-        assert(tex);
-        const sprite = this.sprites[2];
-        sprite.PosX = 4.5;
-        sprite.PosY = 2.5;
-        sprite.PosZ = 0;
-        sprite.TexIdx = tex.WasmIdx;
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.PLANT);
-        assert(tex);
-        const sprite = this.sprites[3];
-        sprite.PosX = 0.5;
-        sprite.PosY = 6.5;
-        sprite.PosZ = 0;
-        sprite.TexIdx = tex.WasmIdx;
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.PLANT);
-        assert(tex);
-        const sprite = this.sprites[4];
-        sprite.PosX = 0.5;
-        sprite.PosY = 4.5;
-        sprite.PosZ = 0;
-        sprite.TexIdx = tex.WasmIdx;
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
-        assert(tex);
-        const sprite = this.sprites[5];
-        sprite.PosX = 5.5;
-        sprite.PosY = 1.5;
-        sprite.PosZ = 0;
-        sprite.TexIdx = tex.WasmIdx;
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.PLANT);
-        assert(tex);
-        const sprite = this.sprites[6];
-        sprite.PosX = 0.5;
-        sprite.PosY = 2.5;
-        sprite.PosZ = 0;
-        sprite.TexIdx = tex.WasmIdx;
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
-
-      {
-        const tex = this.findTex(wallTexKeys.PILLAR);
-        assert(tex);
-        const sprite = this.sprites[7];
-        sprite.PosX = 8.5;
-        sprite.PosY = 0.5;
-        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
-        sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
-      }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.PILLAR);
+      //   assert(tex);
+      //   const sprite = this.sprites[1];
+      //   // sprite.PosX = 5.5;
+      //   // sprite.PosY = 1.5;
+      //   sprite.PosX = 8.5;
+      //   sprite.PosY = 9.5;
+      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.BARREL);
+      //   assert(tex);
+      //   const sprite = this.sprites[2];
+      //   sprite.PosX = 4.5;
+      //   sprite.PosY = 2.5;
+      //   sprite.PosZ = 0;
+      //   sprite.TexIdx = tex.WasmIdx;
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.PLANT);
+      //   assert(tex);
+      //   const sprite = this.sprites[3];
+      //   sprite.PosX = 0.5;
+      //   sprite.PosY = 6.5;
+      //   sprite.PosZ = 0;
+      //   sprite.TexIdx = tex.WasmIdx;
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.PLANT);
+      //   assert(tex);
+      //   const sprite = this.sprites[4];
+      //   sprite.PosX = 0.5;
+      //   sprite.PosY = 4.5;
+      //   sprite.PosZ = 0;
+      //   sprite.TexIdx = tex.WasmIdx;
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+      //   assert(tex);
+      //   const sprite = this.sprites[5];
+      //   sprite.PosX = 5.5;
+      //   sprite.PosY = 1.5;
+      //   sprite.PosZ = 0;
+      //   sprite.TexIdx = tex.WasmIdx;
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.PLANT);
+      //   assert(tex);
+      //   const sprite = this.sprites[6];
+      //   sprite.PosX = 0.5;
+      //   sprite.PosY = 2.5;
+      //   sprite.PosZ = 0;
+      //   sprite.TexIdx = tex.WasmIdx;
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
+      //
+      // {
+      //   const tex = this.findTex(wallTexKeys.PILLAR);
+      //   assert(tex);
+      //   const sprite = this.sprites[7];
+      //   sprite.PosX = 8.5;
+      //   sprite.PosY = 0.5;
+      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+      //   sprite.Visible = 1;
+      //   sprite.allocTexYOffsets(viewport.Height);
+      //   sprite.allocXOffsets(viewport.Width);
+      // }
     }
   }
 
@@ -573,17 +582,22 @@ class Raycaster {
   private precTexIsTranspCols() {
     this.texSlicePartialTranspMap = {}; // [texIdx][mipLvl][texX] = 1 if texId,mipLvl has transp col at texX
     this.texSliceFullyTranspMap = {}; // [texIdx][mipLvl][texX] = 1 if texId,mipLvl has fully transp col at texX
+    this.texRowSliceFullyTranspMap = {}; // [texIdx][mipLvl][texY] = 1 if texId,mipLvl has fully transp row at texY
     this.textures.forEach((tex) => {
       const mipLvl = 0; // TODO: loop through mip levels
       const mipmap = tex.getMipmap(mipLvl);
       const { Image: image } = mipmap;
-      const { Width: texWidth } = image;
+      const { Width: texHeight, Height: texWidth } = image;
       const { WasmIdx: texIdx } = tex;
       this.texSlicePartialTranspMap[texIdx] = {};
       this.texSliceFullyTranspMap[texIdx] = {};
+      this.texRowSliceFullyTranspMap[texIdx] = {};
       const isTranspSliceArr = (this.texSlicePartialTranspMap[texIdx][mipLvl] =
         new Uint8Array(texWidth));
       const isFullyTranspSliceArr = (this.texSliceFullyTranspMap[texIdx][
+        mipLvl
+      ] = new Uint8Array(texWidth));
+      const isFullyTranspRowArr = (this.texRowSliceFullyTranspMap[texIdx][
         mipLvl
       ] = new Uint8Array(texWidth));
       for (let texX = 0; texX < texWidth; texX++) {
@@ -591,6 +605,11 @@ class Raycaster {
           ? 1
           : 0;
         isFullyTranspSliceArr[texX] = this.isSliceFullyTransp(texX, image)
+          ? 1
+          : 0;
+      }
+      for (let texY = 0; texY < texHeight; texY++) {
+        isFullyTranspRowArr[texY] = this.isRowSliceFullyTransp(texY, image)
           ? 1
           : 0;
       }
@@ -882,13 +901,16 @@ class Raycaster {
   private postRender() {}
 
   private isSliceFullyTransp(texX: number, image: BitImageRGBA) {
-    const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
+    const {
+      Buf32: mipPixels,
+      Width: texWidth,
+      Lg2Pitch: lg2Pitch,
+    } = image;
 
-    // image is rotated 90ccw
-    const rowOffs = texX << lg2Pitch;
     const { transpColor } = Texture;
 
-    for (let y = 0; y < texWidth; y++) {
+    // image is rotated 90ccw, col texX is the row at offset texX << lg2Pitch
+    for (let y = 0, rowOffs = texX << lg2Pitch; y < texWidth; y++) {
       if (mipPixels[rowOffs + y] !== transpColor) {
         return false;
       }
@@ -897,14 +919,42 @@ class Raycaster {
     return true;
   }
 
-  private isSlicePartiallyTransp(texX: number, image: BitImageRGBA): boolean {
-    const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
+  private isRowSliceFullyTransp(texY: number, image: BitImageRGBA) {
+    const {
+      Buf32: mipPixels,
+      Width: texWidth,
+      Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = image;
 
-    // image is rotated 90ccw
-    const rowOffs = texX << lg2Pitch;
     const { transpColor } = Texture;
 
-    for (let y = 0; y < texWidth; y++) {
+    // image is rotated 90ccw
+    for (
+      let x = 0, colOffs = texY;
+      x < texHeight;
+      x++, colOffs += 1 << lg2Pitch
+    ) {
+      if (mipPixels[colOffs] !== transpColor) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isSlicePartiallyTransp(texX: number, image: BitImageRGBA): boolean {
+    const {
+      Buf32: mipPixels,
+      Width: texWidth,
+      Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = image;
+
+    const { transpColor } = Texture;
+
+    // image is rotated 90ccw, col texX is the row at offset texX << lg2Pitch
+    for (let y = 0, rowOffs = texX << lg2Pitch; y < texWidth; y++) {
       if (mipPixels[rowOffs + y] === transpColor) {
         return true;
       }
@@ -1203,7 +1253,7 @@ class Raycaster {
           slice.TexX = texX;
           slice.TexY = texY;
           slice.TexStepY = texStepY;
-          slice.Mipmap = image!; // used in render ts
+          slice.Image = image!; // used in render ts
           slice.MipMapIdx = mipmap!.WasmIdx; // used in render wasm
 
           if (isTranspWall) {
@@ -1387,7 +1437,7 @@ class Raycaster {
       const mipLvl = 0; // TODO:
       const mipmap = tex.getMipmap(mipLvl);
       const { Image: image } = mipmap;
-      const { Width: texWidth, Height: texHeight } = image;
+      const { Width: texWidth, Height: texHeight, Lg2Pitch: lg2Pitch } = image;
 
       const texStepY = texHeight / spriteHeight;
       const texY = clipY * texStepY;
@@ -1409,15 +1459,16 @@ class Raycaster {
       const { RenderXs: renderXs, TexXOffsets: texXOffsets } = sprite;
 
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
-        if (isFullyTranspSliceArr[sliceTexX | 0]) {
+        const iTexX = sliceTexX | 0;
+        if (isFullyTranspSliceArr[iTexX]) {
           continue;
         }
         if (!transpSlices[x]) {
           if (tY <= wallZBuffer[x]) {
             renderXs[sprite.NumRenderXs] = x;
-            texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
+            texXOffsets[sprite.NumRenderXs] = iTexX << lg2Pitch;
             sprite.NumRenderXs++;
-            if (!isTranspSliceArr[sliceTexX | 0]) {
+            if (!isTranspSliceArr[iTexX]) {
               // sprite slice fully opaque
               this.occludeWallSlice(startY, endY, tY, x);
               continue;
@@ -1456,7 +1507,7 @@ class Raycaster {
           slice.Bottom = endY;
           slice.TexY = texY;
           slice.TexStepY = texStepY;
-          slice.Mipmap = image;
+          slice.Image = image;
           slice.MipMapIdx = mipmap.WasmIdx;
           slice.IsSprite = true;
 
@@ -1471,7 +1522,7 @@ class Raycaster {
             firstPtr = slice;
           }
 
-          if (!isTranspSliceArr[sliceTexX | 0]) {
+          if (!isTranspSliceArr[iTexX]) {
             // sprite slice fully opaque
             this.occludeWallSlice(startY, endY, tY, x);
             // remove transp slices behind it (so in front in the transp list)
@@ -1480,7 +1531,7 @@ class Raycaster {
               freeTranspSliceViewsList(firstPtr);
               this.updateTranspSliceArrayIdx(x, null);
               renderXs[sprite.NumRenderXs] = x;
-              texXOffsets[sprite.NumRenderXs] = sliceTexX | 0;
+              texXOffsets[sprite.NumRenderXs] = iTexX << lg2Pitch;
               sprite.NumRenderXs++;
             } else if (slice !== firstPtr) {
               // remove the transp slices behind the sprite slice
@@ -1493,7 +1544,7 @@ class Raycaster {
               slice.Prev = firstPtr.Prev;
               (slice.Prev as Slice).Next = slice;
               this.updateTranspSliceArrayIdx(x, slice);
-              firstPtr = slice;
+              // firstPtr = slice;
             }
           }
         }
@@ -1506,7 +1557,7 @@ class Raycaster {
       }
 
       sprite.MipLevel = mipLvl;
-      sprite.Mipmap = image;
+      sprite.Image = image;
       sprite.Distance = tY;
       sprite.StartX = startX;
       sprite.EndX = endX;
@@ -1972,6 +2023,10 @@ class Raycaster {
 
   get TranspSplicesListsXs() {
     return this.transpSplicesListsXs;
+  }
+
+  get TexRowSliceFullyTranspMap() {
+    return this.texRowSliceFullyTranspMap;
   }
 }
 

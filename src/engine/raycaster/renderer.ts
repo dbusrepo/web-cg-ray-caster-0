@@ -213,7 +213,7 @@ class Renderer {
         Distance: wallDistance,
         FloorWallX: floorWallX,
         FloorWallY: floorWallY,
-        Mipmap: mipmap,
+        Image: image,
         // ClipTop: clipTop,
       } = wallSlices[x];
 
@@ -233,7 +233,7 @@ class Renderer {
       if (!isWallSliceOccludedBySprite) {
         frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
-          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
           for (
             let yOffs = (texX << lg2Pitch) + texY; // mipmap is rotated 90ccw
@@ -353,7 +353,7 @@ class Renderer {
         Distance: wallDistance,
         FloorWallX: floorWallX,
         FloorWallY: floorWallY,
-        Mipmap: mipmap,
+        Image: image,
         // Height: projHeight,
         // ClipTop: clipTop,
       } = wallSlices[x];
@@ -381,7 +381,7 @@ class Renderer {
       if (!isWallSliceOccludedBySprite) {
         frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
-          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
           for (
             let yOffs = (texX << lg2Pitch) + texY;
@@ -711,7 +711,7 @@ class Renderer {
         TexX: texX,
         TexStepY: texStepY,
         TexY: texY,
-        Mipmap: mipmap,
+        Image: image,
         Side: side,
       } = wallSlices[x];
 
@@ -731,7 +731,7 @@ class Renderer {
       if (!isWallSliceOccludedBySprite) {
         frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
-          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
           for (
             let yOffs = (texX << lg2Pitch) + texY;
@@ -869,7 +869,7 @@ class Renderer {
         TexX: texX,
         TexStepY: texStepY,
         TexY: texY,
-        Mipmap: mipmap,
+        Image: image,
         Side: side,
       } = wallSlices[x];
 
@@ -896,7 +896,7 @@ class Renderer {
       if (!isWallSliceOccludedBySprite) {
         frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
-          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
           for (
             let offs = (texX << lg2Pitch) + texY;
@@ -968,10 +968,10 @@ class Renderer {
       TexX: texX,
       TexStepY: texStepY,
       TexY: texY,
-      Mipmap: mipmap,
+      Image: image,
     } = slice;
 
-    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
     let framePtr = frameRowPtrs[top] + x;
     let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
@@ -1037,10 +1037,10 @@ class Renderer {
       TexX: texX,
       TexStepY: texStepY,
       TexY: texY,
-      Mipmap: mipmap,
+      Image: image,
     } = slice;
 
-    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
     let framePtr = frameRowPtrs[top] + x;
     let frameLimitPtr = frameRowPtrs[bottom + 1] + x;
@@ -1088,12 +1088,14 @@ class Renderer {
   }
 
   private renderSpriteB2F(sprite: Sprite) {
-    const { frameBuf32, frameStride, frameRowPtrs } = this;
+    const { frameBuf32, frameStride, frameRowPtrs, raycaster } = this;
+
+    const { TexRowSliceFullyTranspMap: texRowSliceFullyTranspMap } = raycaster;
 
     const {
-      // TexIdx: texIdx,
+      TexIdx: texIdx,
       // Distance: distance,
-      Mipmap: mipmap,
+      Image: image,
       // StartX: startX,
       // EndX: endX,
       // TexX: startTexX,
@@ -1101,7 +1103,7 @@ class Renderer {
       StartY: startY,
       EndY: endY,
       TexYOffsets: texYOffsets,
-      // MipLevel: mipLvl,
+      MipLevel: mipLvl,
       RenderXs: renderXs,
       NumRenderXs: numRenderXs,
       TexXOffsets: texXOffsets,
@@ -1109,17 +1111,43 @@ class Renderer {
       // TexStepY: texStepY,
     } = sprite;
 
-    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
-
+    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch, Width: width } = image;
     const { transpColor } = Texture;
 
-    for (let ix = 0; ix < numRenderXs; ++ix) {
-      const mipRowOffs = texXOffsets[ix] << lg2Pitch;
-      let framePtr = frameRowPtrs[startY] + renderXs[ix];
-      for (let y = startY; y <= endY; y++, framePtr += frameStride) {
-        const color = mipPixels[mipRowOffs + texYOffsets[y]];
-        if (color !== transpColor) {
-          frameBuf32[framePtr] = color;
+    // if (width < numRenderXs) {
+    //   // console.log('magnification', width, numRenderXs);
+    // } else {
+    //   // console.log('minification', width, numRenderXs);
+    // }
+
+    // // render by cols
+    // for (let ix = 0; ix < numRenderXs; ++ix) {
+    //   const mipRowOffs = texXOffsets[ix];
+    //   let framePtr = frameRowPtrs[startY] + renderXs[ix];
+    //   for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+    //     const color = mipPixels[mipRowOffs + texYOffsets[y]];
+    //     if (color !== transpColor) {
+    //       frameBuf32[framePtr] = color;
+    //     }
+    //   }
+    // }
+
+    // // render by rows
+    const rowSliceFullyTranspMap = texRowSliceFullyTranspMap[texIdx][mipLvl];
+    for (let y = startY; y <= endY; y++) {
+      const texY = texYOffsets[y];
+      if (!rowSliceFullyTranspMap[texY]) {
+        const startRowPtr = frameRowPtrs[y] + renderXs[0];
+        for (
+          let ix = 0, framePtr = startRowPtr;
+          ix < numRenderXs;
+          ++ix, ++framePtr
+        ) {
+          const color = mipPixels[texXOffsets[ix] + texY];
+          if (color !== transpColor) {
+            frameBuf32[framePtr] = color;
+            // frameBuf32.fill(color, framePtr, framePtr + 1);
+          }
         }
       }
     }
@@ -1137,7 +1165,7 @@ class Renderer {
     const {
       // TexIdx: texIdx,
       // Distance: distance,
-      Mipmap: mipmap,
+      Image: image,
       // StartX: startX,
       // EndX: endX,
       // TexX: startTexX,
@@ -1153,7 +1181,7 @@ class Renderer {
       // TexStepY: texStepY,
     } = sprite;
 
-    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = mipmap;
+    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
     const { transpColor } = Texture;
 

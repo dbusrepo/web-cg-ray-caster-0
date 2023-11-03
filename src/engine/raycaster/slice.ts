@@ -7,7 +7,7 @@ import { gWasmRun, gWasmView, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 type SliceRef = Slice | null;
 
 class Slice {
-  private mipmap: BitImageRGBA;
+  private image: BitImageRGBA;
 
   constructor(
     private slicePtr: number,
@@ -84,12 +84,12 @@ class Slice {
     this.NextPtr = next ? next.WasmPtr : WASM_NULL_PTR;
   }
 
-  get Mipmap(): BitImageRGBA {
-    return this.mipmap;
+  get Image(): BitImageRGBA {
+    return this.image;
   }
 
-  set Mipmap(mipmap: BitImageRGBA) {
-    this.mipmap = mipmap;
+  set Image(mipmap: BitImageRGBA) {
+    this.image = mipmap;
   }
 
   get MipMapIdx(): number {
