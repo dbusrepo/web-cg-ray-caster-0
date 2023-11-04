@@ -28,7 +28,8 @@ import {
   getFrameColorRGBAWasmView,
 } from '../engine/wasmEngine/frameColorRGBAWasm';
 import { arrAvg, sleep } from '../engine/utils';
-import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
+import type { RaycasterParams } from '../engine/raycaster/raycaster';
+import { Raycaster } from '../engine/raycaster/raycaster';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;

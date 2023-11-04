@@ -1,6 +1,7 @@
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
 import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import type { Raycaster } from './raycaster';
 
 class Sprite {
   public static SPRITE_HEIGHT_LIMIT: number;
@@ -14,6 +15,8 @@ class Sprite {
   private mipLevel: number; // current mip level
 
   constructor(
+    private viewWidth: number,
+    private viewHeight: number,
     // private spritePtr: number,
     private posXPtr: number,
     private posYPtr: number,
@@ -30,7 +33,11 @@ class Sprite {
     private endYPtr: number,
     private texYPtr: number,
     private texStepYPtr: number,
-  ) {}
+  ) {
+    this.texXOffsets = new Uint32Array(viewWidth);
+    this.renderXs = new Uint32Array(viewWidth);
+    this.texYOffsets = new Uint32Array(viewHeight);
+  }
 
   // init(posX: number, posY: number, posZ: number, texIdx: number): void {
   //   this.PosX = posX;
@@ -42,21 +49,6 @@ class Sprite {
   // get WasmPtr(): number {
   //   return this.spritePtr;
   // }
-
-  allocTexYOffsets(length: number): void {
-    if (!this.texYOffsets) {
-      this.texYOffsets = new Uint32Array(length);
-    }
-  }
-
-  allocXOffsets(length: number): void {
-    if (!this.texXOffsets) {
-      this.texXOffsets = new Uint32Array(length);
-    }
-    if (!this.renderXs) {
-      this.renderXs = new Uint32Array(length);
-    }
-  }
 
   get NumRenderXs(): number {
     return this.numRenderXs;
@@ -216,14 +208,17 @@ class Sprite {
   }
 }
 
-function getWasmSpritesView(
-  wasmEngineMod: WasmEngineModule,
-  wasmRaycasterPtr: number,
-): Sprite[] {
-  const numSprites = wasmEngineMod.getSpritesLength(wasmRaycasterPtr);
+function getWasmSpritesView(raycaster: Raycaster): Sprite[] {
+  const {
+    RaycasterPtr: raycasterPtr,
+    ViewportWidth: viewWidth,
+    ViewportHeight: viewHeight,
+  } = raycaster;
+  const wasmEngineMod = gWasmRun.WasmModules.engine;
+  const numSprites = wasmEngineMod.getSpritesLength(raycasterPtr);
   const sprites = new Array<Sprite>(numSprites);
   for (let i = 0; i < numSprites; i++) {
-    const spritePtr = wasmEngineMod.getSpritePtr(wasmRaycasterPtr, i);
+    const spritePtr = wasmEngineMod.getSpritePtr(raycasterPtr, i);
     const posXPtr = wasmEngineMod.getSpritePosXPtr(spritePtr);
     const posYPtr = wasmEngineMod.getSpritePosYPtr(spritePtr);
     const posZPtr = wasmEngineMod.getSpritePosZPtr(spritePtr);
@@ -239,6 +234,8 @@ function getWasmSpritesView(
     const texYPtr = wasmEngineMod.getSpriteTexYPtr(spritePtr);
     const texStepYPtr = wasmEngineMod.getSpriteTexStepYPtr(spritePtr);
     sprites[i] = new Sprite(
+      viewWidth,
+      viewHeight,
       posXPtr,
       posYPtr,
       posZPtr,

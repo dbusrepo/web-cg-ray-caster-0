@@ -360,7 +360,7 @@ class Raycaster {
     const NUM_SPRITES = 1; // 8
 
     wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
-    this.sprites = getWasmSpritesView(wasmEngineModule, this.raycasterPtr);
+    this.sprites = getWasmSpritesView(this);
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
       this.viewSpritesSrcIdxs = new Array<number>(1 + this.sprites.length);
@@ -375,27 +375,25 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
 
       {
         // const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
-        const tex = this.findTex(wallTexKeys.BARREL);
-        // const tex = this.findTex(wallTexKeys.PILLAR);
+        // const tex = this.findTex(wallTexKeys.BARREL);
+        const tex = this.findTex(wallTexKeys.PILLAR);
         assert(tex);
         const sprite = this.sprites[0];
         // sprite.PosX = 7.5;
         // sprite.PosY = 8.5;
         // sprite.PosX = 8.5;
         // sprite.PosY = 0.5;
-        sprite.PosX = 4.5;
-        sprite.PosY = 1.5;
+        // sprite.PosX = 4.5;
+        // sprite.PosY = 1.5;
+        sprite.PosX = 5.5;
+        sprite.PosY = 4.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
-        sprite.allocTexYOffsets(viewport.Height);
-        sprite.allocXOffsets(viewport.Width);
       }
 
       // {
@@ -409,8 +407,6 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
       //
       // {
@@ -424,7 +420,6 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
       //   sprite.allocXOffsets(viewport.Width);
       // }
       //
@@ -437,8 +432,6 @@ class Raycaster {
       //   sprite.PosZ = 0;
       //   sprite.TexIdx = tex.WasmIdx;
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
       //
       // {
@@ -450,8 +443,6 @@ class Raycaster {
       //   sprite.PosZ = 0;
       //   sprite.TexIdx = tex.WasmIdx;
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
       //
       // {
@@ -463,8 +454,6 @@ class Raycaster {
       //   sprite.PosZ = 0;
       //   sprite.TexIdx = tex.WasmIdx;
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
       //
       // {
@@ -476,8 +465,6 @@ class Raycaster {
       //   sprite.PosZ = 0;
       //   sprite.TexIdx = tex.WasmIdx;
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
       //
       // {
@@ -489,8 +476,6 @@ class Raycaster {
       //   sprite.PosZ = 0;
       //   sprite.TexIdx = tex.WasmIdx;
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
       //
       // {
@@ -502,8 +487,6 @@ class Raycaster {
       //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
       //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
       //   sprite.Visible = 1;
-      //   sprite.allocTexYOffsets(viewport.Height);
-      //   sprite.allocXOffsets(viewport.Width);
       // }
     }
   }
@@ -593,14 +576,14 @@ class Raycaster {
       this.texSliceFullyTranspMap[texIdx] = {};
       this.texRowSliceFullyTranspMap[texIdx] = {};
       const isTranspSliceArr = (this.texSlicePartialTranspMap[texIdx][mipLvl] =
-        new Uint8Array(texWidth));
+        new Uint8Array(texHeight));
       const isFullyTranspSliceArr = (this.texSliceFullyTranspMap[texIdx][
         mipLvl
-      ] = new Uint8Array(texWidth));
+      ] = new Uint8Array(texHeight));
       const isFullyTranspRowArr = (this.texRowSliceFullyTranspMap[texIdx][
         mipLvl
       ] = new Uint8Array(texWidth));
-      for (let texX = 0; texX < texWidth; texX++) {
+      for (let texX = 0; texX < texHeight; texX++) {
         isTranspSliceArr[texX] = this.isSlicePartiallyTransp(texX, image)
           ? 1
           : 0;
@@ -608,7 +591,7 @@ class Raycaster {
           ? 1
           : 0;
       }
-      for (let texY = 0; texY < texHeight; texY++) {
+      for (let texY = 0; texY < texWidth; texY++) {
         isFullyTranspRowArr[texY] = this.isRowSliceFullyTransp(texY, image)
           ? 1
           : 0;
@@ -785,7 +768,8 @@ class Raycaster {
         // edge case x door
         const tex = this.findTex(wallTexKeys.REDBRICK);
         assert(tex);
-        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] = tex.WallMapIdx;
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] =
+          tex.WallMapIdx;
 
         const doorTex = this.findTex(wallTexKeys.DOOR_0);
         assert(doorTex);
@@ -901,11 +885,7 @@ class Raycaster {
   private postRender() {}
 
   private isSliceFullyTransp(texX: number, image: BitImageRGBA) {
-    const {
-      Buf32: mipPixels,
-      Width: texWidth,
-      Lg2Pitch: lg2Pitch,
-    } = image;
+    const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
 
     const { transpColor } = Texture;
 
@@ -922,7 +902,7 @@ class Raycaster {
   private isRowSliceFullyTransp(texY: number, image: BitImageRGBA) {
     const {
       Buf32: mipPixels,
-      Width: texWidth,
+      // Width: texWidth,
       Height: texHeight,
       Lg2Pitch: lg2Pitch,
     } = image;
@@ -1144,6 +1124,7 @@ class Raycaster {
           texIdx = (wallCode & WALL_CODE_MASK) - 1;
           // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
 
+          // mipmap is rotated 90ccw
           mipLvl = 0;
           mipmap = textures[texIdx].getMipmap(mipLvl);
           image = mipmap.Image;
@@ -1223,7 +1204,7 @@ class Raycaster {
 
         if (isRayValid) {
           assert(fWallX >= 0 && fWallX < 1, `invalid fWallX ${fWallX}`);
-          const srcTexX = (fWallX * texWidth!) | 0;
+          const srcTexX = (fWallX * texHeight!) | 0;
           // const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
           // const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
           // const texX = texWidth - srcTexX - 1;
@@ -1432,6 +1413,7 @@ class Raycaster {
       // sprite rows in [startY, endY]
       // sprite cols in [startX, endX]
 
+      // sprite tex is rotated 90ccw
       const texIdx = sprite.TexIdx;
       const tex = textures[texIdx];
       const mipLvl = 0; // TODO:
@@ -1439,15 +1421,15 @@ class Raycaster {
       const { Image: image } = mipmap;
       const { Width: texWidth, Height: texHeight, Lg2Pitch: lg2Pitch } = image;
 
-      const texStepY = texHeight / spriteHeight;
+      const texStepY = texWidth / spriteHeight;
       const texY = clipY * texStepY;
 
-      const srcTexStepX = texWidth / spriteWidth;
+      const srcTexStepX = texHeight / spriteWidth;
       const srcTexX = clipX * srcTexStepX;
 
       // image is rotated 90ccw
       const texStepX = -srcTexStepX;
-      const texX = texWidth - (srcTexX | 0) - 1;
+      const texX = texHeight - (srcTexX | 0) - 1;
 
       // occlusion test with walls and slice gen with cols with transp walls
       let sliceTexX = texX;
@@ -1809,7 +1791,7 @@ class Raycaster {
       //       door.Speed = -door.Speed;
       //     }
       //   }
-      }
+    }
   }
 
   // TODO:
@@ -2028,6 +2010,19 @@ class Raycaster {
   get TexRowSliceFullyTranspMap() {
     return this.texRowSliceFullyTranspMap;
   }
+
+  get RaycasterPtr() {
+    return this.raycasterPtr;
+  }
+
+  get ViewportWidth() {
+    return this.viewport.Width;
+  }
+
+  get ViewportHeight() {
+    return this.viewport.Height;
+  }
 }
 
-export { Raycaster, RaycasterParams };
+export type { RaycasterParams };
+export { Raycaster };
