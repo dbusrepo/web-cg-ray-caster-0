@@ -1919,3 +1919,16 @@ fWallX = nextFWallX;
 
 // const texX = (fWallX * texWidth!) | 0;
 // if (texX + j >= texWidth!) {
+
+// fill j - startIx pixels at once on each numRenderYs rows
+// for (let k = startIx; k < j; ++k) {
+//   const framePtrK = framePtr + k - startIx;
+//   for (let l = 0; l < numRenderYs; ++l) {
+//     frameBuf32[framePtrK + l * frameStride] = color;
+//   }
+// }
+
+// for (let l = 0; l < numRenderYs; ++l) {
+//   const framePtrL = framePtr + l * frameStride;
+//   frameBuf32.fill(color, framePtrL, framePtrL + j - startIx);
+// }
