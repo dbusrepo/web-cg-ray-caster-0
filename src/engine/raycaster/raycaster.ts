@@ -356,8 +356,8 @@ class Raycaster {
     this.spritesTop = new Array<number>(viewport.Width);
     this.spritesBottom = new Array<number>(viewport.Width);
 
-    // const NUM_SPRITES = 8;
-    const NUM_SPRITES = 1; // 8
+    const NUM_SPRITES = 8;
+    // const NUM_SPRITES = 1; // 8
 
     wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
     this.sprites = getWasmSpritesView(this);
@@ -377,117 +377,117 @@ class Raycaster {
       //   sprite.Visible = 1;
       // }
 
+      // { // test near sprite rend
+      //   // const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+      //   // const tex = this.findTex(wallTexKeys.BARREL);
+      //   const tex = this.findTex(wallTexKeys.PILLAR);
+      //   assert(tex);
+      //   const sprite = this.sprites[0];
+      //   // sprite.PosX = 7.5;
+      //   // sprite.PosY = 8.5;
+      //   // sprite.PosX = 8.5;
+      //   // sprite.PosY = 0.5;
+      //   // sprite.PosX = 4.5;
+      //   // sprite.PosY = 1.5;
+      //   sprite.PosX = 0.9;
+      //   sprite.PosY = 1.5;
+      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+      //   sprite.Visible = 1;
+      // }
+
       {
-        // const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
-        // const tex = this.findTex(wallTexKeys.BARREL);
         const tex = this.findTex(wallTexKeys.PILLAR);
         assert(tex);
         const sprite = this.sprites[0];
-        // sprite.PosX = 7.5;
-        // sprite.PosY = 8.5;
-        // sprite.PosX = 8.5;
-        // sprite.PosY = 0.5;
-        // sprite.PosX = 4.5;
+        sprite.PosX = 4.5;
+        sprite.PosY = 6.5;
+        // sprite.PosX = 3.5;
         // sprite.PosY = 1.5;
-        sprite.PosX = 0.9;
-        sprite.PosY = 1.5;
         sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
       }
 
-      // {
-      //   const tex = this.findTex(wallTexKeys.PILLAR);
-      //   assert(tex);
-      //   const sprite = this.sprites[0];
-      //   sprite.PosX = 4.5;
-      //   sprite.PosY = 6.5;
-      //   // sprite.PosX = 3.5;
-      //   // sprite.PosY = 1.5;
-      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
-      //   sprite.Visible = 1;
-      // }
       //
-      // //
-      // {
-      //   const tex = this.findTex(wallTexKeys.PILLAR);
-      //   assert(tex);
-      //   const sprite = this.sprites[1];
-      //   // sprite.PosX = 5.5;
-      //   // sprite.PosY = 1.5;
-      //   sprite.PosX = 8.5;
-      //   sprite.PosY = 9.5;
-      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
-      //   sprite.Visible = 1;
-      // }
-      // //
-      // {
-      //   const tex = this.findTex(wallTexKeys.BARREL);
-      //   assert(tex);
-      //   const sprite = this.sprites[2];
-      //   sprite.PosX = 4.5;
-      //   sprite.PosY = 2.5;
-      //   sprite.PosZ = 0;
-      //   sprite.TexIdx = tex.WasmIdx;
-      //   sprite.Visible = 1;
-      // }
+      {
+        const tex = this.findTex(wallTexKeys.PILLAR);
+        assert(tex);
+        const sprite = this.sprites[1];
+        // sprite.PosX = 5.5;
+        // sprite.PosY = 1.5;
+        sprite.PosX = 8.5;
+        sprite.PosY = 9.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+        sprite.Visible = 1;
+      }
       //
-      // {
-      //   const tex = this.findTex(wallTexKeys.PLANT);
-      //   assert(tex);
-      //   const sprite = this.sprites[3];
-      //   sprite.PosX = 0.5;
-      //   sprite.PosY = 6.5;
-      //   sprite.PosZ = 0;
-      //   sprite.TexIdx = tex.WasmIdx;
-      //   sprite.Visible = 1;
-      // }
-      //
-      // {
-      //   const tex = this.findTex(wallTexKeys.PLANT);
-      //   assert(tex);
-      //   const sprite = this.sprites[4];
-      //   sprite.PosX = 0.5;
-      //   sprite.PosY = 4.5;
-      //   sprite.PosZ = 0;
-      //   sprite.TexIdx = tex.WasmIdx;
-      //   sprite.Visible = 1;
-      // }
-      //
-      // {
-      //   const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
-      //   assert(tex);
-      //   const sprite = this.sprites[5];
-      //   sprite.PosX = 5.5;
-      //   sprite.PosY = 1.5;
-      //   sprite.PosZ = 0;
-      //   sprite.TexIdx = tex.WasmIdx;
-      //   sprite.Visible = 1;
-      // }
-      //
-      // {
-      //   const tex = this.findTex(wallTexKeys.PLANT);
-      //   assert(tex);
-      //   const sprite = this.sprites[6];
-      //   sprite.PosX = 0.5;
-      //   sprite.PosY = 2.5;
-      //   sprite.PosZ = 0;
-      //   sprite.TexIdx = tex.WasmIdx;
-      //   sprite.Visible = 1;
-      // }
-      //
-      // {
-      //   const tex = this.findTex(wallTexKeys.PILLAR);
-      //   assert(tex);
-      //   const sprite = this.sprites[7];
-      //   sprite.PosX = 8.5;
-      //   sprite.PosY = 0.5;
-      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
-      //   sprite.Visible = 1;
-      // }
+      {
+        const tex = this.findTex(wallTexKeys.BARREL);
+        assert(tex);
+        const sprite = this.sprites[2];
+        sprite.PosX = 4.5;
+        sprite.PosY = 2.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PLANT);
+        assert(tex);
+        const sprite = this.sprites[3];
+        sprite.PosX = 0.5;
+        sprite.PosY = 6.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PLANT);
+        assert(tex);
+        const sprite = this.sprites[4];
+        sprite.PosX = 0.5;
+        sprite.PosY = 4.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+        assert(tex);
+        const sprite = this.sprites[5];
+        sprite.PosX = 5.5;
+        sprite.PosY = 1.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PLANT);
+        assert(tex);
+        const sprite = this.sprites[6];
+        sprite.PosX = 0.5;
+        sprite.PosY = 2.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(wallTexKeys.PILLAR);
+        assert(tex);
+        const sprite = this.sprites[7];
+        sprite.PosX = 8.5;
+        sprite.PosY = 0.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+        sprite.Visible = 1;
+      }
     }
   }
 
