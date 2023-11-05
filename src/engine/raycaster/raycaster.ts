@@ -43,7 +43,7 @@ type RaycasterParams = {
   frameColorRGBAWasm: FrameColorRGBAWasm;
 };
 
-const wallTexKeys = {
+const WALL_TEX_KEYS = {
   GREYSTONE: imageKeys.GREYSTONE,
   BLUESTONE: imageKeys.BLUESTONE,
   REDBRICK: imageKeys.REDBRICK,
@@ -91,16 +91,16 @@ const MAX_DOOR_COL_OFFSET = 1.5;
 const XDOOR_TYPE = 0;
 const YDOOR_TYPE = 1;
 
-const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
+const darkWallTexKeys: typeof WALL_TEX_KEYS = Object.entries(WALL_TEX_KEYS).reduce(
   (acc, [key, val]) => {
     const DARK_TEX_SUFFIX = '_D';
-    acc[key as keyof typeof wallTexKeys] = val + DARK_TEX_SUFFIX;
+    acc[key as keyof typeof WALL_TEX_KEYS] = val + DARK_TEX_SUFFIX;
     return acc;
   },
-  {} as typeof wallTexKeys,
+  {} as typeof WALL_TEX_KEYS,
 );
 
-const floorTexKeys = {
+const FLOOR_TEX_KEYS = {
   FLOOR0: imageKeys.FLOOR0,
   FLOOR1: imageKeys.FLOOR1,
 };
@@ -397,7 +397,7 @@ class Raycaster {
       // }
 
       {
-        const tex = this.findTex(wallTexKeys.PILLAR);
+        const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
         assert(tex);
         const sprite = this.sprites[0];
         sprite.PosX = 4.5;
@@ -411,7 +411,7 @@ class Raycaster {
 
       //
       {
-        const tex = this.findTex(wallTexKeys.PILLAR);
+        const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
         assert(tex);
         const sprite = this.sprites[1];
         // sprite.PosX = 5.5;
@@ -424,7 +424,7 @@ class Raycaster {
       }
       //
       {
-        const tex = this.findTex(wallTexKeys.BARREL);
+        const tex = this.findTex(WALL_TEX_KEYS.BARREL);
         assert(tex);
         const sprite = this.sprites[2];
         sprite.PosX = 4.5;
@@ -435,7 +435,7 @@ class Raycaster {
       }
 
       {
-        const tex = this.findTex(wallTexKeys.PLANT);
+        const tex = this.findTex(WALL_TEX_KEYS.PLANT);
         assert(tex);
         const sprite = this.sprites[3];
         sprite.PosX = 0.5;
@@ -446,7 +446,7 @@ class Raycaster {
       }
 
       {
-        const tex = this.findTex(wallTexKeys.PLANT);
+        const tex = this.findTex(WALL_TEX_KEYS.PLANT);
         assert(tex);
         const sprite = this.sprites[4];
         sprite.PosX = 0.5;
@@ -457,7 +457,7 @@ class Raycaster {
       }
 
       {
-        const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+        const tex = this.findTex(WALL_TEX_KEYS.GREEN_LIGHT);
         assert(tex);
         const sprite = this.sprites[5];
         sprite.PosX = 5.5;
@@ -468,7 +468,7 @@ class Raycaster {
       }
 
       {
-        const tex = this.findTex(wallTexKeys.PLANT);
+        const tex = this.findTex(WALL_TEX_KEYS.PLANT);
         assert(tex);
         const sprite = this.sprites[6];
         sprite.PosX = 0.5;
@@ -479,7 +479,7 @@ class Raycaster {
       }
 
       {
-        const tex = this.findTex(wallTexKeys.PILLAR);
+        const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
         assert(tex);
         const sprite = this.sprites[7];
         sprite.PosX = 8.5;
@@ -637,7 +637,7 @@ class Raycaster {
     );
 
     {
-      const tex = this.findTex(wallTexKeys.GREYSTONE);
+      const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
       assert(tex);
       for (let i = 0; i < this.xWallMapHeight; i++) {
         this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
@@ -648,7 +648,7 @@ class Raycaster {
     }
 
     {
-      const tex = this.findTex(wallTexKeys.GREYSTONE);
+      const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
       assert(tex);
       this.xWallMap[4] = tex.WallMapIdx;
       this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
@@ -675,11 +675,11 @@ class Raycaster {
     {
       {
         // edge cases y door
-        const tex = this.findTex(wallTexKeys.REDBRICK);
+        const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
         assert(tex);
         this.xWallMap[1 + this.xWallMapWidth * 0] = tex.WallMapIdx;
 
-        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
         assert(doorTex);
         // edge case door on y edge of map
         this.yWallMap[0 + this.yWallMapWidth * 0] =
@@ -705,14 +705,14 @@ class Raycaster {
 
       {
         // y door
-        const tex = this.findTex(wallTexKeys.GREYSTONE);
+        const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
         assert(tex);
         this.xWallMap[1 + this.xWallMapWidth * 3] = tex.WallMapIdx;
         this.xWallMap[2 + this.xWallMapWidth * 3] = tex.WallMapIdx;
         // this.yWallMap[0 + this.yWallMapWidth * 3] = tex.WallMapIdx;
         // this.yWallMap[2 + this.yWallMapWidth * 3] = tex.WallMapIdx;
 
-        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
         assert(doorTex);
         this.yWallMap[1 + this.yWallMapWidth * 3] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
@@ -738,12 +738,12 @@ class Raycaster {
 
       {
         // x door
-        const tex = this.findTex(wallTexKeys.REDBRICK);
+        const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
         assert(tex);
         this.yWallMap[2 + this.yWallMapWidth * 8] = tex.WallMapIdx;
         this.yWallMap[2 + this.yWallMapWidth * 9] = tex.WallMapIdx;
 
-        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
         assert(doorTex);
         this.xWallMap[2 + this.xWallMapWidth * 8] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
@@ -766,12 +766,12 @@ class Raycaster {
 
       {
         // edge case x door
-        const tex = this.findTex(wallTexKeys.REDBRICK);
+        const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
         assert(tex);
         this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] =
           tex.WallMapIdx;
 
-        const doorTex = this.findTex(wallTexKeys.DOOR_0);
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
         assert(doorTex);
         this.xWallMap[1 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
@@ -817,7 +817,7 @@ class Raycaster {
 
     const darkTransp2 = this.findTex(darkWallTexKeys.TRANSP2);
     assert(darkTransp2);
-    const transp2 = this.findTex(wallTexKeys.TRANSP2);
+    const transp2 = this.findTex(WALL_TEX_KEYS.TRANSP2);
     assert(transp2);
     this.yWallMap[3 + this.yWallMapWidth * 6] =
       darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
@@ -862,7 +862,7 @@ class Raycaster {
       this.mapWidth * this.mapHeight,
     );
 
-    let tex = this.findTex(floorTexKeys.FLOOR0);
+    let tex = this.findTex(FLOOR_TEX_KEYS.FLOOR0);
     assert(tex);
 
     for (let y = 0; y < this.mapHeight; y++) {
@@ -871,7 +871,7 @@ class Raycaster {
       }
     }
 
-    tex = this.findTex(floorTexKeys.FLOOR1);
+    tex = this.findTex(FLOOR_TEX_KEYS.FLOOR1);
     assert(tex);
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
