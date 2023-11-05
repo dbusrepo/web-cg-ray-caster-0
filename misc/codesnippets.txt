@@ -2296,3 +2296,21 @@ for (; colPtr < colLimitPtr; colPtr += 16) {
 }
 
 
+// check runs of slices with same height and texX
+let batchTop = wallSlices[0].Top;
+let batchBottom = wallSlices[0].Bottom;
+let batchTexX = wallSlices[0].TexX;
+let batchX = 0;
+for (let x = 1; x < vpWidth; x++) {
+  if (wallSlices[x].Top !== batchTop || wallSlices[x].Bottom !== batchBottom || wallSlices[x].TexX !== batchTexX) {
+    const batchLen = x - batchX;
+    if (batchLen > 1) {
+      // console.log('batch of len ' + batchLen);
+    }
+    // start a new batch
+    batchTop = wallSlices[x].Top;
+    batchBottom = wallSlices[x].Bottom;
+    batchTexX = wallSlices[x].TexX;
+    batchX = x;
+  }
+}
