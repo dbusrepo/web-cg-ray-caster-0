@@ -34,9 +34,9 @@ class Sprite {
     private texYPtr: number,
     private texStepYPtr: number,
   ) {
-    this.texXOffsets = new Uint32Array(viewWidth);
-    this.renderXs = new Uint32Array(viewWidth);
-    this.texYOffsets = new Uint32Array(viewHeight);
+    this.texXOffsets = new Uint32Array(viewWidth + 1);
+    this.renderXs = new Uint32Array(viewWidth + 1);
+    this.texYOffsets = new Uint32Array(viewHeight + 1);
   }
 
   // init(posX: number, posY: number, posZ: number, texIdx: number): void {
