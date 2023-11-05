@@ -1154,6 +1154,7 @@ class Renderer {
     const rowSliceFullyTranspMap = texRowSliceFullyTranspMap[texIdx][mipLvl];
 
     if (width > endX - startX + 1) {
+      // console.log('minification', width, endX - startX + 1);
       // render by rows
       for (let y = startY; y <= endY; y++) {
         const texY = texYOffsets[y];
@@ -1248,9 +1249,10 @@ class Renderer {
     const { transpColor } = Texture;
 
     for (let ix = 0; ix < numRenderXs; ++ix) {
-      const mipRowOffs = texXOffsets[ix] << lg2Pitch;
-      let framePtr = frameRowPtrs[startY] + renderXs[ix];
-      let occPtr = occlusionBufRowPtrs[startY] + renderXs[ix];
+      const mipRowOffs = texXOffsets[ix];
+      const x = renderXs[ix];
+      let framePtr = frameRowPtrs[startY] + x;
+      let occPtr = occlusionBufRowPtrs[startY] + x;
       for (
         let y = startY;
         y <= endY;
