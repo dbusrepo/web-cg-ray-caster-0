@@ -8,10 +8,10 @@ class Sprite {
 
   private srcIdx: number;
   private image: BitImageRGBA;
-  private texYOffsets: Uint32Array;
   private texXOffsets: Uint32Array;
   private renderXs: Uint32Array;
   private numRenderXs: number;
+  private texYOffsets: Uint32Array;
   private mipLevel: number; // current mip level
 
   constructor(

@@ -1087,6 +1087,27 @@ class Renderer {
     }
   }
 
+  private renderRect(x1: number, y1: number, x2: number, y2: number, color: number) {
+    const { frameBuf32, frameStride, frameRowPtrs } = this;
+
+    const numRowPixels = x2 - x1 + 1;
+    const numRowPixels8 = numRowPixels & ~7;
+    const numRowPixelsRem = numRowPixels & 7;
+
+    let rowPtr = frameRowPtrs[y1] + x1;
+    let rowLimitPtr = frameRowPtrs[y2 + 1] + x1;
+
+    for (; rowPtr < rowLimitPtr; rowPtr += frameStride) {
+      frameBuf32.fill(color, rowPtr, rowPtr + numRowPixels);
+      // fill 8 pixels at a time
+      // let colPtr = rowPtr;
+      // const colLimitPtr = colPtr + numRowPixels;
+      // for (let k = numRowPixelsRem; k; --k) {
+      //   frameBuf32[colPtr++] = color;
+      // }
+    }
+  }
+
   private renderSpriteB2F(sprite: Sprite) {
     const { frameBuf32, frameStride, frameRowPtrs, raycaster } = this;
 
@@ -1102,11 +1123,11 @@ class Renderer {
       // TexStepX: texStepX,
       StartY: startY,
       EndY: endY,
-      TexYOffsets: texYOffsets,
       MipLevel: mipLvl,
       RenderXs: renderXs,
       NumRenderXs: numRenderXs,
       TexXOffsets: texXOffsets,
+      TexYOffsets: texYOffsets,
       // TexY: texY,
       // TexStepY: texStepY,
     } = sprite;
@@ -1116,15 +1137,17 @@ class Renderer {
     const rowSliceFullyTranspMap = texRowSliceFullyTranspMap[texIdx][mipLvl];
 
     if (width > endX - startX + 1) {
-      // console.log('minification', width, endX - startX + 1);
-      // render by cols
-      for (let ix = 0; ix < numRenderXs; ++ix) {
-        const mipRowOffs = texXOffsets[ix];
-        let framePtr = frameRowPtrs[startY] + renderXs[ix];
-        for (let y = startY; y <= endY; y++, framePtr += frameStride) {
-          const color = mipPixels[mipRowOffs + texYOffsets[y]];
-          if (color !== transpColor) {
-            frameBuf32[framePtr] = color;
+      // render by rows
+      for (let y = startY; y <= endY; y++) {
+        const texY = texYOffsets[y];
+        if (!rowSliceFullyTranspMap[texY]) {
+          const startRowPtr = frameRowPtrs[y];
+          for (let ix = 0; ix < numRenderXs; ++ix) {
+            const color = mipPixels[texXOffsets[ix] + texY];
+            const framePtr = startRowPtr + renderXs[ix];
+            if (color !== transpColor) {
+              frameBuf32[framePtr] = color;
+            }
           }
         }
       }
@@ -1230,67 +1253,127 @@ class Renderer {
       //   }
       // }
 
-      // render by batches of rows and cols
-      for (let y = startY; y <= endY;) {
-        const texY = texYOffsets[y];
-        let i = y + 1;
-        while (
-          i <= endY &&
-          texYOffsets[i] === texY
-        ) {
-          ++i;
-        }
-        const numRenderYs = i - y;
-        const rowSliceFullyTransp = rowSliceFullyTranspMap[texY];
-        if (!rowSliceFullyTransp) {
-          const startRowPtr = frameRowPtrs[y];
-          for (let ix = 0; ix < numRenderXs; ) {
-            const startIx = ix;
-            let j = ix + 1;
-            const texX = texXOffsets[ix];
-            while (
-              j < numRenderXs &&
-              texXOffsets[j] === texX &&
-              renderXs[j] === renderXs[ix] + j - ix
-            ) {
-              ++j;
-            }
-            const color = mipPixels[texX + texY];
-            if (color !== transpColor) {
-              const framePtr = startRowPtr + renderXs[startIx];
-              const numPixels = j - startIx;
-              const numPixels8 = numPixels & ~7;
-              for (
-                let l = 0, framePtrL = framePtr;
-                l < numRenderYs;
-                ++l, framePtrL += frameStride
-              ) {
-                // frameBuf32.fill(color, framePtrL, framePtrL + j - startIx);
+      // TODO: NEW
+      let batchStartY = startY;
+      let batchTexY = texYOffsets[startY];
 
-                // fill the row with 8 pixels at once
-                // const numPixelsLeft = numPixels & 7;
-                let framePtr8 = framePtrL;
-                const framePtrLimit = framePtr8 + numPixels8;
-                for (; framePtr8 < framePtrLimit; framePtr8 += 8) {
-                  frameBuf32[framePtr8] = color;
-                  frameBuf32[framePtr8 + 1] = color;
-                  frameBuf32[framePtr8 + 2] = color;
-                  frameBuf32[framePtr8 + 3] = color;
-                  frameBuf32[framePtr8 + 4] = color;
-                  frameBuf32[framePtr8 + 5] = color;
-                  frameBuf32[framePtr8 + 6] = color;
-                  frameBuf32[framePtr8 + 7] = color;
+      for (let y = startY + 1; y <= endY; ++y) {
+        const texY = texYOffsets[y];
+        if (texY !== batchTexY) {
+          // render batch rows [batchStartY, y - 1] with texY = batchTexY
+          if (!rowSliceFullyTranspMap[batchTexY]) {
+            let batchStartX = renderXs[0];
+            let batchTexX = texXOffsets[0];
+            for (let ix = 1; ix < numRenderXs; ++ix) {
+              const texX = texXOffsets[ix];
+              if (texX !== batchTexX || renderXs[ix] !== renderXs[ix - 1] + 1) {
+                // render batch cols [batchStartX, renderXs[ix - 1]] with texX = batchTexX
+                const color = mipPixels[batchTexX + batchTexY];
+                if (color !== transpColor) {
+                  // render batch rows [batchStartY, y - 1] with texY = batchTexY
+                  // and cols [batchStartX, renderXs[ix - 1]] with texX = batchTexX
+                  const numPixels = renderXs[ix - 1] - batchStartX + 1;
+                  const numPixels8 = numPixels & ~7;
+                  const numPixelsLeft = numPixels & 7;
+                  for (
+                    let startRowPtr = frameRowPtrs[batchStartY] + batchStartX,
+                      rowsPtrBound = frameRowPtrs[y] + batchStartX;
+                    startRowPtr < rowsPtrBound;
+                    startRowPtr += frameStride
+                  ) {
+                    // frameBuf32.fill(color, startRowPtr, startRowPtr + numPixels);
+                    // fill the row with 8 pixels at once
+                    const rowPtrBound = startRowPtr + numPixels;
+                    let rowPtr = startRowPtr;
+                    for (let k = numPixelsLeft; k; --k) {
+                      frameBuf32[rowPtr++] = color;
+                    }
+                    for (; rowPtr < rowPtrBound; rowPtr += 8) {
+                      frameBuf32[rowPtr] = color;
+                      frameBuf32[rowPtr + 1] = color;
+                      frameBuf32[rowPtr + 2] = color;
+                      frameBuf32[rowPtr + 3] = color;
+                      frameBuf32[rowPtr + 4] = color;
+                      frameBuf32[rowPtr + 5] = color;
+                      frameBuf32[rowPtr + 6] = color;
+                      frameBuf32[rowPtr + 7] = color;
+                    }
+                  }
                 }
-                for (let k = numPixels8; k < numPixels; ++k) {
-                  frameBuf32[framePtrL + k] = color;
-                }
+                // update batch
+                batchStartX = renderXs[ix];
+                batchTexX = texX;
               }
             }
-            ix = j;
+            // render batch cols [batchStartX, renderXs[numRenderXs - 1]] with texX = batchTexX
+            // TODO:
           }
+          // update batch
+          batchTexY = texY;
+          batchStartY = y;
         }
-        y = i;
       }
+      // render batch rows [batchStartY, endY] with texY = batchTexY
+      // TODO:
+
+      // // render by batches of rows and cols
+      // for (let y = startY; y <= endY; ) {
+      //   const texY = texYOffsets[y];
+      //   let i = y + 1;
+      //   while (i <= endY && texYOffsets[i] === texY) {
+      //     ++i;
+      //   }
+      //   const numRenderYs = i - y;
+      //   const rowSliceFullyTransp = rowSliceFullyTranspMap[texY];
+      //   if (!rowSliceFullyTransp) {
+      //     const startRowPtr = frameRowPtrs[y];
+      //     for (let ix = 0; ix < numRenderXs; ) {
+      //       const startIx = ix;
+      //       let j = ix + 1;
+      //       const texX = texXOffsets[ix];
+      //       while (
+      //         j < numRenderXs &&
+      //         texXOffsets[j] === texX &&
+      //         renderXs[j] === renderXs[ix] + j - ix
+      //       ) {
+      //         ++j;
+      //       }
+      //       const color = mipPixels[texX + texY];
+      //       if (color !== transpColor) {
+      //         const framePtr = startRowPtr + renderXs[startIx];
+      //         const numPixels = j - startIx;
+      //         const numPixels8 = numPixels & ~7;
+      //         for (
+      //           let l = 0, framePtrL = framePtr;
+      //           l < numRenderYs;
+      //           ++l, framePtrL += frameStride
+      //         ) {
+      //           // frameBuf32.fill(color, framePtrL, framePtrL + numPixels);
+      //
+      //           // fill the row with 8 pixels at once
+      //           // const numPixelsLeft = numPixels & 7;
+      //           let framePtr8 = framePtrL;
+      //           const framePtrLimit = framePtr8 + numPixels8;
+      //           for (; framePtr8 < framePtrLimit; framePtr8 += 8) {
+      //             frameBuf32[framePtr8] = color;
+      //             frameBuf32[framePtr8 + 1] = color;
+      //             frameBuf32[framePtr8 + 2] = color;
+      //             frameBuf32[framePtr8 + 3] = color;
+      //             frameBuf32[framePtr8 + 4] = color;
+      //             frameBuf32[framePtr8 + 5] = color;
+      //             frameBuf32[framePtr8 + 6] = color;
+      //             frameBuf32[framePtr8 + 7] = color;
+      //           }
+      //           for (let k = numPixels8; k < numPixels; ++k) {
+      //             frameBuf32[framePtrL + k] = color;
+      //           }
+      //         }
+      //       }
+      //       ix = j;
+      //     }
+      //   }
+      //   y = i;
+      // }
     }
   }
 

@@ -1932,3 +1932,117 @@ fWallX = nextFWallX;
 //   const framePtrL = framePtr + l * frameStride;
 //   frameBuf32.fill(color, framePtrL, framePtrL + j - startIx);
 // }
+
+// let framePtr = frameRowPtrs[startY] + renderXs[ix];
+// for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+
+
+// for (let ix = 0; ix < numRenderXs; ++ix) {
+//   const mipRowOffs = texXOffsets[ix];
+//   let framePtr = frameRowPtrs[startY] + renderXs[ix];
+//   for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+//     const color = mipPixels[mipRowOffs + texYOffsets[y]];
+//     if (color !== transpColor) {
+//       frameBuf32[framePtr] = color;
+//     }
+//   }
+// }
+
+for (let ix = 0; ix < numRenderXs; ++ix) {
+  const x = renderXs[ix];
+  const mipRowOffs = texXOffsets[ix]; // cols start offset (cols are rows in texture)
+  for (let iy = 0; iy < numRenderYs; ++iy) {
+    const color = mipPixels[mipRowOffs + texYOffsets[iy]];
+    if (color !== transpColor) {
+      const y = renderYs[iy];
+      const framePtr = frameRowPtrs[y] + x;
+      frameBuf32[framePtr] = color;
+    }
+  }
+}
+
+// console.log('minification', width, endX - startX + 1);
+// // render by cols. first
+// for (let ix = 0; ix < numRenderXs; ++ix) {
+//   const mipRowOffs = texXOffsets[ix];
+//   let framePtr = frameRowPtrs[startY] + renderXs[ix];
+//   for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+//     const color = mipPixels[mipRowOffs + texYOffsets[y]];
+//     if (color !== transpColor) {
+//       frameBuf32[framePtr] = color;
+//     }
+//   }
+// }
+
+// console.log('minification', width, endX - startX + 1);
+// // render by cols
+// for (let ix = 0; ix < numRenderXs; ++ix) {
+//   const mipRowOffs = texXOffsets[ix];
+//   let framePtr = frameRowPtrs[startY] + renderXs[ix];
+//   for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+//     const color = mipPixels[mipRowOffs + texYOffsets[y]];
+//     if (color !== transpColor) {
+//       frameBuf32[framePtr] = color;
+//     }
+//   }
+// }
+
+// // render by rows
+// for (let y = startY; y <= endY; y++) {
+//   const texY = texYOffsets[y];
+//   if (!rowSliceFullyTranspMap[texY]) {
+//     const startRowPtr = frameRowPtrs[y];
+//     for (let ix = 0; ix < numRenderXs; ++ix) {
+//       const color = mipPixels[texXOffsets[ix] + texY];
+//       if (color !== transpColor) {
+//         const framePtr = startRowPtr + renderXs[ix];
+//         frameBuf32[framePtr] = color;
+//       }
+//     }
+//   }
+// }
+
+// // render by rows 2 old
+// for (let iy = 0; iy < numRenderYs; ++iy) {
+//   const y = renderYs[iy];
+//   const texY = texYOffsets[iy];
+//   for (let ix = 0; ix < numRenderXs; ++ix) {
+//     const color = mipPixels[texXOffsets[ix] + texY];
+//     if (color !== transpColor) {
+//       const framePtr = frameRowPtrs[y] + renderXs[ix];
+//       frameBuf32[framePtr] = color;
+//     }
+//   }
+// }
+
+// render by cols 2 old
+// for (let ix = 0; ix < numRenderXs; ++ix) {
+//   const x = renderXs[ix];
+//   const mipRowOffs = texXOffsets[ix];
+//   for (let iy = 0; iy < numRenderYs; ++iy) {
+//     const color = mipPixels[mipRowOffs + texYOffsets[iy]];
+//     if (color !== transpColor) {
+//       const y = renderYs[iy];
+//       const framePtr = frameRowPtrs[y] + x;
+//       frameBuf32[framePtr] = color;
+//     }
+//   }
+// }
+
+// for (let ix = 0; ix < numRenderXs; ++ix) {
+//   const mipRowOffs = texXOffsets[ix];
+//   let framePtr = frameRowPtrs[startY] + renderXs[ix];
+//   for (let y = startY; y <= endY; y++, framePtr += frameStride) {
+//     const color = mipPixels[mipRowOffs + texYOffsets[y]];
+//     if (color !== transpColor) {
+//       frameBuf32[framePtr] = color;
+//     }
+//   }
+// }
+
+// (color !== transpColor) && (frameBuf32[framePtr] = color);
+// (color !== transpColor) && (frameBuf32[startRowPtr + renderXs[ix]] = color);
+// if (color !== transpColor) {
+//   const framePtr = startRowPtr + renderXs[ix];
+//   frameBuf32[framePtr] = color;
+// }
