@@ -2314,3 +2314,16 @@ for (let x = 1; x < vpWidth; x++) {
     batchX = x;
   }
 }
+
+// draw first [rowPtr, startPtr16)
+for (; colPtr < startPtr16; colPtr += BPP_RGBA) {
+  store<u32>(colPtr, color);
+}
+// process [startPtr16, endPtr16) in 16 bytes chunks (4 pixels)
+for (let colPtr = startPtr16; colPtr < endPtr16; colPtr += 16) {
+  v128.store(colPtr, value);
+}
+// draw last (endPtr16, colPtrLimit) pixels
+for (; colPtr < colPtrLimit; colPtr += BPP_RGBA) {
+  store<u32>(colPtr, color);
+}

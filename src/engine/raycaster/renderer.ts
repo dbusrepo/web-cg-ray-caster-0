@@ -1104,29 +1104,29 @@ class Renderer {
     const numRowPixels8Rem = numRowPixels & 7;
 
     for (; rowPtr < rowLimitPtr; rowPtr += frameStride) {
-      // frameBuf32.fill(color, rowPtr, rowPtr + numRowPixels);
+      frameBuf32.fill(color, rowPtr, rowPtr + numRowPixels);
       // // fill 8 pixels at a time
-      let colPtr = rowPtr;
-      for (let k = numRowPixels8Rem; k; --k) {
-        frameBuf32[colPtr++] = color;
-      }
-      const colLimit = rowPtr + numRowPixels;
-      let colPtr8 = rowPtr + numRowPixels8Rem;
-      for (; colPtr8 < colLimit; colPtr8 += 8) {
-        frameBuf32[colPtr8] = color;
-        frameBuf32[colPtr8 + 1] = color;
-        frameBuf32[colPtr8 + 2] = color;
-        frameBuf32[colPtr8 + 3] = color;
-        frameBuf32[colPtr8 + 4] = color;
-        frameBuf32[colPtr8 + 5] = color;
-        frameBuf32[colPtr8 + 6] = color;
-        frameBuf32[colPtr8 + 7] = color;
-      }
+      // let colPtr = rowPtr;
+      // for (let k = numRowPixels8Rem; k; --k) {
+      //   frameBuf32[colPtr++] = color;
+      // }
+      // const colLimit = rowPtr + numRowPixels;
+      // let colPtr8 = rowPtr + numRowPixels8Rem;
+      // for (; colPtr8 < colLimit; colPtr8 += 8) {
+      //   frameBuf32[colPtr8] = color;
+      //   frameBuf32[colPtr8 + 1] = color;
+      //   frameBuf32[colPtr8 + 2] = color;
+      //   frameBuf32[colPtr8 + 3] = color;
+      //   frameBuf32[colPtr8 + 4] = color;
+      //   frameBuf32[colPtr8 + 5] = color;
+      //   frameBuf32[colPtr8 + 6] = color;
+      //   frameBuf32[colPtr8 + 7] = color;
+      // }
     }
   }
 
   private renderSpriteB2F(sprite: Sprite) {
-    const { frameBuf32, frameStride, frameRowPtrs, raycaster } = this;
+    const { frameBuf32, frameStride, frameRowPtrs, raycaster, wasmEngineModule } = this;
 
     const { TexRowSliceFullyTranspMap: texRowSliceFullyTranspMap } = raycaster;
 
@@ -1196,11 +1196,36 @@ class Renderer {
                 if (color !== transpColor) {
                   // render batch rows [batchStartY, y - 1] with texY = batchTexY
                   // and cols [batchStartX, renderXs[ix - 1]] with texX = batchTexX
-                  this.drawRect(
+
+                  // this.drawRect(
+                  //   batchStartX,
+                  //   batchStartY,
+                  //   renderXs[ix - 1],
+                  //   y - 1,
+                  //   color,
+                  // );
+
+                  // wasmEngineModule.drawRect(
+                  //   batchStartX,
+                  //   batchStartY,
+                  //   renderXs[ix - 1],
+                  //   y - 1,
+                  //   color,
+                  // );
+
+                  // wasmEngineModule.drawRect(
+                  //   frameRowPtrs[batchStartY] + batchStartX,
+                  //   frameRowPtrs[y - 1] + batchStartX,
+                  //   batchStartX,
+                  //   renderXs[ix - 1],
+                  //   color,
+                  // );
+
+                  wasmEngineModule.drawRect(
+                    frameRowPtrs[batchStartY] + batchStartX,
+                    frameRowPtrs[y - 1] + batchStartX,
                     batchStartX,
-                    batchStartY,
                     renderXs[ix - 1],
-                    y - 1,
                     color,
                   );
                 }

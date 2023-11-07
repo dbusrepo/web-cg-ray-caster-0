@@ -8,7 +8,11 @@ import {
 import { ArenaAlloc, newArena } from './arenaAlloc';
 import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
-import * as draw from './draw';
+import { 
+  clearBg,
+  drawText,
+  drawRect,
+} from './draw';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -370,4 +374,6 @@ export {
   resetTranspSlicesPtrs,
   setTranspSliceAtIdx,
   getActiveDoorsListPtr,
+
+  drawRect,
 };
