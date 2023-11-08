@@ -142,35 +142,6 @@ function drawText(textOffs: usize, x: u32, y: u32, scale: f32, color: u32): void
 //   }
 // };
 
-function drawRect(startRowOffset: SIZE_T, endRowOffset: SIZE_T, x1: u32, x2: u32, color: u32): void {
-  let rowPtr = startRowOffset << BPP_RGBA_SHIFT;
-  let rowEndPtr = endRowOffset << BPP_RGBA_SHIFT;
-  const rowLenOffs = (x2 - x1 + 1) << BPP_RGBA_SHIFT;
-
-  // draw per rows 4 pixels at a time using vector instructions
-  const value = v128.splat<i32>(color);
-
-  for (; rowPtr <= rowEndPtr; rowPtr += FRAME_STRIDE_u32) {
-    const colPtrLimit = rowPtr + rowLenOffs;
-    // first col address multiple of 16
-    const startPtr16 = (rowPtr + 15) & ~15;
-    // last col address multiple of 16
-    const endPtr16 = colPtrLimit & ~15;
-    // process [startPtr16, endPtr16) in 16 bytes chunks (4 pixels)
-    for (let colPtr = startPtr16; colPtr < endPtr16; colPtr += 16) {
-      v128.store(colPtr, value);
-    }
-    // draw first [rowPtr, startPtr16) and last (endPtr16, colPtrLimit) pixels
-    for (let colPtr = rowPtr; colPtr < startPtr16; colPtr += BPP_RGBA) {
-      store<u32>(colPtr, color);
-    }
-    for (let colPtr = endPtr16; colPtr < colPtrLimit; colPtr += BPP_RGBA) {
-      store<u32>(colPtr, color);
-    }
-  }
-};
-
-// TODO: fix this: mem error
 // function drawRect(startRowOffset: SIZE_T, endRowOffset: SIZE_T, x1: u32, x2: u32, color: u32): void {
 //   let rowPtr = startRowOffset << BPP_RGBA_SHIFT;
 //   let rowEndPtr = endRowOffset << BPP_RGBA_SHIFT;
@@ -185,21 +156,8 @@ function drawRect(startRowOffset: SIZE_T, endRowOffset: SIZE_T, x1: u32, x2: u32
 //     const startPtr16 = (rowPtr + 15) & ~15;
 //     // last col address multiple of 16
 //     const endPtr16 = colPtrLimit & ~15;
-//     // process [startPtr16, endPtr16) in chunks of 16 pixels (4 vectors, 64 bytes)
-//     // get num of pixels (4 bytes each)
-//     const numPixels = (endPtr16 - startPtr16) >> BPP_RGBA_SHIFT;
-//     const numPixels16 = (numPixels >> 4) as i32; 
-//     // const numPixels16Rem = numPixels & 15;
-//
-//     let colPtr = startPtr16;
-//     for (let i = 0; i < numPixels16; i++, colPtr += 64) {
-//       v128.store(colPtr, value);
-//       v128.store(colPtr + 16, value);
-//       v128.store(colPtr + 32, value);
-//       v128.store(colPtr + 48, value);
-//     }
-//     // process remaining pixels [colPtr, endPtr16) in chunks of 4 pixels (1 vector, 16 bytes)
-//     for (; colPtr < endPtr16; colPtr += 16) {
+//     // process [startPtr16, endPtr16) in 16 bytes chunks (4 pixels)
+//     for (let colPtr = startPtr16; colPtr < endPtr16; colPtr += 16) {
 //       v128.store(colPtr, value);
 //     }
 //     // draw first [rowPtr, startPtr16) and last (endPtr16, colPtrLimit) pixels
@@ -211,5 +169,44 @@ function drawRect(startRowOffset: SIZE_T, endRowOffset: SIZE_T, x1: u32, x2: u32
 //     }
 //   }
 // };
+
+// Pre: x2 - x1 + 1 >= 16
+function drawRect(startRowOffset: SIZE_T, endRowOffset: SIZE_T, x1: u32, x2: u32, color: u32): void {
+  let rowPtr = startRowOffset << BPP_RGBA_SHIFT;
+  let rowEndPtr = endRowOffset << BPP_RGBA_SHIFT;
+  const rowLenOffs = (x2 - x1 + 1) << BPP_RGBA_SHIFT;
+
+  const color4 = v128.splat<i32>(color);
+
+  for (; rowPtr <= rowEndPtr; rowPtr += FRAME_STRIDE_u32) {
+    const colPtrLimit = rowPtr + rowLenOffs;
+    // first col address multiple of 16
+    const startPtr16 = (rowPtr + 15) & ~15;
+    // last col address multiple of 16
+    const endPtr16 = colPtrLimit & ~15;
+    // process [startPtr16, endPtr16) in chunks of 16 pixels (4 vectors, 64 bytes)
+    const numPixels = (endPtr16 - startPtr16) >> BPP_RGBA_SHIFT;
+    const numPixels16 = (numPixels >> 4) as i32;
+    // const numPixels16Rem = numPixels & 15;
+    let colPtr = startPtr16;
+    for (let i = 0; i < numPixels16; i++, colPtr += 64) {
+      v128.store(colPtr, color4);
+      v128.store(colPtr + 16, color4);
+      v128.store(colPtr + 32, color4);
+      v128.store(colPtr + 48, color4);
+    }
+    // process remaining pixels [colPtr, endPtr16) in chunks of 4 pixels (1 vector, 16 bytes)
+    for (; colPtr < endPtr16; colPtr += 16) {
+      v128.store(colPtr, color4);
+    }
+    // draw first [rowPtr, startPtr16) and last (endPtr16, colPtrLimit) pixels
+    for (let colPtr = rowPtr; colPtr < startPtr16; colPtr += BPP_RGBA) {
+      store<u32>(colPtr, color);
+    }
+    for (let colPtr = endPtr16; colPtr < colPtrLimit; colPtr += BPP_RGBA) {
+      store<u32>(colPtr, color);
+    }
+  }
+};
 
 export { clearBg, drawText, drawRect }

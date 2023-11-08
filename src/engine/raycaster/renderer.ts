@@ -1145,19 +1145,18 @@ class Renderer {
       NumRenderXs: numRenderXs,
       TexXOffsets: texXOffsets,
       TexYOffsets: texYOffsets,
-      // TexY: texY,
-      // TexStepY: texStepY,
+      TexY: startTexY,
+      TexStepY: texStepY,
     } = sprite;
 
-    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch, Width: width } = image;
+    const { Buf32: mipPixels, Width: texWidth } = image;
     const { transpColor } = Texture;
     const rowSliceFullyTranspMap = texRowSliceFullyTranspMap[texIdx][mipLvl];
 
-    if (width > endX - startX + 1) {
+    if (texWidth > endX - startX + 1) {
       // console.log('minification', width, endX - startX + 1);
       // render by rows
-      for (let y = startY; y <= endY; y++) {
-        const texY = texYOffsets[y];
+      for (let y = startY, texY = startTexY; y <= endY; y++, texY += texStepY) {
         if (!rowSliceFullyTranspMap[texY]) {
           const startRowPtr = frameRowPtrs[y];
           for (let ix = 0; ix < numRenderXs; ++ix) {
@@ -1170,7 +1169,7 @@ class Renderer {
         }
       }
     } else {
-      // console.log('magnification', width, endX - startX + 1);
+      // console.log('magnification', texWidth, endX - startX + 1);
       let batchStartY = startY;
       let batchTexY = texYOffsets[startY];
 
@@ -1196,38 +1195,24 @@ class Renderer {
                 if (color !== transpColor) {
                   // render batch rows [batchStartY, y - 1] with texY = batchTexY
                   // and cols [batchStartX, renderXs[ix - 1]] with texX = batchTexX
-
-                  // this.drawRect(
-                  //   batchStartX,
-                  //   batchStartY,
-                  //   renderXs[ix - 1],
-                  //   y - 1,
-                  //   color,
-                  // );
-
-                  // wasmEngineModule.drawRect(
-                  //   batchStartX,
-                  //   batchStartY,
-                  //   renderXs[ix - 1],
-                  //   y - 1,
-                  //   color,
-                  // );
-
-                  // wasmEngineModule.drawRect(
-                  //   frameRowPtrs[batchStartY] + batchStartX,
-                  //   frameRowPtrs[y - 1] + batchStartX,
-                  //   batchStartX,
-                  //   renderXs[ix - 1],
-                  //   color,
-                  // );
-
-                  wasmEngineModule.drawRect(
-                    frameRowPtrs[batchStartY] + batchStartX,
-                    frameRowPtrs[y - 1] + batchStartX,
-                    batchStartX,
-                    renderXs[ix - 1],
-                    color,
-                  );
+                  const spanLen = renderXs[ix - 1] - batchStartX + 1;
+                  if (spanLen < 16) {
+                    this.drawRect(
+                      batchStartX,
+                      batchStartY,
+                      renderXs[ix - 1],
+                      y - 1,
+                      color,
+                    );
+                  } else {
+                    wasmEngineModule.drawRect(
+                      frameRowPtrs[batchStartY] + batchStartX,
+                      frameRowPtrs[y - 1] + batchStartX,
+                      batchStartX,
+                      renderXs[ix - 1],
+                      color,
+                    );
+                  }
                 }
                 batchStartX = renderXs[ix];
                 batchTexX = texX;
@@ -1269,8 +1254,7 @@ class Renderer {
       // TexStepY: texStepY,
     } = sprite;
 
-    const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
-
+    const { Buf32: mipPixels } = image;
     const { transpColor } = Texture;
 
     for (let ix = 0; ix < numRenderXs; ++ix) {
