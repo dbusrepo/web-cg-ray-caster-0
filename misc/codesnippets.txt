@@ -2349,3 +2349,63 @@ for (let y = startY; y <= endY; y++) {
     }
   }
 }
+
+let framePtr = startRowPtr + batchStartX;
+const frameLimitPtr = framePtr + batchLen;
+for (; framePtr < frameLimitPtr; ++framePtr) {
+  frameBuf32[framePtr] = color;
+}
+
+
+// // to render sprite last rows/cols batch
+// texXOffsets[endX + 1] = -1;
+// renderXs[endX + 1] = -1;
+// texYOffsets[endY + 1] = -1;
+// const yLast = endY + 1;
+
+// for (let y = startY + 1; y <= yLast; ++y) {
+//   const texY = texYOffsets[y];
+//   if (texY !== batchTexY) {
+//     // render batch rows [batchStartY, y - 1] with texY = batchTexY
+//     if (!rowSliceFullyTranspMap[batchTexY]) {
+//       let batchStartX = renderXs[0];
+//       let batchTexX = texXOffsets[0];
+//       const ixLast = numRenderXs + 1;
+//       for (let ix = 1; ix < ixLast; ++ix) {
+//         const texX = texXOffsets[ix];
+//         if (texX !== batchTexX || renderXs[ix] !== renderXs[ix - 1] + 1) {
+//           // render cur cols batch [batchStartX, renderXs[ix - 1]] with texX = batchTexX
+//           const color = mipPixels[batchTexX + batchTexY];
+//           if (color !== transpColor) {
+//             // render batch rows [batchStartY, y - 1] with texY = batchTexY
+//             // and cols [batchStartX, renderXs[ix - 1]] with texX = batchTexX
+//             const spanLen = renderXs[ix - 1] - batchStartX + 1;
+//             // if (spanLen < 16) {
+//               this.drawRect(
+//                 batchStartX,
+//                 batchStartY,
+//                 renderXs[ix - 1],
+//                 y - 1,
+//                 color,
+//               );
+//             // } else {
+//               // wasmEngineModule.drawRect(
+//               //   frameRowPtrs[batchStartY] + batchStartX,
+//               //   frameRowPtrs[y - 1] + batchStartX,
+//               //   batchStartX,
+//               //   renderXs[ix - 1],
+//               //   color,
+//               // );
+//             // }
+//           }
+//           batchStartX = renderXs[ix];
+//           batchTexX = texX;
+//         }
+//       }
+//     }
+//     batchTexY = texY;
+//     batchStartY = y;
+//   }
+// }
+
+

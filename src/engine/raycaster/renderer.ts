@@ -1144,6 +1144,12 @@ class Renderer {
       RenderXs: renderXs,
       NumRenderXs: numRenderXs,
       TexXOffsets: texXOffsets,
+
+      RenderBatchXs: renderBatchXs,
+      RenderBatchTexXOffsets: renderBatchTexXOffsets,
+      RenderBatchXLens: renderBatchXLens,
+      NumRenderBatchXs: numRenderBatchXs,
+
       TexYOffsets: texYOffsets,
       TexY: startTexY,
       TexStepY: texStepY,
@@ -1174,8 +1180,6 @@ class Renderer {
       let batchTexY = texYOffsets[startY];
 
       // to render sprite last rows/cols batch
-      texXOffsets[endX + 1] = -1;
-      renderXs[endX + 1] = -1;
       texYOffsets[endY + 1] = -1;
       const yLast = endY + 1;
 
@@ -1184,38 +1188,22 @@ class Renderer {
         if (texY !== batchTexY) {
           // render batch rows [batchStartY, y - 1] with texY = batchTexY
           if (!rowSliceFullyTranspMap[batchTexY]) {
-            let batchStartX = renderXs[0];
-            let batchTexX = texXOffsets[0];
-            const ixLast = numRenderXs + 1;
-            for (let ix = 1; ix < ixLast; ++ix) {
-              const texX = texXOffsets[ix];
-              if (texX !== batchTexX || renderXs[ix] !== renderXs[ix - 1] + 1) {
-                // render cur cols batch [batchStartX, renderXs[ix - 1]] with texX = batchTexX
-                const color = mipPixels[batchTexX + batchTexY];
-                if (color !== transpColor) {
-                  // render batch rows [batchStartY, y - 1] with texY = batchTexY
-                  // and cols [batchStartX, renderXs[ix - 1]] with texX = batchTexX
-                  const spanLen = renderXs[ix - 1] - batchStartX + 1;
-                  if (spanLen < 16) {
-                    this.drawRect(
-                      batchStartX,
-                      batchStartY,
-                      renderXs[ix - 1],
-                      y - 1,
-                      color,
-                    );
-                  } else {
-                    wasmEngineModule.drawRect(
-                      frameRowPtrs[batchStartY] + batchStartX,
-                      frameRowPtrs[y - 1] + batchStartX,
-                      batchStartX,
-                      renderXs[ix - 1],
-                      color,
-                    );
-                  }
-                }
-                batchStartX = renderXs[ix];
-                batchTexX = texX;
+            const startRowPtr = frameRowPtrs[batchStartY];
+            // loop on x batches
+            for (let batchIx = 0; batchIx < numRenderBatchXs; ++batchIx) {
+              const batchStartX = renderBatchXs[batchIx];
+              const batchTexX = renderBatchTexXOffsets[batchIx];
+              const batchLen = renderBatchXLens[batchIx];
+              const color = mipPixels[batchTexX + batchTexY];
+              if (color !== transpColor) {
+                // draw rect [batchStartX, batchStartY, batchStartX + batchLen - 1, y - 1]
+                this.drawRect(
+                  batchStartX,
+                  batchStartY,
+                  batchStartX + batchLen - 1,
+                  y - 1,
+                  color,
+                );
               }
             }
           }

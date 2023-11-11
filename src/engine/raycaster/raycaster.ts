@@ -1436,8 +1436,16 @@ class Raycaster {
       const isTranspSliceArr = this.texSlicePartialTranspMap[texIdx][mipLvl];
       const isFullyTranspSliceArr = this.texSliceFullyTranspMap[texIdx][mipLvl];
 
-      const { RenderXs: renderXs, TexXOffsets: texXOffsets } = sprite;
+      const {
+        RenderXs: renderXs,
+        TexXOffsets: texXOffsets,
+        RenderBatchXs: renderBatchXs,
+        RenderBatchTexXOffsets: renderBatchTexXOffsets,
+        RenderBatchXLens: renderBatchXLens,
+      } = sprite;
       sprite.NumRenderXs = 0;
+      sprite.NumRenderBatchXs = 0;
+      sprite.IsMagnified = texWidth <= endX - startX + 1;
 
       for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
         const iTexX = sliceTexX | 0;
@@ -1446,9 +1454,25 @@ class Raycaster {
         }
         if (!transpSlices[x]) {
           if (tY <= wallZBuffer[x]) {
-            renderXs[sprite.NumRenderXs] = x;
-            texXOffsets[sprite.NumRenderXs] = iTexX << lg2Pitch;
-            sprite.NumRenderXs++;
+            const texXOffset = iTexX << lg2Pitch;
+            if (sprite.IsMagnified) {
+              // when sprite is magnified, precalc batch x offsets and render by cols/rows batches
+              if (x === startX || texXOffset !== renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
+                x !== renderBatchXs[sprite.NumRenderBatchXs - 1] + renderBatchXLens[sprite.NumRenderBatchXs - 1]) {
+                // start new batch
+                renderBatchXs[sprite.NumRenderBatchXs] = x;
+                renderBatchTexXOffsets[sprite.NumRenderBatchXs] = texXOffset;
+                renderBatchXLens[sprite.NumRenderBatchXs] = 1;
+                sprite.NumRenderBatchXs++;
+              } else {
+                // extend last batch
+                renderBatchXLens[sprite.NumRenderBatchXs - 1]++;
+              }
+            } else {
+              renderXs[sprite.NumRenderXs] = x;
+              texXOffsets[sprite.NumRenderXs] = texXOffset;
+              sprite.NumRenderXs++;
+            }
             if (!isTranspSliceArr[iTexX]) {
               // sprite slice fully opaque
               this.occludeWallSlice(startY, endY, tY, x);
@@ -1511,9 +1535,24 @@ class Raycaster {
               // sprite slice at the end of the list, it is the nearest slice, remove the entire transp list
               freeTranspSliceViewsList(firstPtr);
               this.updateTranspSliceArrayIdx(x, null);
-              renderXs[sprite.NumRenderXs] = x;
-              texXOffsets[sprite.NumRenderXs] = iTexX << lg2Pitch;
-              sprite.NumRenderXs++;
+              const texXOffset = iTexX << lg2Pitch;
+              if (sprite.IsMagnified) {
+                if (x === startX || texXOffset !== renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
+                  x !== renderBatchXs[sprite.NumRenderBatchXs - 1] + renderBatchXLens[sprite.NumRenderBatchXs - 1]) {
+                  // start new batch
+                  renderBatchXs[sprite.NumRenderBatchXs] = x;
+                  renderBatchTexXOffsets[sprite.NumRenderBatchXs] = texXOffset;
+                  renderBatchXLens[sprite.NumRenderBatchXs] = 1;
+                  sprite.NumRenderBatchXs++;
+                } else {
+                  // extend last batch
+                  renderBatchXLens[sprite.NumRenderBatchXs - 1]++;
+                }
+              } else {
+                renderXs[sprite.NumRenderXs] = x;
+                texXOffsets[sprite.NumRenderXs] = texXOffset;
+                sprite.NumRenderXs++;
+              }
             } else if (slice !== firstPtr) {
               // remove the transp slices behind the sprite slice
               curPtr = firstPtr;
@@ -1531,7 +1570,7 @@ class Raycaster {
         }
       }
 
-      if (!sprite.NumRenderXs) {
+      if (sprite.NumRenderXs === 0 && sprite.NumRenderBatchXs === 0) {
         // sprite removed from the sorting list
         // if it has cols shared with transp walls slices it will be rendered later with them
         continue;
@@ -1552,9 +1591,7 @@ class Raycaster {
       // precalc y offsets (used for each col)
       const { TexYOffsets: texYOffsets } = sprite;
 
-      if (texWidth <= endX - startX + 1) {
-        // when sprite is magnified, precalc batch y offsets and render by cols/rows batches
-      } else {
+      if (sprite.IsMagnified) {
         // when minified to precalc y offsets if you render by cols (not done now)
         for (
           let y = startY, curTexY = texY;

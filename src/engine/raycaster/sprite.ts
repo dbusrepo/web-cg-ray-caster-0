@@ -8,15 +8,23 @@ class Sprite {
 
   private srcIdx: number;
   private image: BitImageRGBA;
+
   private texXOffsets: Uint32Array;
   private renderXs: Uint32Array;
   private numRenderXs: number;
+
+  private renderBatchXs: Uint32Array;
+  private renderBatchTexXOffsets: Uint32Array;
+  private renderBatchXLens: Uint32Array;
+  private numRenderBatchXs: number;
+
   private texYOffsets: Uint32Array;
-  private batchTexYOffsets: Uint32Array;
-  private renderBatchYs: Uint32Array;
-  private renderBatchYLens: Uint32Array;
-  private numRenderBatchYs: number;
+  // private batchTexYOffsets: Uint32Array;
+  // private renderBatchYs: Uint32Array;
+  // private renderBatchYLens: Uint32Array;
+  // private numRenderBatchYs: number;
   private mipLevel: number; // current mip level
+  private isMagnified: boolean;
 
   constructor(
     private viewWidth: number,
@@ -40,10 +48,18 @@ class Sprite {
   ) {
     this.texXOffsets = new Uint32Array(viewWidth + 1);
     this.renderXs = new Uint32Array(viewWidth + 1);
+    this.numRenderXs = 0;
+
+    this.renderBatchXs = new Uint32Array(viewWidth + 1);
+    this.renderBatchTexXOffsets = new Uint32Array(viewWidth + 1);
+    this.renderBatchXLens = new Uint32Array(viewWidth + 1);
+    this.numRenderBatchXs = 0;
+
     this.texYOffsets = new Uint32Array(viewHeight + 1);
-    this.batchTexYOffsets = new Uint32Array(viewHeight + 1);
-    this.renderBatchYs = new Uint32Array(viewHeight + 1);
-    this.renderBatchYLens = new Uint32Array(viewHeight + 1);
+
+    // this.batchTexYOffsets = new Uint32Array(viewHeight + 1);
+    // this.renderBatchYs = new Uint32Array(viewHeight + 1);
+    // this.renderBatchYLens = new Uint32Array(viewHeight + 1);
   }
 
   // init(posX: number, posY: number, posZ: number, texIdx: number): void {
@@ -56,6 +72,26 @@ class Sprite {
   // get WasmPtr(): number {
   //   return this.spritePtr;
   // }
+
+  get NumRenderBatchXs(): number {
+    return this.numRenderBatchXs;
+  }
+
+  set NumRenderBatchXs(value: number) {
+    this.numRenderBatchXs = value;
+  }
+
+  get RenderBatchXs(): Uint32Array {
+    return this.renderBatchXs;
+  }
+
+  get RenderBatchTexXOffsets(): Uint32Array {
+    return this.renderBatchTexXOffsets;
+  }
+
+  get RenderBatchXLens(): Uint32Array {
+    return this.renderBatchXLens;
+  }
 
   get NumRenderXs(): number {
     return this.numRenderXs;
@@ -212,6 +248,14 @@ class Sprite {
 
   set TexStepY(value: number) {
     gWasmView.setFloat32(this.texStepYPtr, value, true);
+  }
+
+  get IsMagnified(): boolean {
+    return this.isMagnified;
+  }
+
+  set IsMagnified(value: boolean) {
+    this.isMagnified = value;
   }
 }
 
