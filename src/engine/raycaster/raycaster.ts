@@ -1618,6 +1618,7 @@ class Raycaster {
     }
 
     // remap view sprites in sprites array with their sorted order by increasing distance
+    // so nearest sprites updates wallZBuffer and occludes wall slices/sprites behind them
     for (let i = 0; i < numViewSprites; i++) {
       const srcIdx = viewSpritesSrcIdxs[i];
       sprites[srcIdx] = viewSprites[i + 1];

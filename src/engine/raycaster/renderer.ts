@@ -1104,24 +1104,24 @@ class Renderer {
     const numRowPixels8Rem = numRowPixels & 7;
 
     for (; rowPtr < rowLimitPtr; rowPtr += frameStride) {
-      frameBuf32.fill(color, rowPtr, rowPtr + numRowPixels);
-      // // fill 8 pixels at a time
-      // let colPtr = rowPtr;
-      // for (let k = numRowPixels8Rem; k; --k) {
-      //   frameBuf32[colPtr++] = color;
-      // }
-      // const colLimit = rowPtr + numRowPixels;
-      // let colPtr8 = rowPtr + numRowPixels8Rem;
-      // for (; colPtr8 < colLimit; colPtr8 += 8) {
-      //   frameBuf32[colPtr8] = color;
-      //   frameBuf32[colPtr8 + 1] = color;
-      //   frameBuf32[colPtr8 + 2] = color;
-      //   frameBuf32[colPtr8 + 3] = color;
-      //   frameBuf32[colPtr8 + 4] = color;
-      //   frameBuf32[colPtr8 + 5] = color;
-      //   frameBuf32[colPtr8 + 6] = color;
-      //   frameBuf32[colPtr8 + 7] = color;
-      // }
+      // frameBuf32.fill(color, rowPtr, rowPtr + numRowPixels);
+      // fill 8 pixels at a time
+      let colPtr = rowPtr;
+      for (let k = numRowPixels8Rem; k; --k) {
+        frameBuf32[colPtr++] = color;
+      }
+      const colLimit = rowPtr + numRowPixels;
+      let colPtr8 = rowPtr + numRowPixels8Rem;
+      for (; colPtr8 < colLimit; colPtr8 += 8) {
+        frameBuf32[colPtr8] = color;
+        frameBuf32[colPtr8 + 1] = color;
+        frameBuf32[colPtr8 + 2] = color;
+        frameBuf32[colPtr8 + 3] = color;
+        frameBuf32[colPtr8 + 4] = color;
+        frameBuf32[colPtr8 + 5] = color;
+        frameBuf32[colPtr8 + 6] = color;
+        frameBuf32[colPtr8 + 7] = color;
+      }
     }
   }
 
@@ -1204,6 +1204,23 @@ class Renderer {
                   y - 1,
                   color,
                 );
+                // if (batchLen < 16) {
+                //   this.drawRect(
+                //     batchStartX,
+                //     batchStartY,
+                //     batchStartX + batchLen - 1,
+                //     y - 1,
+                //     color,
+                //   );
+                // } else {
+                //   wasmEngineModule.drawRect(
+                //     frameRowPtrs[batchStartY] + batchStartX,
+                //     frameRowPtrs[y - 1] + batchStartX,
+                //     batchStartX,
+                //     batchStartX + batchLen - 1,
+                //     color,
+                //   );
+                // }
               }
             }
           }
