@@ -2409,3 +2409,24 @@ for (; framePtr < frameLimitPtr; ++framePtr) {
 // }
 
 
+
+// wall vert batch rend
+// let yOffs = (texX << lg2Pitch) + texY;
+// let batchYoffs = yOffs;
+// let batchFramePtr = framePtr;
+
+// for (
+//   framePtr += frameStride, yOffs += texStepY;
+//   framePtr < frameLimitPtr;
+//   framePtr += frameStride, yOffs += texStepY
+// ) {
+//   if (batchYoffs !== yOffs) {
+//     const color = mipPixels[batchYoffs | 0];
+//     // render col [batchFramePtr, framePtr - 1]
+//     for (; batchFramePtr < framePtr; batchFramePtr += frameStride) {
+//       frameBuf32[batchFramePtr] = color;
+//     }
+//     batchYoffs = yOffs;
+//     batchFramePtr = framePtr;
+//   }
+// }
