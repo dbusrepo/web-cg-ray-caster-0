@@ -2327,3 +2327,25 @@ for (let colPtr = startPtr16; colPtr < endPtr16; colPtr += 16) {
 for (; colPtr < colPtrLimit; colPtr += BPP_RGBA) {
   store<u32>(colPtr, color);
 }
+
+wasmEngineModule.drawRect(
+  batchStartX,
+  batchStartY,
+  renderXs[ix - 1],
+  y - 1,
+  color,
+);
+
+for (let y = startY; y <= endY; y++) {
+  const texY = texYOffsets[y];
+  if (!rowSliceFullyTranspMap[texY]) {
+    const startRowPtr = frameRowPtrs[y];
+    for (let ix = 0; ix < numRenderXs; ++ix) {
+      const color = mipPixels[texXOffsets[ix] + texY];
+      const framePtr = startRowPtr + renderXs[ix];
+      if (color !== transpColor) {
+        frameBuf32[framePtr] = color;
+      }
+    }
+  }
+}

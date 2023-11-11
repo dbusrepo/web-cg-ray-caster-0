@@ -1367,7 +1367,7 @@ class Raycaster {
         continue;
       }
 
-      const spriteWidth = spriteHeight;
+      const spriteWidth = spriteHeight; // sprites are squared
 
       const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;
       let startX = spriteScreenX - (spriteWidth >> 1);
@@ -1413,7 +1413,7 @@ class Raycaster {
       // sprite rows in [startY, endY]
       // sprite cols in [startX, endX]
 
-      // sprite tex is rotated 90ccw
+      // sprite tex img is rotated 90ccw
       const texIdx = sprite.TexIdx;
       const tex = textures[texIdx];
       const mipLvl = 0; // TODO:
@@ -1427,7 +1427,6 @@ class Raycaster {
       const srcTexStepX = texHeight / spriteWidth;
       const srcTexX = clipX * srcTexStepX;
 
-      // image is rotated 90ccw
       const texStepX = -srcTexStepX;
       const texX = texHeight - (srcTexX | 0) - 1;
 
@@ -1553,12 +1552,17 @@ class Raycaster {
       // precalc y offsets (used for each col)
       const { TexYOffsets: texYOffsets } = sprite;
 
-      for (
-        let y = startY, curTexY = texY;
-        y <= endY;
-        y++, curTexY += texStepY
-      ) {
-        texYOffsets[y] = curTexY;
+      if (texWidth <= endX - startX + 1) {
+        // when sprite is magnified, precalc batch y offsets and render by cols/rows batches
+      } else {
+        // when minified to precalc y offsets if you render by cols (not done now)
+        for (
+          let y = startY, curTexY = texY;
+          y <= endY;
+          y++, curTexY += texStepY
+        ) {
+          texYOffsets[y] = curTexY;
+        }
       }
 
       // insertion sort on viewSprites[1...numViewSprites] on increasing distance

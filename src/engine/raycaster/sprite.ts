@@ -12,6 +12,10 @@ class Sprite {
   private renderXs: Uint32Array;
   private numRenderXs: number;
   private texYOffsets: Uint32Array;
+  private batchTexYOffsets: Uint32Array;
+  private renderBatchYs: Uint32Array;
+  private renderBatchYLens: Uint32Array;
+  private numRenderBatchYs: number;
   private mipLevel: number; // current mip level
 
   constructor(
@@ -37,6 +41,9 @@ class Sprite {
     this.texXOffsets = new Uint32Array(viewWidth + 1);
     this.renderXs = new Uint32Array(viewWidth + 1);
     this.texYOffsets = new Uint32Array(viewHeight + 1);
+    this.batchTexYOffsets = new Uint32Array(viewHeight + 1);
+    this.renderBatchYs = new Uint32Array(viewHeight + 1);
+    this.renderBatchYLens = new Uint32Array(viewHeight + 1);
   }
 
   // init(posX: number, posY: number, posZ: number, texIdx: number): void {
