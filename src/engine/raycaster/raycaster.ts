@@ -1100,13 +1100,12 @@ class Raycaster {
         let isRayValid = true;
         if (!(wallCode & WALL_CODE_MASK)) {
           nextPos = curMapPos[side] + step[side];
-          isRayValid = nextPos >= 0 && nextPos < mapLimits[side] && steps > 0;
+          isRayValid = nextPos >= 0 && nextPos < mapLimits[side] && steps-- > 0;
           if (isRayValid) {
             curMapPos[side] = nextPos;
             sideDist[side] += deltaDist[side];
             wallMapOffs[side] += wallMapIncOffs[side];
             wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
-            steps--;
             continue;
           }
         }
