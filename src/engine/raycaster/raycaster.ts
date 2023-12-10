@@ -956,6 +956,13 @@ class Raycaster {
     return null;
   }
 
+  private advanceRay(side: number, nextPos: number) {
+    this.curMapPos[side] = nextPos;
+    this.sideDist[side] += this.deltaDist[side];
+    this.wallMapOffs[side] += this.wallMapIncOffs[side];
+    this.wallMapOffs[side ^ 1] += this.wallMapIncOffs[side << 1];
+  }
+
   private calcWallsVis() {
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
@@ -1102,10 +1109,7 @@ class Raycaster {
           nextPos = curMapPos[side] + step[side];
           isRayValid = nextPos >= 0 && nextPos < mapLimits[side] && steps-- > 0;
           if (isRayValid) {
-            curMapPos[side] = nextPos;
-            sideDist[side] += deltaDist[side];
-            wallMapOffs[side] += wallMapIncOffs[side];
-            wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+            this.advanceRay(side, nextPos);
             continue;
           }
         }
@@ -1141,10 +1145,7 @@ class Raycaster {
             const halfDist = deltaDist[side] * 0.5;
             const nextfWallx = fWallX + halfDist * rayDir[side ^ 1];
             if (nextfWallx < 0 || nextfWallx >= 1) {
-              curMapPos[side] = nextPos;
-              sideDist[side] += deltaDist[side];
-              wallMapOffs[side] += wallMapIncOffs[side];
-              wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+              this.advanceRay(side, nextPos);
               continue;
             } else {
               fWallX = nextfWallx;
@@ -1160,10 +1161,7 @@ class Raycaster {
                   // check door open at ColOffset
                   fWallX += doorOffsX;
                   if (fWallX >= 1) {
-                    curMapPos[side] = nextPos;
-                    sideDist[side] += deltaDist[side];
-                    wallMapOffs[side] += wallMapIncOffs[side];
-                    wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                    this.advanceRay(side, nextPos);
                     if (sideDist[side] > sideDist[side ^ 1]) {
                       continue;
                     } else {
@@ -1171,10 +1169,7 @@ class Raycaster {
                       nextPos = curMapPos[side] + step[side];
                       isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
                       if (isRayValid) {
-                        curMapPos[side] = nextPos;
-                        sideDist[side] += deltaDist[side];
-                        wallMapOffs[side] += wallMapIncOffs[side];
-                        wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                        this.advanceRay(side, nextPos);
                         continue;
                       } else {
                         // out of map, adjust dist to show not hit wall
@@ -1239,10 +1234,7 @@ class Raycaster {
             nextPos = curMapPos[side] + step[side];
             isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
             if (isRayValid) {
-              curMapPos[side] = nextPos;
-              sideDist[side] += deltaDist[side];
-              wallMapOffs[side] += wallMapIncOffs[side];
-              wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+              this.advanceRay(side, nextPos);
               continue;
             }
           }
