@@ -673,7 +673,7 @@ class Raycaster {
       this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
     }
 
-    // test door
+    // test doors
     {
       {
         // edge cases y door
@@ -691,18 +691,18 @@ class Raycaster {
 
         this.xWallMap[0] = 0; // test hole
 
-        // {
-        //   // init an active door
-        //   const door = this.newActiveDoor();
-        //   door.Type = 1;
-        //   door.Flags = 0;
-        //   door.Mpos = 0 + this.yWallMapWidth * 0;
-        //   door.Mpos1 = 0 + this.yWallMapWidth * 1;
-        //   door.ColOffset = 0.2;
-        //   door.Speed = 0.1;
-        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        // }
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 1;
+          door.Flags = 0;
+          door.Mpos = 0 + this.yWallMapWidth * 0;
+          door.Mpos1 = 0 + this.yWallMapWidth * 1;
+          door.ColOffset = 0.4;
+          door.Speed = 0.0;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
       }
 
       {
@@ -721,21 +721,21 @@ class Raycaster {
         this.yWallMap[1 + this.yWallMapWidth * 4] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
 
-        {
-          // init an active door
-          const door = this.newActiveDoor();
-          door.Type = 1;
-          door.Mpos = 1 + this.yWallMapWidth * 3;
-          door.Mpos1 = 1 + this.yWallMapWidth * 4;
-          door.Mcode = this.yWallMap[1 + this.yWallMapWidth * 3];
-          door.Mcode1 = this.yWallMap[1 + this.yWallMapWidth * 4];
-          door.ColOffset = 0.1;
-          // door.Speed = 0.001;
-          door.Speed = 0.007;
-          door.Flags = DOOR_OPENING | DOOR_AREA_CLOSED_FLAG;
-          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        }
+        // {
+        //   // init an active door
+        //   const door = this.newActiveDoor();
+        //   door.Type = 1;
+        //   door.Mpos = 1 + this.yWallMapWidth * 3;
+        //   door.Mpos1 = 1 + this.yWallMapWidth * 4;
+        //   door.Mcode = this.yWallMap[1 + this.yWallMapWidth * 3];
+        //   door.Mcode1 = this.yWallMap[1 + this.yWallMapWidth * 4];
+        //   door.ColOffset = 0.1;
+        //   // door.Speed = 0.001;
+        //   door.Speed = 0.007;
+        //   door.Flags = DOOR_OPENING | DOOR_AREA_CLOSED_FLAG;
+        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // }
       }
 
       {
@@ -799,7 +799,7 @@ class Raycaster {
 
       // hole with door code
       // this.xWallMap[0] = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-    }
+    } // end test doors
 
     // test transp wall
     {
