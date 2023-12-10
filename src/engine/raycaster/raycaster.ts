@@ -1035,9 +1035,9 @@ class Raycaster {
     iCheckWallIdxOffsY[N] = 0;
     iCheckWallIdxOffsY[P] = yWallMapWidth;
     iCheckWallIdxOffsDoorX[N] = -1;
-    iCheckWallIdxOffsDoorX[P] = 1;
+    iCheckWallIdxOffsDoorX[P] = 0;
     iCheckWallIdxOffsDoorY[N] = -yWallMapWidth;
-    iCheckWallIdxOffsDoorY[P] = yWallMapWidth;
+    iCheckWallIdxOffsDoorY[P] = 0;
     iCheckWallIdxOffsDivFactorY[N] = 1;
     iCheckWallIdxOffsDivFactorY[P] = yWallMapWidth;
 
@@ -1134,26 +1134,23 @@ class Raycaster {
         }
 
         if (wallCode & WALL_FLAGS.IS_DOOR) {
-          // check first case door code on map edge (should not happen if map is ok)
+          // first check if the door in on the map edge (should not happen, if it's the case render as wall with Hit 0)
           nextPos = curMapPos[side] + step[side];
           isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
           if (isRayValid) {
-            const halfDist = deltaDist[side] * 0.5; // TODO: precalc
-            const nextFWallX = fWallX + halfDist * rayDir[side ^ 1];
-            if (nextFWallX < 0 || nextFWallX >= 1) {
+            const halfDist = deltaDist[side] * 0.5;
+            const nextfWallx = fWallX + halfDist * rayDir[side ^ 1];
+            if (nextfWallx < 0 || nextfWallx >= 1) {
               curMapPos[side] = nextPos;
               sideDist[side] += deltaDist[side];
               wallMapOffs[side] += wallMapIncOffs[side];
               wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
               continue;
             } else {
-              fWallX = nextFWallX;
+              fWallX = nextfWallx;
               // assert(fWallX >= 0 && fWallX < 1, `invalid door fWallX ${fWallX}`)
               perpWallDist += halfDist;
-              const mPos = Math.min(
-                checkWallIdx,
-                checkWallIdx + checkWallIdxOffsDoor[side],
-              );
+              const mPos = checkWallIdx + checkWallIdxOffsDoor[side];
               const activeDoor = this.findActiveDoor(side, mPos);
               if (activeDoor) {
                 const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
