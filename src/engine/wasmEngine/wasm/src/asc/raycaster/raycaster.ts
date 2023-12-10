@@ -1,14 +1,17 @@
 import { myAssert } from '../myAssert';
-import { PTR_T, SIZE_T, NULL_PTR } from '../memUtils';
+import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from '../memUtils';
 import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { SArray, newSArray } from '../sarray';
 import { Viewport, newViewport } from './viewport';
 import { Player, newPlayer } from './player';
-import { Sprite, newSprite } from './sprite';
-import { Map, newMap } from './map';
-import { WallSlice, newWallSlice } from './wallslice';
+import { Sprite } from './sprite';
+import { Door } from './door';
+import { Map } from './map';
+import { Slice } from './slice';
 import { Texture } from '../texture';
 import { BitImageRGBA } from '../bitImageRGBA';
+import { Ref } from '../ref';
+import { Pointer } from '../pointer';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -46,8 +49,10 @@ import { RaycasterParams } from './raycasterParams';
   private textures: SArray<Texture>;
   private mipmaps: SArray<BitImageRGBA>;
   private sprites: SArray<Sprite>;
-  private wallSlices: SArray<WallSlice>;
-  private zBuffer: SArray<f32>;
+  private activeDoorsList: Pointer<Door>;
+  private wallSlices: SArray<Slice>;
+  private wallZBuffer: SArray<f32>;
+  private transpSlices: SArray<Ref<Slice>>;
   private wallHeight: u32;
   private player: Player;
   private map: Map;
@@ -139,24 +144,32 @@ import { RaycasterParams } from './raycasterParams';
     this.wallHeight = wallHeight;
   }
 
-  get ZBuffer(): SArray<f32> {
-    return this.zBuffer;
+  get WallZBuffer(): SArray<f32> {
+    return this.wallZBuffer;
   }
 
-  set ZBuffer(zBuffer: SArray<f32>) {
-    this.zBuffer = zBuffer;
+  set WallZBuffer(wallZBuffer: SArray<f32>) {
+    this.wallZBuffer = wallZBuffer;
   }
 
   get Sprites(): SArray<Sprite> {
     return this.sprites;
   }
 
-  get WallSlices(): SArray<WallSlice> {
+  get WallSlices(): SArray<Slice> {
     return this.wallSlices;
   }
 
-  set WallSlices(wallSlices: SArray<WallSlice>) {
+  set WallSlices(wallSlices: SArray<Slice>) {
     this.wallSlices = wallSlices;
+  }
+
+  get TranspSlices(): SArray<Ref<Slice>> {
+    return this.transpSlices;
+  }
+
+  set TranspSlices(transpSlices: SArray<Ref<Slice>>) {
+    this.transpSlices = transpSlices;
   }
 
   get ViewportPtr(): PTR_T {
@@ -214,6 +227,14 @@ import { RaycasterParams } from './raycasterParams';
   get Renderer(): Renderer {
     return this.renderer;
   }
+
+  get ActiveDoorsList(): Pointer<Door> {
+    return this.activeDoorsList;
+  }
+
+  set ActiveDoorsList(activeDoorsList: Pointer<Door>) {
+    this.activeDoorsList = activeDoorsList;
+  }
 }
 
 let raycasterAlloc = changetype<ObjectAllocator<Raycaster>>(NULL_PTR);
@@ -246,10 +267,10 @@ function getRaycaster(raycasterPtr: PTR_T): Raycaster {
   return changetype<Raycaster>(raycasterPtr);
 }
 
-function allocZBuffer(raycasterPtr: PTR_T): PTR_T {
+function allocWallZBuffer(raycasterPtr: PTR_T): PTR_T {
   const raycaster = getRaycaster(raycasterPtr);
-  raycaster.ZBuffer = newSArray<f32>(raycaster.Viewport.Width);
-  return raycaster.ZBuffer.DataPtr;
+  raycaster.WallZBuffer = newSArray<f32>(raycaster.Viewport.Width);
+  return raycaster.WallZBuffer.DataPtr;
 }
 
 // function getZBufferPtr(raycasterPtr: PTR_T): PTR_T {
@@ -257,10 +278,10 @@ function allocZBuffer(raycasterPtr: PTR_T): PTR_T {
 //   return raycaster.ZBuffer.DataPtr;
 // }
 
-function allocWallSlices(raycasterPtr: PTR_T): PTR_T {
+function allocWallSlices(raycasterPtr: PTR_T): void {
   const raycaster = getRaycaster(raycasterPtr);
-  raycaster.WallSlices = newSArray<WallSlice>(raycaster.Viewport.Width);
-  return raycaster.WallSlices.DataPtr;
+  const wallSlices = newSArray<Slice>(raycaster.Viewport.Width);
+  raycaster.WallSlices = wallSlices;
 }
 
 function getWallSlicesLength(raycasterPtr: PTR_T): SIZE_T {
@@ -372,19 +393,42 @@ function getMaxWallDistancePtr(raycasterPtr: PTR_T): PTR_T {
   return raycasterPtr + offsetof<Raycaster>("maxWallDistance");
 }
 
+function getActiveDoorsListPtr(raycasterPtr: PTR_T): PTR_T {
+  return raycasterPtr + offsetof<Raycaster>("activeDoorsList");
+}
+
 function allocSpritesArr(raycasterPtr: PTR_T, numSprites: SIZE_T): void {
   const raycaster = getRaycaster(raycasterPtr);
   raycaster.allocSpritesArr(numSprites);
 }
 
+function allocTranspSlices(raycasterPtr: PTR_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  const transpWallSlices = newSArray<Ref<Slice>>(raycaster.Viewport.Width);
+  raycaster.TranspSlices = transpWallSlices;
+}
+
+function resetTranspSlicesPtrs(raycasterPtr: PTR_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  const startOffs = raycaster.TranspSlices.ptrAt(0);
+  const endOffs = raycaster.TranspSlices.ptrAt(raycaster.TranspSlices.Length);
+  const numBytes = endOffs - startOffs;
+  memory.fill(startOffs, NULL_PTR as u8, numBytes);
+}
+
+function setTranspSliceAtIdx(raycasterPtr: PTR_T, wallSliceIdx: SIZE_T, wallSlicePtr: PTR_T): void {
+  const raycaster = getRaycaster(raycasterPtr);
+  raycaster.TranspSlices.at(wallSliceIdx).Ptr = wallSlicePtr;
+}
+
 export {
   Raycaster,
   newRaycaster,
+  allocWallZBuffer,
   getBorderColorPtr,
   getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
-  allocZBuffer,
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,
@@ -409,5 +453,10 @@ export {
   getViewportPtr,
   getPlayerPtr,
   getMaxWallDistancePtr,
-};
 
+  allocTranspSlices,
+  resetTranspSlicesPtrs,
+  setTranspSliceAtIdx,
+
+  getActiveDoorsListPtr,
+};

@@ -7,6 +7,7 @@ import {
 } from './importVars';
 
 const BPP_RGBA: u8 = 4;
+const BPP_RGBA_SHIFT: u8 = 2;
 
 const RGBA_ALPHA_MASK: u32 = 0xff000000;
 const RGBA_BLUE_MASK: u32 = 0x00ff0000;
@@ -254,6 +255,7 @@ export {
   deleteFrameColorRGBA, 
   MAX_LIGHT_LEVELS,
   BPP_RGBA,
+  BPP_RGBA_SHIFT,
   getRedLightTablePtr,
   getGreenLightTablePtr,
   getBlueLightTablePtr,

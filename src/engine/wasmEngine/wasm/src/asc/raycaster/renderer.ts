@@ -32,7 +32,7 @@ import {
   getBlueFogTablePtr,
 } from '../frameColorRGBA';
 import { Viewport } from './viewport';
-import { WallSlice } from './wallslice';
+import { Slice } from './slice';
 import { Player, newPlayer } from './player';
 import { Map, newMap } from './map';
 
@@ -80,7 +80,7 @@ const TEXTURED_FLOOR = true;
     return this.frameColorRGBA;
   }
 
-  renderVert(wallSlices: SArray<WallSlice>, player: Player, map: Map, projYCenter: u32): void {
+  renderVert(wallSlices: SArray<Slice>, player: Player, map: Map, projYCenter: u32): void {
     const textures = this.textures;
     const mipmaps = this.mipmaps;
     const frameRowPtrs = this.frameRowPtrs;
@@ -241,7 +241,7 @@ const TEXTURED_FLOOR = true;
     }
   }
 
-  public render(wallSlices: SArray<WallSlice>, player: Player, map: Map, projYCenter: u32): void {
+  public render(wallSlices: SArray<Slice>, player: Player, map: Map, projYCenter: u32): void {
     this.renderVert(wallSlices, player, map, projYCenter);
   }
 }

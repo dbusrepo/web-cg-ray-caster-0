@@ -8,7 +8,11 @@ import {
 import { ArenaAlloc, newArena } from './arenaAlloc';
 import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
-import * as draw from './draw';
+import { 
+  clearBg,
+  drawText,
+  drawRect,
+} from './draw';
 import {
   sharedHeapPtr,
   numWorkers,
@@ -28,15 +32,16 @@ import {
   mipmapsPtr,
   raycasterPtr,
 } from './importVars';
-import { GREYSTONE } from './gen_importImages';
+// import { GREYSTONE } from './gen_importImages';
 import { Texture, initTextures, initMipMaps } from './texture';
 import { BitImageRGBA } from './bitImageRGBA';
 // import { DArray, newDArray, deleteDArray } from './darray';
-import { Pointer } from './pointer';
-import { SArray, newSArray } from './sarray';
-import { test } from './test/test';
+// import { Pointer } from './pointer';
+import { SArray } from './sarray';
+// import { test } from './test/test';
 import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
-import { Viewport, newViewport,
+import {
+  Viewport, newViewport,
   getViewportStartXPtr, getViewportStartYPtr, 
   getViewportWidthPtr, getViewportHeightPtr,
 } from './raycaster/viewport';
@@ -69,6 +74,21 @@ import {
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
 } from './raycaster/sprite';
+import {
+  Door,
+  newDoor,
+  allocDoor,
+  getDoorMposPtr,
+  getDoorMpos1Ptr,
+  getDoorMcodePtr,
+  getDoorMcode1Ptr,
+  getDoorTypePtr,
+  getDoorFlagsPtr,
+  getDoorColOffsetPtr,
+  getDoorSpeedPtr,
+  getDoorPrevPtrPtr,
+  getDoorNextPtrPtr,
+} from './raycaster/door';
 import { Map, newMap } from './raycaster/map';
 import { 
   Raycaster,
@@ -77,7 +97,7 @@ import {
   getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
-  allocZBuffer,
+  allocWallZBuffer,
   allocWallSlices,
   getWallSlicesLength,
   getXWallMapPtr,
@@ -102,24 +122,29 @@ import {
   getViewportPtr,
   getPlayerPtr,
   getMaxWallDistancePtr,
+  allocTranspSlices,
+  resetTranspSlicesPtrs,
+  setTranspSliceAtIdx,
+  getActiveDoorsListPtr,
 } from './raycaster/raycaster';
 import { 
-  WallSlice,
-  newWallSlice,
-  getWallSliceDistancePtr,
-  getWallSliceHitPtr,
-  getWallSliceSidePtr,
-  getWallSliceTopPtr,
-  getWallSliceBottomPtr,
-  getWallSliceTexXPtr,
-  getWallSliceTexStepYPtr,
-  getWallSliceTexYPtr,
-  getWallSliceMipMapIdxPtr,
-  getWallSliceFloorWallXPtr,
-  getWallSliceFloorWallYPtr,
-  getWallSliceHeightPtr,
-  getWallSliceClipTopPtr,
-} from './raycaster/wallslice';
+  allocSlice,
+  getSliceDistancePtr,
+  getSliceHitPtr,
+  getSliceSidePtr,
+  getSliceTopPtr,
+  getSliceBottomPtr,
+  getSliceTexXPtr,
+  getSliceTexStepYPtr,
+  getSliceTexYPtr,
+  getSliceMipMapIdxPtr,
+  getSliceFloorWallXPtr,
+  getSliceFloorWallYPtr,
+  getSliceClipTopPtr,
+  getSlicePrevPtrPtr,
+  getSliceNextPtrPtr,
+  getSliceIsSpritePtr,
+} from './raycaster/slice';
 import {
   FrameColorRGBA, 
   newFrameColorRGBA,
@@ -138,7 +163,6 @@ import {
   newRaycasterParams,
   deleteRaycasterParams,
 } from './raycaster/raycasterParams';
-
 
 const syncLoc = utils.getArrElPtr<i32>(syncArrayPtr, workerIdx);
 const sleepLoc = utils.getArrElPtr<i32>(sleepArrayPtr, workerIdx);
@@ -185,7 +209,7 @@ function initData(): void {
   }
 }
 
-function initMap(mapWidth: i32, mapHeight: i32): void {
+function allocMap(mapWidth: i32, mapHeight: i32): void {
   const map = newMap(mapWidth, mapHeight);
   raycaster.Map = map;
 }
@@ -245,16 +269,14 @@ export {
   init,
   render,
   run,
-
-  initMap,
-
+  allocMap,
   getRaycasterPtr,
   getBorderColorPtr,
   getWallHeightPtr,
   getBorderWidthPtr,
   getProjYCenterPtr,
-  allocZBuffer,
   allocWallSlices,
+  allocWallZBuffer,
   getWallSlicesLength,
   getWallSlicesPtr,
   getWallSlicePtr,
@@ -263,6 +285,7 @@ export {
   getSpritePtr,
   getSpriteObjSizeLg2,
   allocSpritesArr,
+
   getSpritePosXPtr,
   getSpritePosYPtr,
   getSpritePosZPtr,
@@ -277,6 +300,19 @@ export {
   getSpriteEndYPtr,
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
+
+  allocDoor,
+  getDoorMposPtr,
+  getDoorMpos1Ptr,
+  getDoorMcodePtr,
+  getDoorMcode1Ptr,
+  getDoorTypePtr,
+  getDoorFlagsPtr,
+  getDoorColOffsetPtr,
+  getDoorSpeedPtr,
+  getDoorPrevPtrPtr,
+  getDoorNextPtrPtr,
+
   getXWallMapPtr,
   getXWallMapWidth,
   getXWallMapHeight,
@@ -306,19 +342,21 @@ export {
   getPlayerPlaneXPtr,
   getPlayerPlaneYPtr,
 
-  getWallSliceDistancePtr,
-  getWallSliceHitPtr,
-  getWallSliceSidePtr,
-  getWallSliceTopPtr,
-  getWallSliceBottomPtr,
-  getWallSliceTexXPtr,
-  getWallSliceTexStepYPtr,
-  getWallSliceTexYPtr,
-  getWallSliceFloorWallXPtr,
-  getWallSliceFloorWallYPtr,
-  getWallSliceMipMapIdxPtr,
-  getWallSliceHeightPtr,
-  getWallSliceClipTopPtr,
+  getSliceDistancePtr,
+  getSliceHitPtr,
+  getSliceSidePtr,
+  getSliceTopPtr,
+  getSliceBottomPtr,
+  getSliceTexXPtr,
+  getSliceTexStepYPtr,
+  getSliceTexYPtr,
+  getSliceFloorWallXPtr,
+  getSliceFloorWallYPtr,
+  getSliceMipMapIdxPtr,
+  getSliceClipTopPtr,
+  getSlicePrevPtrPtr,
+  getSliceNextPtrPtr,
+  getSliceIsSpritePtr,
 
   getFrameColorRGBAPtr,
   getRedLightTablePtr,
@@ -330,4 +368,12 @@ export {
 
   getTexturesPtr,
   getMipMapsPtr,
+
+  allocSlice,
+  allocTranspSlices,
+  resetTranspSlicesPtrs,
+  setTranspSliceAtIdx,
+  getActiveDoorsListPtr,
+
+  drawRect,
 };

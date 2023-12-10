@@ -3,26 +3,39 @@ import { raycasterCfg } from './config';
 // import { mainConfig } from '../../config/mainConfig';
 // import type { InputEvent } from '../../app/events';
 // import { AssetManager } from '../assets/assetManager';
-import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import { BitImageRGBA /* , BPP_RGBA */ } from '../assets/images/bitImageRGBA';
 // import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 // import { sleep } from '../utils';
 
 // import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 // import { WasmEngine } from '../wasmEngine/wasmEngine';
 import type { WasmViews } from '../wasmEngine/wasmViews';
-import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
-import { WasmRun } from '../wasmEngine/wasmRun';
+import type { WasmEngineModule } from '../wasmEngine/wasmLoader';
+import type { WasmNullPtr } from '../wasmEngine/wasmRun';
+import { WasmRun, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 import { Viewport, getWasmViewportView } from './viewport';
 import { Player, getWasmPlayerView } from './player';
 import { Sprite, getWasmSpritesView } from './sprite';
-import { WallSlice, getWasmWallSlicesView } from './wallslice';
+import type { Door, DoorRef } from './door';
+import { newDoorView, freeDoorView, getDoorView } from './door';
+import type { Slice, SliceRef } from './slice';
+import {
+  getWasmWallSlicesView,
+  newSliceView,
+  freeSliceView,
+  freeTranspSliceViewsList,
+} from './slice';
 import Renderer from './renderer';
 import { Key, keys, keyOffsets } from '../../input/inputManager';
-import { ascImportImages, imageKeys } from '../../../assets/build/images';
-import { Texture, initTextureWasmView } from '../wasmEngine/texture';
+import {
+  ascImportImages,
+  imageKeys,
+  TRANSP_COLOR_RGB,
+} from '../../../assets/build/images';
+import { Texture, initTextureWasmView, Mipmap } from '../wasmEngine/texture';
 import {
   FrameColorRGBAWasm,
-  getFrameColorRGBAWasmView,
+  // getFrameColorRGBAWasmView,
 } from '../wasmEngine/frameColorRGBAWasm';
 
 type RaycasterParams = {
@@ -30,30 +43,74 @@ type RaycasterParams = {
   frameColorRGBAWasm: FrameColorRGBAWasm;
 };
 
-const wallTexKeys = {
+const WALL_TEX_KEYS = {
   GREYSTONE: imageKeys.GREYSTONE,
   BLUESTONE: imageKeys.BLUESTONE,
   REDBRICK: imageKeys.REDBRICK,
-  EAGLE: imageKeys.EAGLE,
   BRICK1: imageKeys.BRICK1,
+  STONE_0: imageKeys.STONE_0,
+  DOOR_0: imageKeys.DOOR_0,
+  TRANSP0: imageKeys.TRANSP0,
+  TRANSP1: imageKeys.TRANSP1,
+  TRANSP2: imageKeys.TRANSP2,
+  FULL_TRANSP: imageKeys.FULL_TRANSP,
+  GREEN_LIGHT: imageKeys.GREEN_LIGHT,
+  BARREL: imageKeys.BARREL,
+  PILLAR: imageKeys.PILLAR,
+  PLANT: imageKeys.PLANT,
 };
 
-const darkWallTexKeys: typeof wallTexKeys = Object.entries(wallTexKeys).reduce(
+// wall map codes use 16 bits, low 8 bits are the code, high 8 bits are the flags
+const WALL_FLAGS_OFFSET = 8;
+const WALL_CODE_MASK = (1 << WALL_FLAGS_OFFSET) - 1;
+
+const WALL_FLAGS = {
+  IS_TRANSP: 1 << WALL_FLAGS_OFFSET,
+  IS_DOOR: 1 << (WALL_FLAGS_OFFSET + 1),
+};
+
+// two types of doors, use 1 bit mask for door type
+const WALL_DOOR_TYPE_OFFSET = WALL_FLAGS_OFFSET + 2;
+const WALL_DOOR_TYPE_MASK = 1 << WALL_DOOR_TYPE_OFFSET;
+const WALL_DOOR_TYPE_SLIDE = 0 << WALL_DOOR_TYPE_OFFSET;
+const WALL_DOOR_TYPE_SPLIT = 1 << WALL_DOOR_TYPE_OFFSET;
+
+// #define DOOR_OPENING	0x80		/* On if door is currently opening */
+// #define DOOR_CLOSING	0x40		/* On if door is currently closing */
+
+const DOOR_FLAGS_STATUS_OFFSET = 0;
+const DOOR_FLAGS_STATUS_MASK = 0 << DOOR_FLAGS_STATUS_OFFSET;
+const DOOR_OPENING = 0 << DOOR_FLAGS_STATUS_OFFSET;
+const DOOR_CLOSING = 1 << DOOR_FLAGS_STATUS_OFFSET;
+
+const DOOR_FLAGS_AREA_STATUS_OFFSET = 1;
+const DOOR_FLAGS_AREA_STATUS_MASK = 1 << DOOR_FLAGS_AREA_STATUS_OFFSET;
+const DOOR_AREA_CLOSED_FLAG = 1 << DOOR_FLAGS_AREA_STATUS_OFFSET;
+
+const MAX_DOOR_COL_OFFSET = 1.5;
+const XDOOR_TYPE = 0;
+const YDOOR_TYPE = 1;
+
+const darkWallTexKeys: typeof WALL_TEX_KEYS = Object.entries(WALL_TEX_KEYS).reduce(
   (acc, [key, val]) => {
     const DARK_TEX_SUFFIX = '_D';
-    acc[key as keyof typeof wallTexKeys] = val + DARK_TEX_SUFFIX;
+    acc[key as keyof typeof WALL_TEX_KEYS] = val + DARK_TEX_SUFFIX;
     return acc;
   },
-  {} as typeof wallTexKeys,
+  {} as typeof WALL_TEX_KEYS,
 );
 
-const floorTexKeys = {
+const FLOOR_TEX_KEYS = {
   FLOOR0: imageKeys.FLOOR0,
   FLOOR1: imageKeys.FLOOR1,
 };
 
+const MIN_SPRITE_DIST = 0.1;
+const MAX_SPRITE_DIST = 1000; // TODO:
+
 class Raycaster {
   private params: RaycasterParams;
+
   private wasmRun: WasmRun;
   private wasmViews: WasmViews;
   private wasmEngineModule: WasmEngineModule;
@@ -61,6 +118,7 @@ class Raycaster {
 
   private inputKeys: Uint8Array;
 
+  private raycasterPtr: number;
   private borderWidthPtr: number;
   private borderColorPtr: number;
   private wallHeightPtr: number;
@@ -70,25 +128,48 @@ class Raycaster {
   private maxWallTopPtr: number;
   private minWallBottomPtr: number;
   private maxWallBottomPtr: number;
-  private raycasterPtr: number;
+  private activeDoorsListPtrPtr: number;
 
   private viewport: Viewport;
   private player: Player;
   private sprites: Sprite[];
 
+  private activeDoors: Door[];
+  private numActiveDoors: number;
+
   private viewSprites: Sprite[];
   private numViewSprites: number;
+  private viewSpritesSrcIdxs: number[];
 
-  private wallSlices: WallSlice[];
-  private zBuffer: Float32Array;
+  private wallSlices: Slice[];
+  private wallZBuffer: Float32Array;
+
+  private wallSlicesOccludedBySprites: Uint8Array;
+  private spritesTop: number[];
+  private spritesBottom: number[];
+
+  private transpSlices: SliceRef[];
+  private numTranspSlicesLists: number; // num of not empty transp slices lists in transpSlices array
+  private transpSplicesListsXs: number[]; // x coords of transp slices lists
+  private transpSlicesListsXsIdxs: number[]; // inv map of transpSplicesListsXs
+
+  private texSlicePartialTranspMap: {
+    [texIdx: number]: { [mipLvl: number]: Uint8Array };
+  };
+  private texSliceFullyTranspMap: {
+    [texIdx: number]: { [mipLvl: number]: Uint8Array };
+  };
+  private texRowSliceFullyTranspMap: {
+    [texIdx: number]: { [mipLvl: number]: Uint8Array };
+  };
 
   private mapWidth: number;
   private mapHeight: number;
 
   private textures: Texture[];
 
-  private xWallMap: Uint8Array;
-  private yWallMap: Uint8Array;
+  private xWallMap: Uint16Array;
+  private yWallMap: Uint16Array;
 
   private xWallMapWidth: number;
   private xWallMapHeight: number;
@@ -101,7 +182,33 @@ class Raycaster {
 
   private renderer: Renderer;
 
-  private double2FloatArr: Float32Array;
+  // vars used in main raycasting loop
+  private iStep = new Int32Array(2);
+  private iSideDistX = new Float32Array(2);
+  private iSideDistY = new Float32Array(2);
+  private iCheckWallIdxOffsX = new Int32Array(2);
+  private iCheckWallIdxOffsDoorX = new Int32Array(2);
+  private iCheckWallIdxOffsY = new Int32Array(2);
+  private iCheckWallIdxOffsDoorY = new Int32Array(2);
+  private iCheckWallIdxOffsDivFactorY = new Int32Array(2);
+
+  private pos = new Float32Array(2);
+  private rayDir = new Float32Array(2);
+  private sideDist = new Float32Array(2);
+  private deltaDist = new Float32Array(2);
+  private step = new Int32Array(2);
+  private wallMapOffs = new Int32Array(2);
+  private wallMapIncOffs = new Int32Array(3);
+  private checkWallIdxOffs = new Int32Array(2);
+  private checkWallIdxOffsDoor = new Int32Array(2);
+  private checkWallIdxOffsDivFactor = new Int32Array(2);
+  private curMapPos = new Int32Array(2);
+  private wallMaps = new Array<Uint16Array>(2);
+  private mapLimits = new Int32Array(2);
+  private floorWall = new Float32Array(2);
+
+  // private _2float: Float32Array;
+  // private _1u32: Uint32Array;
 
   public async init(params: RaycasterParams) {
     this.params = params;
@@ -122,24 +229,32 @@ class Raycaster {
     // this.renderBackground();
     // this.rotate(Math.PI / 4);
 
-    this.double2FloatArr = new Float32Array(1);
-    // // example
-    // this.double2FloatArr[0] = tY; // convert tY to float
-    // const tYf = this.double2FloatArr[0];
+    // this._2float = new Float32Array(1);
+    // example
+    // this._2float[0] = tY; // convert tY to float
+    // const tYf = this._2float[0];
   }
 
   private initRenderer() {
     this.renderer = new Renderer(this);
-    this.renderer.TexturedFloor = true;
-    this.renderer.UseWasm = false;
+    this.renderer.IsFloorTextured = true;
+    this.renderer.VertFloor = false;
+    this.renderer.Back2Front = true;
   }
 
   private initData() {
+    Texture.transpColor = FrameColorRGBAWasm.colorBGR(
+      TRANSP_COLOR_RGB.b,
+      TRANSP_COLOR_RGB.g,
+      TRANSP_COLOR_RGB.r,
+    );
+
     this.initTextures();
     this.initBorder();
     this.initViewport();
-    this.initZBuffer();
+    this.initWallZBuffer();
     this.initWallSlices();
+    this.initTranspSlices();
 
     this.backgroundColor = FrameColorRGBAWasm.colorRGBAtoABGR(0x000000ff);
     this.ProjYCenter = this.viewport.Height / 2;
@@ -148,6 +263,7 @@ class Raycaster {
 
     this.initPlayer();
     this.initSprites();
+    this.initDoors();
     this.initMap();
   }
 
@@ -192,6 +308,10 @@ class Raycaster {
     this.maxWallDistancePtr = this.wasmEngineModule.getMaxWallDistancePtr(
       this.raycasterPtr,
     );
+
+    this.activeDoorsListPtrPtr = this.wasmEngineModule.getActiveDoorsListPtr(
+      this.raycasterPtr,
+    );
   }
 
   private initViewport() {
@@ -208,7 +328,7 @@ class Raycaster {
   private initPlayer() {
     this.player = getWasmPlayerView(this.wasmEngineModule, this.raycasterPtr);
     this.player.PosX = 0.5;
-    this.player.PosY = 0.5;
+    this.player.PosY = 1.5;
     assert(this.WallHeight);
     this.player.PosZ = this.WallHeight / 2; // TODO:
     // rotated east
@@ -223,32 +343,167 @@ class Raycaster {
     // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
   }
 
+  private initDoors() {
+    const { viewport, wasmEngineModule } = this;
+    this.activeDoors = [];
+  }
+
   private initSprites(): void {
-    const NUM_SPRITES = 1;
-    this.wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
-    this.sprites = getWasmSpritesView(this.wasmEngineModule, this.raycasterPtr);
+    const { viewport, wasmEngineModule } = this;
+    Sprite.SPRITE_HEIGHT_LIMIT = viewport.Height * 3;
+
+    this.numViewSprites = 0;
+    this.spritesTop = new Array<number>(viewport.Width);
+    this.spritesBottom = new Array<number>(viewport.Width);
+
+    const NUM_SPRITES = 8;
+    // const NUM_SPRITES = 1; // 8
+
+    wasmEngineModule.allocSpritesArr(this.raycasterPtr, NUM_SPRITES);
+    this.sprites = getWasmSpritesView(this);
     if (this.sprites.length) {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
+      this.viewSpritesSrcIdxs = new Array<number>(1 + this.sprites.length);
 
-      // TODO: init sprites
-      const sprite = this.sprites[0];
-      sprite.PosX = 7.5;
-      sprite.PosY = 0.5;
-      sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
-      sprite.TexIdx = 0;
-      sprite.Visible = 1;
+      // // test sprite
+      // {
+      //   const tex = this.findTex(wallTexKeys.PILLAR);
+      //   assert(tex);
+      //   const sprite = this.sprites[0];
+      //   sprite.PosX = 7.5;
+      //   sprite.PosY = 8.5;
+      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+      //   sprite.Visible = 1;
+      // }
+
+      // { // test near sprite rend
+      //   // const tex = this.findTex(wallTexKeys.GREEN_LIGHT);
+      //   // const tex = this.findTex(wallTexKeys.BARREL);
+      //   const tex = this.findTex(WALL_TEX_KEYS.PLANT);
+      //   assert(tex);
+      //   const sprite = this.sprites[0];
+      //   // sprite.PosX = 7.5;
+      //   // sprite.PosY = 8.5;
+      //   // sprite.PosX = 8.5;
+      //   // sprite.PosY = 0.5;
+      //   // sprite.PosX = 4.5;
+      //   // sprite.PosY = 1.5;
+      //   // sprite.PosX = 0.9;
+      //   // sprite.PosY = 1.5;
+      //   sprite.PosX = 0.5;
+      //   sprite.PosY = 5.5;
+      //   sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+      //   sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+      //   sprite.Visible = 1;
+      // }
+
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
+        assert(tex);
+        const sprite = this.sprites[0];
+        sprite.PosX = 4.5;
+        sprite.PosY = 6.5;
+        // sprite.PosX = 3.5;
+        // sprite.PosY = 1.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+        sprite.Visible = 1;
+      }
+
+      //
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
+        assert(tex);
+        const sprite = this.sprites[1];
+        // sprite.PosX = 5.5;
+        // sprite.PosY = 1.5;
+        sprite.PosX = 8.5;
+        sprite.PosY = 9.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+        sprite.Visible = 1;
+      }
+      //
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.BARREL);
+        assert(tex);
+        const sprite = this.sprites[2];
+        sprite.PosX = 4.5;
+        sprite.PosY = 2.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.PLANT);
+        assert(tex);
+        const sprite = this.sprites[3];
+        sprite.PosX = 0.5;
+        sprite.PosY = 6.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.PLANT);
+        assert(tex);
+        const sprite = this.sprites[4];
+        sprite.PosX = 0.5;
+        sprite.PosY = 4.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.GREEN_LIGHT);
+        assert(tex);
+        const sprite = this.sprites[5];
+        sprite.PosX = 5.5;
+        sprite.PosY = 1.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.PLANT);
+        assert(tex);
+        const sprite = this.sprites[6];
+        sprite.PosX = 0.5;
+        sprite.PosY = 2.5;
+        sprite.PosZ = 0;
+        sprite.TexIdx = tex.WasmIdx;
+        sprite.Visible = 1;
+      }
+
+      {
+        const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
+        assert(tex);
+        const sprite = this.sprites[7];
+        sprite.PosX = 8.5;
+        sprite.PosY = 0.5;
+        sprite.PosZ = 0; // this.WallHeight; // base, 0 is the floor lvl
+        sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
+        sprite.Visible = 1;
+      }
     }
   }
 
   // private initBorderColor() {
   // }
 
-  private initZBuffer() {
-    const zBufferPtr = this.wasmEngineModule.allocZBuffer(this.raycasterPtr);
+  private initWallZBuffer() {
+    const wallZBufferPtr = this.wasmEngineModule.allocWallZBuffer(
+      this.raycasterPtr,
+    );
     assert(this.viewport, 'viewport not initialized');
-    this.zBuffer = new Float32Array(
+    this.wallZBuffer = new Float32Array(
       this.wasmRun.WasmMem.buffer,
-      zBufferPtr,
+      wallZBufferPtr,
       this.viewport.Width,
     );
   }
@@ -256,18 +511,25 @@ class Raycaster {
   private initWallSlices() {
     assert(this.viewport, 'viewport not initialized');
     this.wasmEngineModule.allocWallSlices(this.raycasterPtr);
-    this.wallSlices = getWasmWallSlicesView(
-      this.wasmEngineModule,
-      this.raycasterPtr,
-    );
+    this.wallSlices = getWasmWallSlicesView(this.raycasterPtr);
+    this.wallSlicesOccludedBySprites = new Uint8Array(this.wallSlices.length);
+  }
+
+  private initTranspSlices() {
+    assert(this.viewport, 'viewport not initialized');
+    this.wasmEngineModule.allocTranspSlices(this.raycasterPtr);
+    this.transpSlices = new Array<SliceRef>(this.viewport.Width);
+    this.transpSplicesListsXs = new Array<number>(this.viewport.Width);
+    this.transpSlicesListsXsIdxs = new Array<number>(this.viewport.Width);
+    this.resetTranspSlices();
   }
 
   private initTextures() {
     this.initTexturesViews();
     this.genDarkWallTextures();
+    this.precTexIsTranspCols();
   }
 
-  // TODO:
   private initTexturesViews() {
     const wasmTexturesImport = Object.entries(ascImportImages);
     let wasmMipIdx = 0;
@@ -279,87 +541,318 @@ class Raycaster {
     });
   }
 
-  private findTex(texKey: string): Texture {
+  private findTex(texKey: string): Texture | null {
     let tex: Texture | null = null;
     for (let i = 0; i < this.textures.length; i++) {
       if (this.textures[i].Key === texKey) {
         tex = this.textures[i];
       }
     }
-    assert(tex !== null, `texture ${texKey} not found`);
+    // assert(tex !== null, `texture ${texKey} not found`);
     return tex;
   }
 
+  // TODO:
   private genDarkWallTextures() {
     const wallTexKeysArr = Object.values(darkWallTexKeys);
     for (let i = 0; i < wallTexKeysArr.length; i++) {
       const darkTexKey = wallTexKeysArr[i];
       const darkTex = this.findTex(darkTexKey);
-      darkTex.makeDarker();
+      if (darkTex) {
+        darkTex.makeDarker();
+      }
     }
   }
 
-  public initMap() {
-    this.mapWidth = 10;
-    this.mapHeight = 10;
+  private precTexIsTranspCols() {
+    this.texSlicePartialTranspMap = {}; // [texIdx][mipLvl][texX] = 1 if texId,mipLvl has transp col at texX
+    this.texSliceFullyTranspMap = {}; // [texIdx][mipLvl][texX] = 1 if texId,mipLvl has fully transp col at texX
+    this.texRowSliceFullyTranspMap = {}; // [texIdx][mipLvl][texY] = 1 if texId,mipLvl has fully transp row at texY
+    this.textures.forEach((tex) => {
+      const mipLvl = 0; // TODO: loop through mip levels
+      const mipmap = tex.getMipmap(mipLvl);
+      const { Image: image } = mipmap;
+      const { Width: texHeight, Height: texWidth } = image;
+      const { WasmIdx: texIdx } = tex;
+      this.texSlicePartialTranspMap[texIdx] = {};
+      this.texSliceFullyTranspMap[texIdx] = {};
+      this.texRowSliceFullyTranspMap[texIdx] = {};
+      const isTranspSliceArr = (this.texSlicePartialTranspMap[texIdx][mipLvl] =
+        new Uint8Array(texHeight));
+      const isFullyTranspSliceArr = (this.texSliceFullyTranspMap[texIdx][
+        mipLvl
+      ] = new Uint8Array(texHeight));
+      const isFullyTranspRowArr = (this.texRowSliceFullyTranspMap[texIdx][
+        mipLvl
+      ] = new Uint8Array(texWidth));
+      for (let texX = 0; texX < texHeight; texX++) {
+        isTranspSliceArr[texX] = this.isSlicePartiallyTransp(texX, image)
+          ? 1
+          : 0;
+        isFullyTranspSliceArr[texX] = this.isSliceFullyTransp(texX, image)
+          ? 1
+          : 0;
+      }
+      for (let texY = 0; texY < texWidth; texY++) {
+        isFullyTranspRowArr[texY] = this.isRowSliceFullyTransp(texY, image)
+          ? 1
+          : 0;
+      }
+    });
+  }
 
-    this.wasmEngineModule.initMap(this.mapWidth, this.mapHeight);
+  public initMap() {
+    // TODO:
+    const MAP_WIDTH = 10;
+    const MAP_HEIGHT = 10;
+
+    this.mapWidth = MAP_WIDTH;
+    this.mapHeight = MAP_HEIGHT;
+
+    this.wasmEngineModule.allocMap(this.mapWidth, this.mapHeight);
 
     this.initWallMap();
     this.initFloorMap();
   }
 
   private initWallMap() {
-    const xMapPtr = this.wasmEngineModule.getXWallMapPtr(this.raycasterPtr);
-    this.xWallMapWidth = this.wasmEngineModule.getXWallMapWidth(
-      this.raycasterPtr,
-    );
-    this.xWallMapHeight = this.wasmEngineModule.getXWallMapHeight(
-      this.raycasterPtr,
-    );
+    const { wasmEngineModule } = this;
 
-    const yMapPtr = this.wasmEngineModule.getYWallMapPtr(this.raycasterPtr);
-    this.yWallMapWidth = this.wasmEngineModule.getYWallMapWidth(
-      this.raycasterPtr,
-    );
-    this.yWallMapHeight = this.wasmEngineModule.getYWallMapHeight(
-      this.raycasterPtr,
-    );
+    this.xWallMapWidth = wasmEngineModule.getXWallMapWidth(this.raycasterPtr);
+    this.xWallMapHeight = wasmEngineModule.getXWallMapHeight(this.raycasterPtr);
 
-    this.xWallMap = new Uint8Array(
+    this.yWallMapWidth = wasmEngineModule.getYWallMapWidth(this.raycasterPtr);
+    this.yWallMapHeight = wasmEngineModule.getYWallMapHeight(this.raycasterPtr);
+
+    const xMapPtr = wasmEngineModule.getXWallMapPtr(this.raycasterPtr);
+    this.xWallMap = new Uint16Array(
       this.wasmRun.WasmMem.buffer,
       xMapPtr,
       this.xWallMapWidth * this.xWallMapHeight,
     );
 
-    this.yWallMap = new Uint8Array(
+    const yMapPtr = wasmEngineModule.getYWallMapPtr(this.raycasterPtr);
+    this.yWallMap = new Uint16Array(
       this.wasmRun.WasmMem.buffer,
       yMapPtr,
       this.yWallMapWidth * this.yWallMapHeight,
     );
 
-    let tex = this.findTex(wallTexKeys.GREYSTONE);
-    for (let i = 0; i < this.xWallMapHeight; i++) {
-      this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
-      this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
-        tex.WallMapIdx;
+    {
+      const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
+      assert(tex);
+      for (let i = 0; i < this.xWallMapHeight; i++) {
+        this.xWallMap[i * this.xWallMapWidth] = tex.WallMapIdx;
+        this.xWallMap[i * this.xWallMapWidth + (this.xWallMapWidth - 1)] =
+          tex.WallMapIdx;
+      }
+      // this.xWallMap[0] = 0; // test hole
     }
 
-    tex = this.findTex(wallTexKeys.BRICK1);
-    this.xWallMap[4] = tex.WallMapIdx;
-    this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
-
-    tex = this.findTex(darkWallTexKeys.GREYSTONE);
-    for (let i = 0; i < this.yWallMapWidth; i++) {
-      this.yWallMap[i] = tex.WallMapIdx;
-      this.yWallMap[i + (this.yWallMapHeight - 1) * this.yWallMapWidth] =
-        tex.WallMapIdx;
+    {
+      const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
+      assert(tex);
+      this.xWallMap[4] = tex.WallMapIdx;
+      this.xWallMap[4 + this.xWallMapWidth * 2] = tex.WallMapIdx;
     }
-    // this.yMap[2] = 0; // test hole
 
-    tex = this.findTex(darkWallTexKeys.REDBRICK);
-    this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
-    this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+    {
+      const tex = this.findTex(darkWallTexKeys.GREYSTONE);
+      assert(tex);
+      for (let i = 0; i < this.yWallMapWidth; i++) {
+        this.yWallMap[i] = tex.WallMapIdx;
+        this.yWallMap[i + (this.yWallMapHeight - 1) * this.yWallMapWidth] =
+          tex.WallMapIdx;
+      }
+    }
+
+    {
+      const tex = this.findTex(darkWallTexKeys.REDBRICK);
+      assert(tex);
+      this.yWallMap[4 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+      this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
+    }
+
+    // test door
+    {
+      {
+        // edge cases y door
+        const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
+        assert(tex);
+        this.xWallMap[1 + this.xWallMapWidth * 0] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
+        assert(doorTex);
+        // edge case door on y edge of map
+        this.yWallMap[0 + this.yWallMapWidth * 0] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.yWallMap[0 + this.yWallMapWidth * 1] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        this.xWallMap[0] = 0; // test hole
+
+        // {
+        //   // init an active door
+        //   const door = this.newActiveDoor();
+        //   door.Type = 1;
+        //   door.Flags = 0;
+        //   door.Mpos = 0 + this.yWallMapWidth * 0;
+        //   door.Mpos1 = 0 + this.yWallMapWidth * 1;
+        //   door.ColOffset = 0.2;
+        //   door.Speed = 0.1;
+        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // }
+      }
+
+      {
+        // y door
+        const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
+        assert(tex);
+        this.xWallMap[1 + this.xWallMapWidth * 3] = tex.WallMapIdx;
+        this.xWallMap[2 + this.xWallMapWidth * 3] = tex.WallMapIdx;
+        // this.yWallMap[0 + this.yWallMapWidth * 3] = tex.WallMapIdx;
+        // this.yWallMap[2 + this.yWallMapWidth * 3] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
+        assert(doorTex);
+        this.yWallMap[1 + this.yWallMapWidth * 3] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.yWallMap[1 + this.yWallMapWidth * 4] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 1;
+          door.Mpos = 1 + this.yWallMapWidth * 3;
+          door.Mpos1 = 1 + this.yWallMapWidth * 4;
+          door.Mcode = this.yWallMap[1 + this.yWallMapWidth * 3];
+          door.Mcode1 = this.yWallMap[1 + this.yWallMapWidth * 4];
+          door.ColOffset = 0.1;
+          // door.Speed = 0.001;
+          door.Speed = 0.007;
+          door.Flags = DOOR_OPENING | DOOR_AREA_CLOSED_FLAG;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
+      }
+
+      {
+        // x door
+        const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
+        assert(tex);
+        this.yWallMap[2 + this.yWallMapWidth * 8] = tex.WallMapIdx;
+        this.yWallMap[2 + this.yWallMapWidth * 9] = tex.WallMapIdx;
+
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
+        assert(doorTex);
+        this.xWallMap[2 + this.xWallMapWidth * 8] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        this.xWallMap[3 + this.xWallMapWidth * 8] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 0;
+          door.Flags = 0;
+          door.Mpos = 2 + this.xWallMapWidth * 8;
+          door.Mpos1 = 3 + this.yWallMapWidth * 8;
+          door.ColOffset = 0.2;
+          door.Speed = 0.0;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
+      }
+
+      {
+        // edge case x door
+        const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
+        assert(tex);
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 2)] =
+          tex.WallMapIdx;
+
+        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
+        assert(doorTex);
+        this.xWallMap[1 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // edge case: door on x edge of map
+        this.xWallMap[0 + this.xWallMapWidth * (this.xWallMapHeight - 1)] =
+          doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+
+        this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 1)] = 0; // test hole
+
+        // {
+        //   // init an active door
+        //   const door = this.newActiveDoor();
+        //   door.Type = 0;
+        //   door.Flags = 0;
+        //   door.Mpos = 0 + this.xWallMapWidth * (this.xWallMapHeight - 1);
+        //   door.Mpos1 = 1 + this.xWallMapWidth * (this.xWallMapHeight - 1);
+        //   door.ColOffset = 0.4;
+        //   door.Speed = 0.1;
+        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // }
+      }
+
+      // hole with door code
+      // this.xWallMap[0] = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+    }
+
+    // test transp wall
+    {
+      // const transpTex0 = this.findTex(wallTexKeys.TRANSP0);
+      // const transpTex1 = this.findTex(wallTexKeys.TRANSP1);
+      // this.xWallMap[0 * this.xWallMapWidth + 2] =
+      //   transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+      // this.xWallMap[0 * this.xWallMapWidth + 3] =
+      //   transpTex1.WallMapIdx | WALL_FLAGS.TRANSP;
+      // this.xWallMap[4 * this.xWallMapWidth + 5] =
+      //   transpTex0.WallMapIdx | WALL_FLAGS.TRANSP;
+      // console.log(transpTex.WallMapIdx | WALL_FLAGS.TRANSP);
+    }
+
+    // this.yWallMap[2 + this.yWallMapWidth * 5] = this.findTex(darkWallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+    // this.xWallMap[2 + this.xWallMapWidth * 5] = this.findTex(wallTexKeys.TRANSP2).WallMapIdx | WALL_FLAGS.TRANSP;
+
+    const darkTransp2 = this.findTex(darkWallTexKeys.TRANSP2);
+    assert(darkTransp2);
+    const transp2 = this.findTex(WALL_TEX_KEYS.TRANSP2);
+    assert(transp2);
+    this.yWallMap[3 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.xWallMap[3 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.yWallMap[4 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.xWallMap[4 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.yWallMap[5 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.xWallMap[5 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.yWallMap[6 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.xWallMap[6 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.yWallMap[7 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.xWallMap[7 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.yWallMap[8 + this.yWallMapWidth * 6] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+    this.xWallMap[8 + this.xWallMapWidth * 6] =
+      transp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+
+    this.yWallMap[6 + this.yWallMapWidth * 7] =
+      darkTransp2.WallMapIdx | WALL_FLAGS.IS_TRANSP;
+
+    const darkTransp0 = this.findTex(darkWallTexKeys.TRANSP0);
+    assert(darkTransp0);
+    this.yWallMap[8 + this.yWallMapWidth * 6] =
+      darkTransp0.WallMapIdx | WALL_FLAGS.IS_TRANSP;
   }
 
   private initFloorMap() {
@@ -371,7 +864,8 @@ class Raycaster {
       this.mapWidth * this.mapHeight,
     );
 
-    let tex = this.findTex(floorTexKeys.FLOOR0);
+    let tex = this.findTex(FLOOR_TEX_KEYS.FLOOR0);
+    assert(tex);
 
     for (let y = 0; y < this.mapHeight; y++) {
       for (let x = 0; x < this.mapWidth; x++) {
@@ -379,11 +873,90 @@ class Raycaster {
       }
     }
 
-    tex = this.findTex(floorTexKeys.FLOOR1);
+    tex = this.findTex(FLOOR_TEX_KEYS.FLOOR1);
+    assert(tex);
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
-  render() {
+  private preRender() {
+    this.freeTranspSlices();
+    this.wallSlicesOccludedBySprites.fill(0);
+    this.initActiveDoorsList();
+  }
+
+  private postRender() {}
+
+  private isSliceFullyTransp(texX: number, image: BitImageRGBA) {
+    const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
+
+    const { transpColor } = Texture;
+
+    // image is rotated 90ccw, col texX is the row at offset texX << lg2Pitch
+    for (let y = 0, rowOffs = texX << lg2Pitch; y < texWidth; y++) {
+      if (mipPixels[rowOffs + y] !== transpColor) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isRowSliceFullyTransp(texY: number, image: BitImageRGBA) {
+    const {
+      Buf32: mipPixels,
+      // Width: texWidth,
+      Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = image;
+
+    const { transpColor } = Texture;
+
+    // image is rotated 90ccw
+    for (
+      let x = 0, colOffs = texY;
+      x < texHeight;
+      x++, colOffs += 1 << lg2Pitch
+    ) {
+      if (mipPixels[colOffs] !== transpColor) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isSlicePartiallyTransp(texX: number, image: BitImageRGBA): boolean {
+    const {
+      Buf32: mipPixels,
+      Width: texWidth,
+      Height: texHeight,
+      Lg2Pitch: lg2Pitch,
+    } = image;
+
+    const { transpColor } = Texture;
+
+    // image is rotated 90ccw, col texX is the row at offset texX << lg2Pitch
+    for (let y = 0, rowOffs = texX << lg2Pitch; y < texWidth; y++) {
+      if (mipPixels[rowOffs + y] === transpColor) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private findActiveDoor(side: number, mPos: number): DoorRef {
+    const { activeDoors } = this;
+    for (let i = 0; i < activeDoors.length; i++) {
+      const door = activeDoors[i];
+      if (door.Type === side && door.Mpos === mPos) {
+        return door;
+      }
+    }
+    return null;
+  }
+
+  private calcWallsVis() {
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
@@ -396,9 +969,42 @@ class Raycaster {
       PlaneX: planeX,
       PlaneY: planeY,
     } = this.player;
+    const {
+      pos,
+      wallMaps,
+      mapLimits,
+      rayDir,
+      deltaDist,
+      step,
+      checkWallIdxOffs,
+      checkWallIdxOffsDoor,
+      checkWallIdxOffsDivFactor,
+      wallMapIncOffs,
+      xWallMapWidth,
+      yWallMapWidth,
+      curMapPos,
+      wallMapOffs,
+      sideDist,
+      wallZBuffer,
+      floorWall,
+      textures,
+      wallSlices,
+      WallHeight: wallHeight,
+      iStep,
+      iSideDistX,
+      iSideDistY,
+      iCheckWallIdxOffsX,
+      iCheckWallIdxOffsDoorX,
+      iCheckWallIdxOffsY,
+      iCheckWallIdxOffsDoorY,
+      iCheckWallIdxOffsDivFactorY,
+      transpSplicesListsXs,
+    } = this;
 
     assert(posX >= 0 && posX < mapWidth, 'posX out of map bounds');
     assert(posY >= 0 && posY < mapHeight, 'posY out of map bounds');
+
+    const projYcenter = this.ProjYCenter;
 
     const mapX = posX | 0;
     const mapY = posY | 0;
@@ -406,7 +1012,8 @@ class Raycaster {
     const cellX = posX - mapX;
     const cellY = posY - mapY;
 
-    const projYcenter = this.ProjYCenter;
+    const wallMapOffsX = mapY * xWallMapWidth + posX;
+    const wallMapOffsY = mapY * yWallMapWidth + posX;
 
     let maxWallDistance = 0;
     let minWallTop = projYcenter;
@@ -414,200 +1021,264 @@ class Raycaster {
     let minWallBottom = vpHeight;
     let maxWallBottom = projYcenter;
 
-    const { wallSlices, WallHeight: wallHeight } = this;
+    const P = 0;
+    const N = 1;
+
+    iStep[N] = -1;
+    iStep[P] = 1;
+    iSideDistX[N] = cellX;
+    iSideDistX[P] = 1.0 - cellX;
+    iSideDistY[N] = cellY;
+    iSideDistY[P] = 1.0 - cellY;
+    iCheckWallIdxOffsX[N] = 0;
+    iCheckWallIdxOffsX[P] = 1;
+    iCheckWallIdxOffsY[N] = 0;
+    iCheckWallIdxOffsY[P] = yWallMapWidth;
+    iCheckWallIdxOffsDoorX[N] = -1;
+    iCheckWallIdxOffsDoorX[P] = 1;
+    iCheckWallIdxOffsDoorY[N] = -yWallMapWidth;
+    iCheckWallIdxOffsDoorY[P] = yWallMapWidth;
+    iCheckWallIdxOffsDivFactorY[N] = 1;
+    iCheckWallIdxOffsDivFactorY[P] = yWallMapWidth;
+
+    const X = 0;
+    const Y = 1;
+
+    pos[X] = posX;
+    pos[Y] = posY;
+    wallMaps[X] = xMap;
+    wallMaps[Y] = yMap;
+    mapLimits[X] = mapWidth;
+    mapLimits[Y] = mapHeight;
+
+    const MAX_RAY_STEPS = 100; // TODO:
 
     for (let x = 0; x < vpWidth; x++) {
       const cameraX = (2 * x) / vpWidth - 1;
 
-      // TODO: horz floor casting gives out bounds with rayDirX. check
-      // const cameraX = (2 * x) / (vpWidth - 1) - 1;
+      rayDir[X] = dirX + planeX * cameraX;
+      rayDir[Y] = dirY + planeY * cameraX;
 
-      const rayDirX = dirX + planeX * cameraX;
-      const rayDirY = dirY + planeY * cameraX;
-      const deltaDistX = 1 / Math.abs(rayDirX);
-      const deltaDistY = 1 / Math.abs(rayDirY);
+      const sX = rayDir[X] < 0 ? N : P;
+      const sY = rayDir[Y] < 0 ? N : P;
 
-      let sideDistX, sideDistY; // distances to next x/y line
-      let stepX, stepY; // +1 or -1, step in map
-      let xStepYOffs; // step y in x map
-      let yStepYOffs; // step y in y map
-      let xChkIdx, yChkOff, yChkIdx; // check offsets in x/y maps
+      step[X] = iStep[sX];
+      deltaDist[X] = iStep[sX] / rayDir[X];
+      sideDist[X] = iSideDistX[sX] * deltaDist[X];
+      checkWallIdxOffs[X] = iCheckWallIdxOffsX[sX];
+      checkWallIdxOffsDoor[X] = iCheckWallIdxOffsDoorX[sX];
+      checkWallIdxOffsDivFactor[X] = 1;
 
-      if (rayDirX < 0) {
-        stepX = -1;
-        xChkIdx = 0;
-        sideDistX = cellX * deltaDistX;
-      } else {
-        stepX = 1;
-        xChkIdx = 1;
-        sideDistX = (1.0 - cellX) * deltaDistX;
-      }
+      step[Y] = iStep[sY];
+      deltaDist[Y] = iStep[sY] / rayDir[Y];
+      sideDist[Y] = iSideDistY[sY] * deltaDist[Y];
+      checkWallIdxOffs[Y] = iCheckWallIdxOffsY[sY];
+      checkWallIdxOffsDoor[Y] = iCheckWallIdxOffsDoorY[sY];
+      checkWallIdxOffsDivFactor[Y] = iCheckWallIdxOffsDivFactorY[sY];
 
-      if (rayDirY < 0) {
-        stepY = -1;
-        xStepYOffs = -this.xWallMapWidth;
-        yStepYOffs = -this.yWallMapWidth;
-        yChkOff = 0;
-        yChkIdx = 0;
-        sideDistY = cellY * deltaDistY;
-      } else {
-        stepY = 1;
-        xStepYOffs = this.xWallMapWidth;
-        yStepYOffs = this.yWallMapWidth;
-        yChkOff = this.yWallMapWidth;
-        yChkIdx = 1;
-        sideDistY = (1.0 - cellY) * deltaDistY;
-      }
+      wallMapIncOffs[0] = step[X];
+      wallMapIncOffs[1] = step[Y] * yWallMapWidth;
+      wallMapIncOffs[2] = step[Y] * xWallMapWidth;
 
-      // ray map position
-      let curMapX = mapX;
-      let curMapY = mapY;
-      let nextMapX, nextMapY;
-
-      let xMapOffs = curMapY * this.xWallMapWidth + curMapX;
-      let yMapOffs = curMapY * this.yWallMapWidth + curMapX;
-
-      let MAX_STEPS = 100; // TODO:
-      let perpWallDist = 0.0;
-      let wallX = 0;
-      let flipTexX = false;
-      let outOfMap = false;
-
-      let checkWallIdx = -1;
-
-      let side = 0;
-
-      do {
-        if (sideDistX < sideDistY) {
-          side = 0;
-          perpWallDist = sideDistX;
-          checkWallIdx = xMapOffs + xChkIdx;
-          if (xMap[checkWallIdx]) {
-            break;
-          }
-          nextMapX = curMapX + stepX;
-          if (nextMapX < 0 || nextMapX >= mapWidth) {
-            outOfMap = true;
-            break;
-          }
-          curMapX = nextMapX;
-          sideDistX += deltaDistX;
-          xMapOffs += stepX;
-          yMapOffs += stepX;
-        } else {
-          side = 1;
-          perpWallDist = sideDistY;
-          checkWallIdx = yMapOffs + yChkOff;
-          if (yMap[checkWallIdx]) {
-            break;
-          }
-          nextMapY = curMapY + stepY;
-          if (nextMapY < 0 || nextMapY >= mapHeight) {
-            outOfMap = true;
-            break;
-          }
-          curMapY = nextMapY;
-          sideDistY += deltaDistY;
-          yMapOffs += yStepYOffs;
-          xMapOffs += xStepYOffs;
-        }
-      } while (--MAX_STEPS);
-
-      this.zBuffer[x] = perpWallDist;
-
-      if (perpWallDist > maxWallDistance) {
-        maxWallDistance = perpWallDist;
-      }
-
-      const ratio = 1 / perpWallDist;
-      let wallBottom = (projYcenter + posZ * ratio) | 0;
-      const wallSliceProjHeight = (wallHeight * ratio) | 0;
-      let wallTop = wallBottom - wallSliceProjHeight + 1;
-      // const sliceHeight = wallBottom - wallTop + 1;
-
-      const clipTop = Math.max(0, -wallTop);
-      wallTop += clipTop; // wallTop = Math.max(0, wallTop);
-      wallBottom = Math.min(wallBottom, vpHeight - 1);
-
-      // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
+      curMapPos[X] = mapX;
+      curMapPos[Y] = mapY;
+      wallMapOffs[X] = wallMapOffsX;
+      wallMapOffs[Y] = wallMapOffsY;
 
       const wallSlice = wallSlices[x];
-      wallSlice.Distance = perpWallDist;
-      wallSlice.Top = wallTop;
-      wallSlice.Bottom = wallBottom;
-      wallSlice.Side = side;
+      wallSlice.Hit = 0;
 
-      minWallTop = Math.min(minWallTop, wallTop);
-      maxWallTop = Math.max(maxWallTop, wallTop);
-      minWallBottom = Math.min(minWallBottom, wallBottom);
-      maxWallBottom = Math.max(maxWallBottom, wallBottom);
+      let steps = MAX_RAY_STEPS;
+      let side: number;
+      let nextPos: number;
 
-      // floorWallX, floorWallY are used only for vert floor/ceil rend
-      let floorWallX;
-      let floorWallY;
+      for (;;) {
+        side = sideDist[X] < sideDist[Y] ? X : Y;
+        const checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
+        const wallMap = wallMaps[side];
+        const wallCode = wallMap[checkWallIdx];
+        let isRayValid = true;
+        if (!(wallCode & WALL_CODE_MASK)) {
+          nextPos = curMapPos[side] + step[side];
+          isRayValid = nextPos >= 0 && nextPos < mapLimits[side] && steps > 0;
+          if (isRayValid) {
+            curMapPos[side] = nextPos;
+            sideDist[side] += deltaDist[side];
+            wallMapOffs[side] += wallMapIncOffs[side];
+            wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+            steps--;
+            continue;
+          }
+        }
 
-      let wallMap;
+        let perpWallDist = sideDist[side];
+        let wallX = pos[side ^ 1] + perpWallDist * rayDir[side ^ 1];
+        let iWallX = wallX | 0;
+        let fWallX = wallX - iWallX;
 
-      if (side === 0) {
-        wallMap = xMap;
-        wallX = posY + perpWallDist * rayDirY;
-        wallX -= wallX | 0;
-        flipTexX = rayDirX > 0;
-        floorWallY = curMapY + wallX;
-        floorWallX = curMapX + xChkIdx;
-      } else {
-        wallMap = yMap;
-        wallX = posX + perpWallDist * rayDirX;
-        wallX -= wallX | 0;
-        flipTexX = rayDirY < 0;
-        floorWallX = curMapX + wallX;
-        floorWallY = curMapY + yChkIdx;
+        let texIdx: number;
+        let mipLvl: number;
+        let mipmap: Mipmap;
+        let image: BitImageRGBA;
+        let texWidth: number, texHeight: number;
+
+        if (isRayValid) {
+          texIdx = (wallCode & WALL_CODE_MASK) - 1;
+          // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
+
+          // mipmap is rotated 90ccw
+          mipLvl = 0;
+          mipmap = textures[texIdx].getMipmap(mipLvl);
+          image = mipmap.Image;
+          texWidth = image.Width;
+          texHeight = image.Height;
+        }
+
+        if (wallCode & WALL_FLAGS.IS_DOOR) {
+          // check first case door code on map edge (should not happen if map is ok)
+          nextPos = curMapPos[side] + step[side];
+          isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+          if (isRayValid) {
+            const halfDist = deltaDist[side] * 0.5; // TODO: precalc
+            const nextFWallX = fWallX + halfDist * rayDir[side ^ 1];
+            if (nextFWallX < 0 || nextFWallX >= 1) {
+              curMapPos[side] = nextPos;
+              sideDist[side] += deltaDist[side];
+              wallMapOffs[side] += wallMapIncOffs[side];
+              wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+              continue;
+            } else {
+              fWallX = nextFWallX;
+              // assert(fWallX >= 0 && fWallX < 1, `invalid door fWallX ${fWallX}`)
+              perpWallDist += halfDist;
+              const mPos = Math.min(
+                checkWallIdx,
+                checkWallIdx + checkWallIdxOffsDoor[side],
+              );
+              const activeDoor = this.findActiveDoor(side, mPos);
+              if (activeDoor) {
+                const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
+                if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
+                  const doorOffsX = activeDoor.ColOffset;
+                  // assert(doorOffsX >= 0 && doorOffsX < 1, 'invalid doorOffsX here');
+                  // check door open at ColOffset
+                  fWallX += doorOffsX;
+                  if (fWallX >= 1) {
+                    curMapPos[side] = nextPos;
+                    sideDist[side] += deltaDist[side];
+                    wallMapOffs[side] += wallMapIncOffs[side];
+                    wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                    // if next int is of the same side advance 1 more time
+                    if (sideDist[side] <= sideDist[side ^ 1]) {
+                      nextPos = curMapPos[side] + step[side];
+                      isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+                      if (isRayValid) {
+                        curMapPos[side] = nextPos;
+                        sideDist[side] += deltaDist[side];
+                        wallMapOffs[side] += wallMapIncOffs[side];
+                        wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                      } else {
+                        // out of map, adjust dist to show not hit wall
+                        perpWallDist += halfDist;
+                      }
+                    }
+                    if (isRayValid) {
+                      continue;
+                    }
+                  }
+                } else {
+                  // TODO: split door type
+                }
+              }
+            }
+          }
+        }
+
+        const ratio = 1 / perpWallDist;
+        const wallSliceProjHeight = (wallHeight * ratio) | 0;
+        const srcWallBottom = (projYcenter + posZ * ratio) | 0;
+        const srcWallTop = srcWallBottom - wallSliceProjHeight + 1;
+        // const sliceHeight = srcWallBottom - srcWallTop + 1;
+        const clipTop = Math.max(0, -srcWallTop);
+        const wallTop = Math.max(0, srcWallTop); // wallTop = srcWallTop + clipTop;
+        const wallBottom = Math.min(srcWallBottom, vpHeight - 1);
+        // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
+
+        if (isRayValid) {
+          assert(fWallX >= 0 && fWallX < 1, `invalid fWallX ${fWallX}`);
+          const srcTexX = (fWallX * texHeight!) | 0;
+          // const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
+          // const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
+          // const texX = texWidth - srcTexX - 1;
+          const texX = srcTexX!;
+          // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
+
+          let slice = wallSlice;
+
+          const isTranspSliceArr =
+            this.texSlicePartialTranspMap[texIdx!][mipLvl!];
+          const isTranspWall =
+            wallCode & WALL_FLAGS.IS_TRANSP && isTranspSliceArr[texX];
+
+          if (isTranspWall) {
+            slice = this.newWallTranspSlice(x);
+            slice.Side = side;
+            slice.Distance = perpWallDist;
+            slice.ClipTop = clipTop;
+            slice.Top = wallTop;
+            slice.Bottom = wallBottom;
+            slice.IsSprite = false;
+          }
+
+          const texStepY = texHeight! / wallSliceProjHeight;
+          const texY = clipTop * texStepY;
+
+          slice.TexX = texX;
+          slice.TexY = texY;
+          slice.TexStepY = texStepY;
+          slice.Image = image!; // used in render ts
+          slice.MipMapIdx = mipmap!.WasmIdx; // used in render wasm
+
+          if (isTranspWall) {
+            nextPos = curMapPos[side] + step[side];
+            isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+            if (isRayValid) {
+              curMapPos[side] = nextPos;
+              sideDist[side] += deltaDist[side];
+              wallMapOffs[side] += wallMapIncOffs[side];
+              wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+              continue;
+            }
+          }
+        }
+
+        // solid wall or map edge/max steps reached
+        wallZBuffer[x] = perpWallDist;
+        wallSlice.Hit = isRayValid ? 1 : 0;
+
+        wallSlice.Side = side;
+        wallSlice.Distance = perpWallDist;
+        wallSlice.ClipTop = clipTop;
+        wallSlice.Top = wallTop;
+        wallSlice.Bottom = wallBottom;
+
+        if (this.IsFloorVertTextured) {
+          floorWall[side ^ 1] = curMapPos[side ^ 1] + fWallX;
+          const floorWallXOffs =
+            checkWallIdxOffs[side] / checkWallIdxOffsDivFactor[side];
+          floorWall[side] = curMapPos[side] + floorWallXOffs;
+          [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
+        }
+
+        maxWallDistance = Math.max(maxWallDistance, perpWallDist);
+        // TODO:
+        minWallTop = Math.min(minWallTop, wallTop);
+        maxWallTop = Math.max(maxWallTop, wallTop);
+        minWallBottom = Math.min(minWallBottom, wallBottom);
+        maxWallBottom = Math.max(maxWallBottom, wallBottom);
+
+        break; // ray done
       }
-
-      wallSlice.FloorWallX = floorWallX;
-      wallSlice.FloorWallY = floorWallY;
-
-      if (outOfMap || MAX_STEPS <= 0) {
-        wallSlice.Hit = 0;
-        // console.log('MAX_STEPS exceeded');
-        // console.log('no hit');
-        // break; // TODO:
-        // continue loopCol;
-        continue;
-      }
-
-      wallSlice.Hit = 1;
-
-      const texIdx = wallMap[checkWallIdx] - 1;
-      // assert(texIdx >= 0 && texIdx < this.textures.length, 'invalid texIdx');
-
-      const tex = this.textures[texIdx];
-      const mipmap = tex.getMipmap(0); // TODO:
-
-      const {
-        Width: texWidth,
-        Height: texHeight,
-        // Lg2Pitch: lg2Pitch,
-      } = mipmap.Image;
-
-      let texX = (wallX * texWidth) | 0;
-      if (flipTexX) {
-        texX = texWidth - texX - 1;
-      }
-      // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
-
-      const texStepY = texHeight / wallSliceProjHeight;
-
-      const texY = clipTop * texStepY;
-
-      wallSlice.Height = wallSliceProjHeight;
-      wallSlice.ClipTop = clipTop;
-
-      wallSlice.TexX = texX;
-      wallSlice.TexStepY = texStepY;
-      wallSlice.TexY = texY;
-      wallSlice.MipMapIdx = mipmap.WasmIdx; // used in render wasm
-      wallSlice.Mipmap = mipmap.Image; // used in render ts
     }
 
     this.MaxWallDistance = maxWallDistance;
@@ -615,30 +1286,55 @@ class Raycaster {
     this.MaxWallTop = maxWallTop;
     this.MinWallBottom = minWallBottom;
     this.MaxWallBottom = maxWallBottom;
+  }
 
+  public render(frameCnt: number) {
+    this.preRender();
+    this.calcWallsVis();
     this.processSprites();
+    this.renderer.render(frameCnt);
+    this.postRender();
+  }
 
-    this.renderer.render();
+  private occludeWallSlice(
+    startY: number,
+    endY: number,
+    tY: number,
+    x: number,
+  ) {
+    this.wallSlicesOccludedBySprites[x] = 1;
+    this.spritesTop[x] = startY;
+    this.spritesBottom[x] = endY;
+    this.wallZBuffer[x] = tY;
+    this.MinWallTop = Math.min(this.MinWallTop, startY);
+    this.MaxWallBottom = Math.max(this.MaxWallBottom, endY);
   }
 
   private processSprites(): void {
-    const { sprites } = this;
-    const { player } = this;
+    const {
+      sprites,
+      player,
+      WallHeight,
+      wallZBuffer,
+      viewSprites,
+      viewSpritesSrcIdxs,
+      textures,
+      ProjYCenter: projYCenter,
+      transpSlices,
+    } = this;
     const { PosX: playerX, PosY: playerY, PosZ: playerZ } = player;
     const { DirX: playerDirX, DirY: playerDirY } = player;
     const { PlaneX: playerPlaneX, PlaneY: playerPlaneY } = player;
     const { Width: vpWidth, Height: vpHeight } = this.viewport;
 
-    const MIN_SPRITE_DIST = 0.1;
-    const MAX_SPRITE_DIST = 1000; // TODO:
-
     const minDist = MIN_SPRITE_DIST;
     const maxDist = Math.min(this.MaxWallDistance, MAX_SPRITE_DIST);
 
-    this.numViewSprites = 0;
+    let numViewSprites = 0;
 
     for (let i = 0; i < sprites.length; i++) {
       const sprite = sprites[i];
+      sprite.SrcIdx = i;
 
       if (!sprite.Visible) {
         continue;
@@ -650,6 +1346,7 @@ class Raycaster {
       const invDet =
         1.0 / (playerPlaneX * playerDirY - playerDirX * playerPlaneY);
       const tY = invDet * (-playerPlaneY * spriteX + playerPlaneX * spriteY);
+      // tY is the straight distance from the player position to the sprite
 
       if (tY < minDist || tY > maxDist) {
         // console.log('tY behind or too far'); // behind or occluded by max (wall) distance
@@ -658,9 +1355,21 @@ class Raycaster {
 
       const tX = invDet * (playerDirY * spriteX - playerDirX * spriteY);
       const invTy = 1.0 / tY;
+      // assert(invTy > 0, 'invalid invTy');
 
-      const spriteHeight = (this.WallHeight * invTy) | 0;
-      const spriteWidth = spriteHeight;
+      const spriteHeight = (WallHeight * invTy) | 0;
+
+      if (spriteHeight <= 0) {
+        // console.log('spriteHeight <= 0');
+        continue;
+      }
+
+      // too big
+      if (spriteHeight > Sprite.SPRITE_HEIGHT_LIMIT) {
+        continue;
+      }
+
+      const spriteWidth = spriteHeight; // sprites are squared
 
       const spriteScreenX = ((vpWidth / 2) * (1 + tX * invTy)) | 0;
       let startX = spriteScreenX - (spriteWidth >> 1);
@@ -669,7 +1378,7 @@ class Raycaster {
         continue;
       }
 
-      let endX = startX + spriteWidth;
+      let endX = startX + spriteWidth - 1;
 
       if (endX < 0) {
         continue;
@@ -680,57 +1389,197 @@ class Raycaster {
       startX += clipX;
 
       // clip endX
-      endX = Math.min(endX, vpWidth);
+      endX = Math.min(endX, vpWidth - 1);
 
-      // sprite cols in [startX, endX)
+      // sprite cols in [startX, endX]
 
       const dy = (playerZ - sprite.PosZ) * invTy;
-      let endY = (this.ProjYCenter + dy) | 0;
+      let srcEndY = (projYCenter + dy) | 0;
 
-      if (endY < 0) {
+      if (srcEndY < 0) {
         continue;
       }
 
-      let startY = endY - spriteHeight + 1;
+      let srcStartY = srcEndY - spriteHeight + 1;
 
-      if (startY >= vpHeight) {
+      if (srcStartY >= vpHeight) {
         continue;
       }
 
       // vertical clip
-      const clipY = Math.max(0, -startY);
-      startY += clipY;
-      endY = Math.min(endY, vpHeight - 1);
-
+      const clipY = Math.max(0, -srcStartY);
+      const startY = srcStartY + clipY;
+      const endY = Math.min(srcEndY, vpHeight - 1);
       // assert(startY <= endY, `invalid startY ${startY} and endY ${endY}`);
+
       // sprite rows in [startY, endY]
+      // sprite cols in [startX, endX]
 
-      // sprite cols in [startX, endX)
+      // sprite tex img is rotated 90ccw
+      const texIdx = sprite.TexIdx;
+      const tex = textures[texIdx];
+      const mipLvl = 0; // TODO:
+      const mipmap = tex.getMipmap(mipLvl);
+      const { Image: image } = mipmap;
+      const { Width: texWidth, Height: texHeight, Lg2Pitch: lg2Pitch } = image;
 
-      // occlusion test
-      let x = startX;
-      for (; x < endX && this.zBuffer[x] < tY; x++);
+      const texStepY = texWidth / spriteHeight;
+      const texY = clipY * texStepY;
 
-      if (x === endX) {
-        // sprite is occluded
+      const srcTexStepX = texHeight / spriteWidth;
+      const srcTexX = clipX * srcTexStepX;
+
+      const texStepX = -srcTexStepX;
+      const texX = texHeight - (srcTexX | 0) - 1;
+
+      // occlusion test with walls and slice gen with cols with transp walls
+      let sliceTexX = texX;
+
+      const isTranspSliceArr = this.texSlicePartialTranspMap[texIdx][mipLvl];
+      const isFullyTranspSliceArr = this.texSliceFullyTranspMap[texIdx][mipLvl];
+
+      const {
+        RenderXs: renderXs,
+        TexXOffsets: texXOffsets,
+        RenderBatchXs: renderBatchXs,
+        RenderBatchTexXOffsets: renderBatchTexXOffsets,
+        RenderBatchXLens: renderBatchXLens,
+      } = sprite;
+      sprite.NumRenderXs = 0;
+      sprite.NumRenderBatchXs = 0;
+      sprite.IsMagnified = texWidth < spriteWidth;
+
+      for (let x = startX; x <= endX; x++, sliceTexX += texStepX) {
+        const iTexX = sliceTexX | 0;
+        if (isFullyTranspSliceArr[iTexX]) {
+          continue;
+        }
+        if (!transpSlices[x]) {
+          if (tY <= wallZBuffer[x]) {
+            const texXOffset = iTexX << lg2Pitch;
+            if (sprite.IsMagnified) {
+              // when sprite is magnified, precalc batch x offsets and render by cols/rows batches
+              if (sprite.NumRenderBatchXs === 0 || texXOffset !== renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
+                x !== renderBatchXs[sprite.NumRenderBatchXs - 1] + renderBatchXLens[sprite.NumRenderBatchXs - 1]) {
+                // start new batch
+                renderBatchXs[sprite.NumRenderBatchXs] = x;
+                renderBatchTexXOffsets[sprite.NumRenderBatchXs] = texXOffset;
+                renderBatchXLens[sprite.NumRenderBatchXs] = 1;
+                sprite.NumRenderBatchXs++;
+              } else {
+                // extend last batch
+                renderBatchXLens[sprite.NumRenderBatchXs - 1]++;
+              }
+            } else {
+              renderXs[sprite.NumRenderXs] = x;
+              texXOffsets[sprite.NumRenderXs] = texXOffset;
+              sprite.NumRenderXs++;
+            }
+            if (!isTranspSliceArr[iTexX]) {
+              // sprite slice fully opaque
+              this.occludeWallSlice(startY, endY, tY, x);
+              continue;
+            }
+          }
+        } else {
+          // insert in correct decreasing distance order in circular doubly linked list transpSlices[x]
+          let firstPtr = transpSlices[x] as Slice;
+          let curPtr = firstPtr;
+          let slice = null;
+
+          if (tY >= firstPtr.Distance && tY > wallZBuffer[x]) {
+            // sprite slice is the farthest and is occuluded by the wall slice at x
+            continue;
+          }
+
+          let insertLast = false;
+
+          // search insert position for the sprite slice
+          while (tY < curPtr.Distance) {
+            curPtr = curPtr.Next as Slice;
+            if (curPtr === firstPtr) {
+              insertLast = true;
+              break;
+            }
+          }
+
+          slice = this.newTranspSlice();
+          // assert(slice);
+
+          slice.Side = 0;
+          slice.Distance = tY;
+          slice.ClipTop = clipY;
+          slice.TexX = sliceTexX;
+          slice.Top = startY;
+          slice.Bottom = endY;
+          slice.TexY = texY;
+          slice.TexStepY = texStepY;
+          slice.Image = image;
+          slice.MipMapIdx = mipmap.WasmIdx;
+          slice.IsSprite = true;
+
+          // insert before curPtr
+          slice.Prev = curPtr.Prev;
+          curPtr.Prev = slice;
+          slice.Next = curPtr;
+          (slice.Prev as Slice).Next = slice;
+
+          if (curPtr === firstPtr && !insertLast) {
+            this.updateTranspSliceArrayIdx(x, slice);
+            firstPtr = slice;
+          }
+
+          if (!isTranspSliceArr[iTexX]) {
+            // sprite slice fully opaque
+            this.occludeWallSlice(startY, endY, tY, x);
+            // remove transp slices behind it (so in front in the transp list)
+            if (insertLast) {
+              // sprite slice at the end of the list, it is the nearest slice, remove the entire transp list
+              freeTranspSliceViewsList(firstPtr);
+              this.updateTranspSliceArrayIdx(x, null);
+              const texXOffset = iTexX << lg2Pitch;
+              if (sprite.IsMagnified) {
+                if (sprite.NumRenderBatchXs === 0 || texXOffset !== renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
+                  x !== renderBatchXs[sprite.NumRenderBatchXs - 1] + renderBatchXLens[sprite.NumRenderBatchXs - 1]) {
+                  // start new batch
+                  renderBatchXs[sprite.NumRenderBatchXs] = x;
+                  renderBatchTexXOffsets[sprite.NumRenderBatchXs] = texXOffset;
+                  renderBatchXLens[sprite.NumRenderBatchXs] = 1;
+                  sprite.NumRenderBatchXs++;
+                } else {
+                  // extend last batch
+                  renderBatchXLens[sprite.NumRenderBatchXs - 1]++;
+                }
+              } else {
+                renderXs[sprite.NumRenderXs] = x;
+                texXOffsets[sprite.NumRenderXs] = texXOffset;
+                sprite.NumRenderXs++;
+              }
+            } else if (slice !== firstPtr) {
+              // remove the transp slices behind the sprite slice
+              curPtr = firstPtr;
+              while (curPtr !== slice) {
+                const nextPtr = curPtr.Next as Slice;
+                freeSliceView(curPtr);
+                curPtr = nextPtr;
+              }
+              slice.Prev = firstPtr.Prev;
+              (slice.Prev as Slice).Next = slice;
+              this.updateTranspSliceArrayIdx(x, slice);
+              // firstPtr = slice;
+            }
+          }
+        }
+      }
+
+      if (sprite.NumRenderXs === 0 && sprite.NumRenderBatchXs === 0) {
+        // sprite removed from the sorting list
+        // if it has cols shared with transp walls slices it will be rendered later with them
         continue;
       }
 
-      const texIdx = sprite.TexIdx;
-      const tex = this.textures[texIdx];
-      const mipmap = tex.getMipmap(0); // TODO:
-      const {
-        Width: texWidth,
-        Height: texHeight,
-        // Lg2Pitch: lg2Pitch,
-      } = mipmap.Image;
-
-      const texStepX = texWidth / spriteWidth;
-      const texX = (clipX * texStepX) | 0;
-
-      const texStepY = texHeight / spriteHeight;
-      const texY = (clipY * texStepY) | 0;
-
+      sprite.MipLevel = mipLvl;
+      sprite.Image = image;
       sprite.Distance = tY;
       sprite.StartX = startX;
       sprite.EndX = endX;
@@ -741,20 +1590,253 @@ class Raycaster {
       sprite.TexY = texY;
       sprite.TexStepY = texStepY;
 
-      // insertion sort on viewSprites[1..numViewSprites) on descending distance
-      let j = this.numViewSprites++;
-      this.viewSprites[0] = sprite; // sentinel
-      const spriteDist = sprite.Distance; // get float dist value
-      for (; this.viewSprites[j].Distance < spriteDist; j--) {
-        this.viewSprites[j + 1] = this.viewSprites[j];
+      // precalc y offsets (used for each col)
+      const { TexYOffsets: texYOffsets } = sprite;
+
+      if (sprite.IsMagnified) {
+        // when minified to precalc y offsets if you render by cols (not done now)
+        for (
+          let y = startY, curTexY = texY;
+          y <= endY;
+          y++, curTexY += texStepY
+        ) {
+          texYOffsets[y] = curTexY;
+        }
       }
-      this.viewSprites[j + 1] = sprite;
+
+      // insertion sort on viewSprites[1...numViewSprites] on increasing distance
+      let j = numViewSprites;
+      viewSprites[0] = sprite; // sentinel at 0
+      const spriteDist = sprite.Distance; // get float dist value
+      for (; viewSprites[j].Distance > spriteDist; j--) {
+        viewSprites[j + 1] = viewSprites[j];
+      }
+      viewSprites[j + 1] = sprite;
+      // viewSprites[1...numViewSprites] is sorted on increasing distance
+
+      viewSpritesSrcIdxs[numViewSprites] = sprite.SrcIdx;
+      numViewSprites++;
+      // viewSpritesSrcIdxs[0...numViewSprites-1] contains the src idxs (wrt to sprites arr) of the sprites in viewSprites[1...numViewSprites]
     }
+
+    // remap view sprites in sprites array with their sorted order by increasing distance
+    // so nearest sprites updates wallZBuffer and occludes wall slices/sprites behind them
+    for (let i = 0; i < numViewSprites; i++) {
+      const srcIdx = viewSpritesSrcIdxs[i];
+      sprites[srcIdx] = viewSprites[i + 1];
+    }
+
+    this.numViewSprites = numViewSprites;
+  }
+
+  private updateTranspSliceArrayIdx(idx: number, newSlice: SliceRef) {
+    if (!newSlice && this.transpSlices[idx]) {
+      this.numTranspSlicesLists--;
+      const listXsPos = this.transpSlicesListsXsIdxs[idx];
+      if (listXsPos !== this.numTranspSlicesLists) {
+        this.transpSplicesListsXs[listXsPos] =
+          this.transpSplicesListsXs[this.numTranspSlicesLists];
+        this.transpSlicesListsXsIdxs[this.transpSplicesListsXs[listXsPos]] =
+          listXsPos;
+      }
+    }
+    this.transpSlices[idx] = newSlice;
+    // set ptr to first slice in transp wall slice array in wasm mem
+    this.wasmEngineModule.setTranspSliceAtIdx(
+      this.raycasterPtr,
+      idx,
+      newSlice ? newSlice.WasmPtr : WASM_NULL_PTR,
+    );
+  }
+
+  private newWallTranspSlice(idx: number): Slice {
+    const newSlice = newSliceView();
+    this.addTranspSliceAtFront(newSlice, idx);
+    return newSlice;
+  }
+
+  private newTranspSlice(): Slice {
+    const newSlice = newSliceView();
+    return newSlice;
+  }
+
+  private addTranspSliceAtFront(newSlice: Slice, idx: number) {
+    // insert at front in circular doubly linked list transpSlices[idx]
+    if (this.transpSlices[idx]) {
+      const frontSlice = this.transpSlices[idx] as Slice;
+      newSlice.Prev = frontSlice.Prev;
+      frontSlice.Prev = newSlice;
+      newSlice.Next = frontSlice;
+      // assert(newSlice.Prev !== WASM_NULL_PTR, 'invalid prev slice');
+      (newSlice.Prev as Slice).Next = newSlice;
+    } else {
+      this.transpSplicesListsXs[this.numTranspSlicesLists] = idx;
+      this.transpSlicesListsXsIdxs[idx] = this.numTranspSlicesLists;
+      this.numTranspSlicesLists++;
+      newSlice.Prev = newSlice.Next = newSlice;
+    }
+    this.updateTranspSliceArrayIdx(idx, newSlice);
+    return newSlice;
+  }
+
+  private resetTranspSlices() {
+    this.numTranspSlicesLists = 0;
+    this.wasmEngineModule.resetTranspSlicesPtrs(this.raycasterPtr);
+    for (let i = 0; i < this.transpSlices.length; i++) {
+      this.transpSlices[i] = null;
+    }
+  }
+
+  private freeTranspSlices() {
+    if (this.numTranspSlicesLists) {
+      for (let i = 0; i < this.transpSlices.length; i++) {
+        if (this.transpSlices[i]) {
+          const slice = this.transpSlices[i] as Slice;
+          freeTranspSliceViewsList(slice);
+        }
+      }
+      this.resetTranspSlices();
+    }
+  }
+
+  private get IsFloorVertTextured(): boolean {
+    return this.renderer.IsFloorTextured && this.renderer.VertFloor;
   }
 
   public update(time: number) {
     this.updateLookUpDown(time);
     this.updatePlayer(time);
+    this.updateDoors();
+  }
+
+  private get ActiveDoorsListPtr(): number {
+    return this.wasmRun.WasmViews.view.getUint32(
+      this.activeDoorsListPtrPtr,
+      true,
+    );
+  }
+
+  private set ActiveDoorsListPtr(ptr: number) {
+    this.wasmRun.WasmViews.view.setUint32(
+      this.activeDoorsListPtrPtr,
+      ptr,
+      true,
+    );
+  }
+
+  private initActiveDoorsList(): void {
+    this.activeDoors.length = 0;
+    let wasmDoorPtr = this.ActiveDoorsListPtr;
+    while (wasmDoorPtr !== WASM_NULL_PTR) {
+      const curDoor = getDoorView(wasmDoorPtr);
+      this.activeDoors.push(curDoor);
+      wasmDoorPtr = curDoor.Next ? curDoor.Next.WasmPtr : WASM_NULL_PTR;
+    }
+  }
+
+  private updateDoors() {
+    // const { player } = this;
+    // const { PosX: playerX, PosY: playerY } = player;
+    // const mapX = playerX | 0;
+    // const mapY = playerY | 0;
+    // const mapOffs = mapY * map.Width + mapX;
+    this.activateDoors();
+    this.updateActiveDoors();
+  }
+
+  private activateDoors() {
+    // TODO:
+    // use newActiveDoor
+  }
+
+  private newActiveDoor(): Door {
+    // insert new door at front, doubly linked list, not circular
+    const newDoor = newDoorView();
+    newDoor.Prev = newDoor.Next = null;
+    const doorListPtr = this.ActiveDoorsListPtr;
+    if (doorListPtr !== WASM_NULL_PTR) {
+      const doorList = getDoorView(doorListPtr);
+      newDoor.Next = doorList;
+      doorList.Prev = newDoor;
+    }
+    this.ActiveDoorsListPtr = newDoor.WasmPtr;
+    return newDoor;
+  }
+
+  private freeDoor(door: Door) {
+    // remove door from doubly linked list
+    const prevDoor = door.Prev;
+    const nextDoor = door.Next;
+    if (prevDoor) {
+      prevDoor.Next = nextDoor;
+    }
+    if (nextDoor) {
+      nextDoor.Prev = prevDoor;
+    }
+    if (door.WasmPtr === this.ActiveDoorsListPtr) {
+      this.ActiveDoorsListPtr = nextDoor ? nextDoor.WasmPtr : WASM_NULL_PTR;
+    }
+    freeDoorView(door);
+  }
+
+  private updateActiveDoors() {
+    this.initActiveDoorsList();
+    const { activeDoors, wallMaps, xWallMap, yWallMap, player } = this;
+    wallMaps[0] = xWallMap;
+    wallMaps[1] = yWallMap;
+    for (let door of activeDoors) {
+      const { ColOffset: srcOffset } = door;
+      door.ColOffset += door.Speed;
+      if (door.ColOffset >= 1) {
+        if (door.Flags & DOOR_AREA_CLOSED_FLAG) {
+          const wallMap = wallMaps[door.Type];
+          wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
+          door.Flags &= ~DOOR_AREA_CLOSED_FLAG;
+        } else {
+          if (door.ColOffset >= MAX_DOOR_COL_OFFSET) {
+            door.Speed = -door.Speed;
+          }
+        }
+      } else {
+        // colOffset < 1
+        if (door.Speed < 0) {
+          if (door.Flags & DOOR_AREA_CLOSED_FLAG) {
+            if (door.ColOffset <= 0) {
+              this.freeDoor(door);
+              continue;
+              // // to test opening <-> closing
+              // door.ColOffset = 0;
+              // door.Speed = -door.Speed;
+            }
+          } else {
+            const { PosX: posX, PosY: posY } = player;
+            const pMpos =
+              (posX | 0) +
+              (posY | 0) *
+                (door.Type ? this.yWallMapWidth : this.xWallMapWidth);
+            if (pMpos !== door.Mpos) {
+              // close the area
+              const wallMap = wallMaps[door.Type];
+              wallMap[door.Mpos] = door.Mcode;
+              wallMap[door.Mpos1] = door.Mcode1;
+              door.Flags |= DOOR_AREA_CLOSED_FLAG;
+            } else {
+              // player is in the door cell pos, undo door movement
+              door.ColOffset = srcOffset;
+            }
+          }
+        }
+      }
+      // if (door.Flags & DOOR_AREA_CLOSED_FLAG) {
+      //   if (door.ColOffset >= 1) {
+      //     const wallMap = wallMaps[door.Type];
+      //     wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
+      //     door.Flags &= ~DOOR_AREA_CLOSED_FLAG;
+      //     if (door.ColOffset >= 5) { // TODO:
+      //       door.Speed = -door.Speed;
+      //     }
+      //   }
+    }
   }
 
   // TODO:
@@ -776,7 +1858,7 @@ class Raycaster {
   }
 
   private updatePlayer(time: number) {
-    const MOVE_SPEED = 0.009; // TODO:
+    const MOVE_SPEED = 0.01; // 0.009; // TODO:
     const ROT_SPEED = 0.006; // TODO:
     const moveSpeed = time * MOVE_SPEED;
     const rotSpeed = time * ROT_SPEED;
@@ -906,11 +1988,11 @@ class Raycaster {
     this.wasmRun.WasmViews.view.setUint32(this.borderColorPtr, value, true);
   }
 
-  public get ViewSprites(): Sprite[] {
+  get ViewSprites(): Sprite[] {
     return this.viewSprites;
   }
 
-  public get NumViewSprites(): number {
+  get NumViewSprites(): number {
     return this.numViewSprites;
   }
 
@@ -941,6 +2023,51 @@ class Raycaster {
   get WasmRun() {
     return this.wasmRun;
   }
+
+  get NumTranspSlicesLists() {
+    return this.numTranspSlicesLists;
+  }
+
+  get TranspSlices() {
+    return this.transpSlices;
+  }
+
+  get WallZBuffer() {
+    return this.wallZBuffer;
+  }
+
+  get WallSlicesOccludedBySprites() {
+    return this.wallSlicesOccludedBySprites;
+  }
+
+  get SpritesTop() {
+    return this.spritesTop;
+  }
+
+  get SpritesBottom() {
+    return this.spritesBottom;
+  }
+
+  get TranspSplicesListsXs() {
+    return this.transpSplicesListsXs;
+  }
+
+  get TexRowSliceFullyTranspMap() {
+    return this.texRowSliceFullyTranspMap;
+  }
+
+  get RaycasterPtr() {
+    return this.raycasterPtr;
+  }
+
+  get ViewportWidth() {
+    return this.viewport.Width;
+  }
+
+  get ViewportHeight() {
+    return this.viewport.Height;
+  }
 }
 
-export { Raycaster, RaycasterParams };
+export type { RaycasterParams };
+export { Raycaster };

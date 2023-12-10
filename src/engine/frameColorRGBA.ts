@@ -11,12 +11,29 @@ const ABGR_RED_SHIFT = 0;
 const BPP_RGBA = 4;
 
 abstract class FrameColorRGBA {
+  static darkColor(c: number): number {
+    const a = (c >> 24) & 0xff;
+    const b = (c >> 16) & 0xff;
+    const g = (c >> 8) & 0xff;
+    const r = c & 0xff;
+    const r2 = (r * 3) >> 2;
+    const g2 = (g * 3) >> 2;
+    const b2 = (b * 3) >> 2;
+    const a2 = a;
+    return FrameColorRGBA.colorABGR(a2, b2, g2, r2);
+  }
+
+  static colorBGR(b: number, g: number, r: number): number {
+    return FrameColorRGBA.colorABGR(0xff, b, g, r);
+  }
+
   static colorABGR(a: number, b: number, g: number, r: number): number {
     return (
-      (a << ABGR_ALPHA_SHIFT) |
-      (b << ABGR_BLUE_SHIFT) |
-      (g << ABGR_GREEN_SHIFT) |
-      r
+      ((a << ABGR_ALPHA_SHIFT) |
+        (b << ABGR_BLUE_SHIFT) |
+        (g << ABGR_GREEN_SHIFT) |
+        r) >>>
+      0
     );
   }
 

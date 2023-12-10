@@ -1,8 +1,34 @@
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
 import { gWasmRun, gWasmView } from '../wasmEngine/wasmRun';
+import { BitImageRGBA } from '../assets/images/bitImageRGBA';
+import type { Raycaster } from './raycaster';
 
 class Sprite {
+  public static SPRITE_HEIGHT_LIMIT: number;
+
+  private srcIdx: number;
+  private image: BitImageRGBA;
+
+  private texXOffsets: Uint32Array;
+  private renderXs: Uint32Array;
+  private numRenderXs: number;
+
+  private renderBatchXs: Uint32Array;
+  private renderBatchTexXOffsets: Uint32Array;
+  private renderBatchXLens: Uint32Array;
+  private numRenderBatchXs: number;
+
+  private texYOffsets: Uint32Array;
+  // private batchTexYOffsets: Uint32Array;
+  // private renderBatchYs: Uint32Array;
+  // private renderBatchYLens: Uint32Array;
+  // private numRenderBatchYs: number;
+  private mipLevel: number; // current mip level
+  private isMagnified: boolean;
+
   constructor(
+    private viewWidth: number,
+    private viewHeight: number,
     // private spritePtr: number,
     private posXPtr: number,
     private posYPtr: number,
@@ -19,7 +45,22 @@ class Sprite {
     private endYPtr: number,
     private texYPtr: number,
     private texStepYPtr: number,
-  ) {}
+  ) {
+    this.texXOffsets = new Uint32Array(viewWidth + 1);
+    this.renderXs = new Uint32Array(viewWidth + 1);
+    this.numRenderXs = 0;
+
+    this.renderBatchXs = new Uint32Array(viewWidth + 1);
+    this.renderBatchTexXOffsets = new Uint32Array(viewWidth + 1);
+    this.renderBatchXLens = new Uint32Array(viewWidth + 1);
+    this.numRenderBatchXs = 0;
+
+    this.texYOffsets = new Uint32Array(viewHeight + 1);
+
+    // this.batchTexYOffsets = new Uint32Array(viewHeight + 1);
+    // this.renderBatchYs = new Uint32Array(viewHeight + 1);
+    // this.renderBatchYLens = new Uint32Array(viewHeight + 1);
+  }
 
   // init(posX: number, posY: number, posZ: number, texIdx: number): void {
   //   this.PosX = posX;
@@ -31,6 +72,70 @@ class Sprite {
   // get WasmPtr(): number {
   //   return this.spritePtr;
   // }
+
+  get NumRenderBatchXs(): number {
+    return this.numRenderBatchXs;
+  }
+
+  set NumRenderBatchXs(value: number) {
+    this.numRenderBatchXs = value;
+  }
+
+  get RenderBatchXs(): Uint32Array {
+    return this.renderBatchXs;
+  }
+
+  get RenderBatchTexXOffsets(): Uint32Array {
+    return this.renderBatchTexXOffsets;
+  }
+
+  get RenderBatchXLens(): Uint32Array {
+    return this.renderBatchXLens;
+  }
+
+  get NumRenderXs(): number {
+    return this.numRenderXs;
+  }
+
+  set NumRenderXs(value: number) {
+    this.numRenderXs = value;
+  }
+
+  get RenderXs(): Uint32Array {
+    return this.renderXs;
+  }
+
+  get TexXOffsets(): Uint32Array {
+    return this.texXOffsets;
+  }
+
+  get SrcIdx(): number {
+    return this.srcIdx;
+  }
+
+  set SrcIdx(value: number) {
+    this.srcIdx = value;
+  }
+
+  get MipLevel(): number {
+    return this.mipLevel;
+  }
+
+  set MipLevel(value: number) {
+    this.mipLevel = value;
+  }
+
+  get TexYOffsets(): Uint32Array {
+    return this.texYOffsets;
+  }
+
+  get Image(): BitImageRGBA {
+    return this.image;
+  }
+
+  set Image(mipmap: BitImageRGBA) {
+    this.image = mipmap;
+  }
 
   get PosX(): number {
     return gWasmView.getFloat32(this.posXPtr, true);
@@ -98,11 +203,11 @@ class Sprite {
   }
 
   get TexX(): number {
-    return gWasmView.getUint32(this.texXPtr, true);
+    return gWasmView.getFloat32(this.texXPtr, true);
   }
 
   set TexX(value: number) {
-    gWasmView.setUint32(this.texXPtr, value, true);
+    gWasmView.setFloat32(this.texXPtr, value, true);
   }
 
   get TexStepX(): number {
@@ -130,11 +235,11 @@ class Sprite {
   }
 
   get TexY(): number {
-    return gWasmView.getUint32(this.texYPtr, true);
+    return gWasmView.getFloat32(this.texYPtr, true);
   }
 
   set TexY(value: number) {
-    gWasmView.setUint32(this.texYPtr, value, true);
+    gWasmView.setFloat32(this.texYPtr, value, true);
   }
 
   get TexStepY(): number {
@@ -144,16 +249,27 @@ class Sprite {
   set TexStepY(value: number) {
     gWasmView.setFloat32(this.texStepYPtr, value, true);
   }
+
+  get IsMagnified(): boolean {
+    return this.isMagnified;
+  }
+
+  set IsMagnified(value: boolean) {
+    this.isMagnified = value;
+  }
 }
 
-function getWasmSpritesView(
-  wasmEngineMod: WasmEngineModule,
-  wasmRaycasterPtr: number,
-): Sprite[] {
-  const numSprites = wasmEngineMod.getSpritesLength(wasmRaycasterPtr);
+function getWasmSpritesView(raycaster: Raycaster): Sprite[] {
+  const {
+    RaycasterPtr: raycasterPtr,
+    ViewportWidth: viewWidth,
+    ViewportHeight: viewHeight,
+  } = raycaster;
+  const wasmEngineMod = gWasmRun.WasmModules.engine;
+  const numSprites = wasmEngineMod.getSpritesLength(raycasterPtr);
   const sprites = new Array<Sprite>(numSprites);
   for (let i = 0; i < numSprites; i++) {
-    const spritePtr = wasmEngineMod.getSpritePtr(wasmRaycasterPtr, i);
+    const spritePtr = wasmEngineMod.getSpritePtr(raycasterPtr, i);
     const posXPtr = wasmEngineMod.getSpritePosXPtr(spritePtr);
     const posYPtr = wasmEngineMod.getSpritePosYPtr(spritePtr);
     const posZPtr = wasmEngineMod.getSpritePosZPtr(spritePtr);
@@ -169,6 +285,8 @@ function getWasmSpritesView(
     const texYPtr = wasmEngineMod.getSpriteTexYPtr(spritePtr);
     const texStepYPtr = wasmEngineMod.getSpriteTexStepYPtr(spritePtr);
     sprites[i] = new Sprite(
+      viewWidth,
+      viewHeight,
       posXPtr,
       posYPtr,
       posZPtr,

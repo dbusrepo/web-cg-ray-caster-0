@@ -8,8 +8,8 @@ import { SArray, newSArray } from '../sarray';
   private width: u32;
   private height: u32;
 
-  private xWallMap: SArray<u8>;
-  private yWallMap: SArray<u8>;
+  private xWallMap: SArray<u16>;
+  private yWallMap: SArray<u16>;
   private xWallMapWidth: u32;
   private xWallMapHeight: u32;
   private yWallMapWidth: u32;
@@ -21,11 +21,11 @@ import { SArray, newSArray } from '../sarray';
     this.height = mapHeight;
     this.xWallMapWidth = mapWidth + 1;
     this.xWallMapHeight = mapHeight;
-    this.yWallMapWidth = mapWidth + 1;
+    this.yWallMapWidth = mapWidth;
     this.yWallMapHeight = mapHeight + 1;
-    this.xWallMap = newSArray<u8>(this.xWallMapWidth * this.xWallMapHeight);
-    this.yWallMap = newSArray<u8>(this.yWallMapWidth * this.yWallMapHeight);
-    this.floorMap = newSArray<u8>(mapWidth * mapHeight);
+    this.xWallMap = newSArray<u16>(this.xWallMapWidth * this.xWallMapHeight);
+    this.yWallMap = newSArray<u16>(this.yWallMapWidth * this.yWallMapHeight);
+    this.floorMap = newSArray<u8>(this.width * this.height);
   }
 
   get Width(): u32 {
@@ -36,11 +36,11 @@ import { SArray, newSArray } from '../sarray';
     return this.height;
   }
 
-  get XWallMap(): SArray<u8> {
+  get XWallMap(): SArray<u16> {
     return this.xWallMap;
   }
 
-  get YWallMap(): SArray<u8> {
+  get YWallMap(): SArray<u16> {
     return this.yWallMap;
   }
 

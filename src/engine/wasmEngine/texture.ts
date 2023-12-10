@@ -1,6 +1,9 @@
 import assert from 'assert';
 import { BitImageRGBA, BPP_RGBA } from '../assets/images/bitImageRGBA';
-import { ascImportImages } from '../../../assets/build/images';
+import {
+  TRANSP_COLOR_RGB,
+  ascImportImages,
+} from '../../../assets/build/images';
 import { gWasmView, gWasmViews } from './wasmRun';
 import {
   wasmTexturesIndexFieldSizes,
@@ -25,6 +28,8 @@ class Mipmap {
 
 // view to wasm texture/mipmaps
 class Texture {
+  public static transpColor: number;
+
   // eslint-disable-next-line no-useless-constructor
   constructor(
     private key: string,
@@ -55,7 +60,7 @@ class Texture {
 
   makeDarker() {
     this.mipmaps.forEach((mipmap) => {
-      mipmap.Image.makeDarker();
+      mipmap.Image.makeDarker(Texture.transpColor);
     });
   }
 }

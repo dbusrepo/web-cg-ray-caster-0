@@ -55,13 +55,23 @@ const imagesArrayName = 'imageKeys';
 const imagesObjPrefix = `const ${imagesArrayName} = {`;
 const imagesObjSuffix = `};\n`;
 
+const TRANSP_RED = 152;
+const TRANSP_GREEN = 0;
+const TRANSP_BLUE = 136;
+const transpColorObjName = 'TRANSP_COLOR_RGB';
+const transpColorObj = `const ${transpColorObjName} = {
+  r: ${TRANSP_RED},
+  g: ${TRANSP_GREEN},
+  b: ${TRANSP_BLUE},
+};\n`;
+
 const ascImportImages = 'ascImportImages';
 const ascImagesIndexesObjPrefix = `const ${ascImportImages} = {`;
 const ascImagesIndexesObjSuffix = `};\n`;
 
 // const numImages = `const numImages = Object.keys(images).length;\n`;
 
-const exportStmt = `export { ${getImagesUrlsFunName}, ${imagesArrayName}, ${ascImportImages} };`;
+const exportStmt = `export { ${getImagesUrlsFunName}, ${imagesArrayName}, ${transpColorObjName}, ${ascImportImages} };`;
 
 const warnMsg = '// Do not modify. This file is auto generated from images.res with make';
 
@@ -103,6 +113,7 @@ ${getImagesUrlsSuffix}
 ${imagesObjPrefix}
 ${objImagesBodyStr}
 ${imagesObjSuffix}
+${transpColorObj}
 ${ascImagesIndexesObjPrefix}
 ${ascIndicesObjBodyStr}
 ${ascImagesIndexesObjSuffix}

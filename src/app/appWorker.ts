@@ -28,7 +28,8 @@ import {
   getFrameColorRGBAWasmView,
 } from '../engine/wasmEngine/frameColorRGBAWasm';
 import { arrAvg, sleep } from '../engine/utils';
-import { Raycaster, RaycasterParams } from '../engine/raycaster/raycaster';
+import type { RaycasterParams } from '../engine/raycaster/raycaster';
+import { Raycaster } from '../engine/raycaster/raycaster';
 
 type AppWorkerParams = {
   engineCanvas: OffscreenCanvas;
@@ -81,7 +82,7 @@ class AppWorker {
     this.initFrameBuf();
     // this.clearBg();
     // this.wasmEngineModule.render();
-    // this.raycaster.render();
+    // this.raycaster.render(0);
   }
 
   private initFrameBuf() {
@@ -150,10 +151,11 @@ class AppWorker {
 
   private async initRaycaster() {
     this.raycaster = new Raycaster();
-    await this.raycaster.init({
+    const raycasterParams: RaycasterParams = {
       wasmRun: this.wasmRun,
       frameColorRGBAWasm: this.frameColorRGBAWasm,
-    });
+    };
+    await this.raycaster.init(raycasterParams);
   }
 
   private async initAuxWorkers() {
@@ -274,7 +276,7 @@ class AppWorker {
       timeSinceLastFrameArr = new Float64Array(
         AppWorker.TIMES_SINCE_LAST_FRAME_ARR_LEN,
       );
-      frameCnt = 0;
+      frameCnt = 1;
       frameTimeCnt = 0;
       timeLastFrameCnt = 0;
       statsTimeAcc = 0;
@@ -340,7 +342,7 @@ class AppWorker {
       this.syncWorkers();
       // this.clearBg();
       // this.wasmEngineModule.render();
-      this.raycaster.render();
+      this.raycaster.render(frameCnt);
       this.waitWorkers();
       this.drawWasmFrame();
       saveFrameTime();
@@ -521,4 +523,4 @@ self.onmessage = ({ data: { command, params } }) => {
 };
 
 export type { AppWorkerParams };
-export { AppWorkerCommandEnum };
+export { AppWorker, AppWorkerCommandEnum };
