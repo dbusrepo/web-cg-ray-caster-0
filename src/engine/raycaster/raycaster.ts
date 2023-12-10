@@ -1076,14 +1076,14 @@ class Raycaster {
       checkWallIdxOffsDoor[Y] = iCheckWallIdxOffsDoorY[sY];
       checkWallIdxOffsDivFactor[Y] = iCheckWallIdxOffsDivFactorY[sY];
 
-      wallMapIncOffs[0] = step[X];
-      wallMapIncOffs[1] = step[Y] * yWallMapWidth;
-      wallMapIncOffs[2] = step[Y] * xWallMapWidth;
-
       curMapPos[X] = mapX;
       curMapPos[Y] = mapY;
       wallMapOffs[X] = wallMapOffsX;
       wallMapOffs[Y] = wallMapOffsY;
+
+      wallMapIncOffs[0] = step[X];
+      wallMapIncOffs[1] = step[Y] * yWallMapWidth;
+      wallMapIncOffs[2] = step[Y] * xWallMapWidth;
 
       const wallSlice = wallSlices[x];
       wallSlice.Hit = 0;
