@@ -1164,8 +1164,10 @@ class Raycaster {
                     sideDist[side] += deltaDist[side];
                     wallMapOffs[side] += wallMapIncOffs[side];
                     wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
-                    // if next int is of the same side advance 1 more time
-                    if (sideDist[side] <= sideDist[side ^ 1]) {
+                    if (sideDist[side] > sideDist[side ^ 1]) {
+                      continue;
+                    } else {
+                      // if next int is of the same side advance 1 more time
                       nextPos = curMapPos[side] + step[side];
                       isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
                       if (isRayValid) {
@@ -1173,13 +1175,11 @@ class Raycaster {
                         sideDist[side] += deltaDist[side];
                         wallMapOffs[side] += wallMapIncOffs[side];
                         wallMapOffs[side ^ 1] += wallMapIncOffs[side << 1];
+                        continue;
                       } else {
                         // out of map, adjust dist to show not hit wall
                         perpWallDist += halfDist;
                       }
-                    }
-                    if (isRayValid) {
-                      continue;
                     }
                   }
                 } else {
