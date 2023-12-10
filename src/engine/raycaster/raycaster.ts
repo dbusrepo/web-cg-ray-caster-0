@@ -1012,8 +1012,8 @@ class Raycaster {
     const cellX = posX - mapX;
     const cellY = posY - mapY;
 
-    const mapOffsX = mapY * xWallMapWidth + posX;
-    const mapOffsY = mapY * yWallMapWidth + posX;
+    const wallMapOffsX = mapY * xWallMapWidth + posX;
+    const wallMapOffsY = mapY * yWallMapWidth + posX;
 
     let maxWallDistance = 0;
     let minWallTop = projYcenter;
@@ -1082,8 +1082,8 @@ class Raycaster {
 
       curMapPos[X] = mapX;
       curMapPos[Y] = mapY;
-      wallMapOffs[X] = mapOffsX;
-      wallMapOffs[Y] = mapOffsY;
+      wallMapOffs[X] = wallMapOffsX;
+      wallMapOffs[Y] = wallMapOffsY;
 
       const wallSlice = wallSlices[x];
       wallSlice.Hit = 0;
