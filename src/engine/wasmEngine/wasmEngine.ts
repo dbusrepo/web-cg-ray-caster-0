@@ -7,8 +7,6 @@ import * as wasmImages from './wasmMemInitImages';
 import * as wasmStrings from './wasmMemInitStrings';
 import * as wasmFontChars from './wasmMemInitFontChars';
 import { AssetManager } from '../assets/assetManager';
-import type { Key } from '../../input/inputManager';
-import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 import { BPP_RGBA } from '../assets/images/bitImageRGBA';
 import type { WasmRunParams } from './wasmRun';
 import { WasmRun } from './wasmRun';
@@ -28,7 +26,6 @@ type WasmEngineParams = {
   imageWidth: number;
   imageHeight: number;
   assetManager: AssetManager;
-  inputManager: InputManager;
   numWorkers: number;
 };
 
@@ -45,26 +42,6 @@ class WasmEngine {
   public async init(params: WasmEngineParams) {
     this.params = params;
     await this.initWasm();
-    this.addWasmInputKeyHandlers();
-  }
-
-  private addWasmInputKeyHandlers() {
-    const { inputKeys } = this.wasmViews;
-    const keyHandler = (keyOffset: number, state: number) => () => {
-      inputKeys[keyOffset] = state;
-    };
-
-    (Object.entries(keyOffsets) as [Key, number][]).forEach(
-      ([key, keyOffset]) => {
-        const keyDownHandler = keyHandler(keyOffset, 1);
-        const keyUpHandler = keyHandler(keyOffset, 0);
-        this.params.inputManager.addKeyHandlers(
-          key,
-          keyDownHandler,
-          keyUpHandler,
-        );
-      },
-    );
   }
 
   private async initWasm(): Promise<void> {
@@ -128,7 +105,6 @@ class WasmEngine {
       ),
       // TODO use 64bit/8 byte counter for mem counters? see wasm workerHeapManager
       workersMemCountersSize: numTotalWorkers * Uint32Array.BYTES_PER_ELEMENT,
-      inputKeysSize: Object.values(keys).length * Uint8Array.BYTES_PER_ELEMENT,
       hrTimerSize: BigUint64Array.BYTES_PER_ELEMENT,
     };
 

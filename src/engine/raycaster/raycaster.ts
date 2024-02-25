@@ -3,10 +3,14 @@ import { raycasterCfg } from './config';
 // import { mainConfig } from '../../config/mainConfig';
 // import type { InputEvent } from '../../app/events';
 // import { AssetManager } from '../assets/assetManager';
-import { BitImageRGBA /* , BPP_RGBA */ } from '../assets/images/bitImageRGBA';
-// import { InputManager, keys, keyOffsets } from '../../input/inputManager';
 // import { sleep } from '../utils';
-
+import { BitImageRGBA /* , BPP_RGBA */ } from '../assets/images/bitImageRGBA';
+import { InputAction, InputActionBehavior } from '../../input/inputAction';
+import {
+  InputManager,
+  MouseCodeEnum,
+  EnginePanelInputKeyCodeEnum,
+} from '../../input/inputManager';
 // import type { WasmEngineParams } from '../wasmEngine/wasmEngine';
 // import { WasmEngine } from '../wasmEngine/wasmEngine';
 import type { WasmViews } from '../wasmEngine/wasmViews';
@@ -26,7 +30,6 @@ import {
   freeTranspSliceViewsList,
 } from './slice';
 import Renderer from './renderer';
-import { Key, keys, keyOffsets } from '../../input/inputManager';
 import {
   ascImportImages,
   imageKeys,
@@ -91,7 +94,9 @@ const MAX_DOOR_COL_OFFSET = 1.5;
 const XDOOR_TYPE = 0;
 const YDOOR_TYPE = 1;
 
-const darkWallTexKeys: typeof WALL_TEX_KEYS = Object.entries(WALL_TEX_KEYS).reduce(
+const darkWallTexKeys: typeof WALL_TEX_KEYS = Object.entries(
+  WALL_TEX_KEYS,
+).reduce(
   (acc, [key, val]) => {
     const DARK_TEX_SUFFIX = '_D';
     acc[key as keyof typeof WALL_TEX_KEYS] = val + DARK_TEX_SUFFIX;
@@ -116,7 +121,21 @@ class Raycaster {
   private wasmEngineModule: WasmEngineModule;
   private frameColorRGBAWasm: FrameColorRGBAWasm;
 
-  private inputKeys: Uint8Array;
+  private inputManager: InputManager;
+
+  private lookUp: InputAction;
+  private lookDown: InputAction;
+  private moveForward: InputAction;
+  private moveBackward: InputAction;
+  private turnLeft: InputAction;
+  private turnRight: InputAction;
+  private raiseHeight: InputAction;
+  private lowerHeight: InputAction;
+
+  private mouseMoveLeft: InputAction;
+  private mouseMoveRight: InputAction;
+  private mouseMoveUp: InputAction;
+  private mouseMoveDown: InputAction;
 
   private raycasterPtr: number;
   private borderWidthPtr: number;
@@ -210,12 +229,14 @@ class Raycaster {
   // private _2float: Float32Array;
   // private _1u32: Uint32Array;
 
-  public async init(params: RaycasterParams) {
-    this.params = params;
+  public async init(params: RaycasterParams, inputManager: InputManager) {
+    this.initInput(inputManager);
+    await this.initGraphics(params);
+  }
 
+  public async initGraphics(params: RaycasterParams) {
     this.wasmRun = params.wasmRun;
     this.wasmViews = this.wasmRun.WasmViews;
-    this.inputKeys = this.wasmViews.inputKeys;
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
     this.frameColorRGBAWasm = params.frameColorRGBAWasm;
     this.raycasterPtr = this.wasmEngineModule.getRaycasterPtr();
@@ -240,6 +261,85 @@ class Raycaster {
     this.renderer.IsFloorTextured = true;
     this.renderer.VertFloor = false;
     this.renderer.Back2Front = true;
+  }
+
+  private mapKeytoInputAction(
+    key: EnginePanelInputKeyCodeEnum,
+    action: InputAction,
+  ) {
+    this.inputManager.mapToKey(key, action);
+  }
+
+  private initInput(inputManager: InputManager) {
+    this.inputManager = inputManager;
+
+    this.lookUp = new InputAction('LookUp', InputActionBehavior.NORMAL);
+    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_E, this.lookUp);
+
+    this.lookDown = new InputAction('LookDown', InputActionBehavior.NORMAL);
+    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_C, this.lookDown);
+
+    this.moveForward = new InputAction(
+      'MoveForward',
+      InputActionBehavior.NORMAL,
+    );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.KEY_W,
+      this.moveForward,
+    );
+
+    this.moveBackward = new InputAction(
+      'MoveBackward',
+      InputActionBehavior.NORMAL,
+    );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.KEY_S,
+      this.moveBackward,
+    );
+
+    this.turnLeft = new InputAction('TurnLeft', InputActionBehavior.NORMAL);
+    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_A, this.turnLeft);
+
+    this.turnRight = new InputAction('TurnRight', InputActionBehavior.NORMAL);
+    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_D, this.turnRight);
+
+    this.raiseHeight = new InputAction(
+      'RaiseHeight',
+      InputActionBehavior.NORMAL,
+    );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.KEY_Q,
+      this.raiseHeight,
+    );
+
+    this.lowerHeight = new InputAction(
+      'LowerHeight',
+      InputActionBehavior.NORMAL,
+    );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.KEY_Z,
+      this.lowerHeight,
+    );
+
+    // this.pressA = new InputAction('A', InputActionBehavior.NORMAL);
+    // // this.pressA = new InputAction(
+    // //   'A',
+    // //   InputActionBehavior.DETECT_INITAL_PRESS_ONLY,
+    // // );
+    //
+    // this.mouseMoveLeft = new InputAction(
+    //   'MouseLeft',
+    //   InputActionBehavior.NORMAL,
+    // );
+    // this.mouseMoveRight = new InputAction(
+    //   'MouseRight',
+    //   InputActionBehavior.NORMAL,
+    // );
+    // this.mouseMoveUp = new InputAction('MouseUp', InputActionBehavior.NORMAL);
+    // this.mouseMoveDown = new InputAction(
+    //   'MouseDown',
+    //   InputActionBehavior.NORMAL,
+    // );
   }
 
   private initData() {
@@ -1447,8 +1547,14 @@ class Raycaster {
             const texXOffset = iTexX << lg2Pitch;
             if (sprite.IsMagnified) {
               // when sprite is magnified, precalc batch x offsets and render by cols/rows batches
-              if (sprite.NumRenderBatchXs === 0 || texXOffset !== renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
-                x !== renderBatchXs[sprite.NumRenderBatchXs - 1] + renderBatchXLens[sprite.NumRenderBatchXs - 1]) {
+              if (
+                sprite.NumRenderBatchXs === 0 ||
+                texXOffset !==
+                  renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
+                x !==
+                  renderBatchXs[sprite.NumRenderBatchXs - 1] +
+                    renderBatchXLens[sprite.NumRenderBatchXs - 1]
+              ) {
                 // start new batch
                 renderBatchXs[sprite.NumRenderBatchXs] = x;
                 renderBatchTexXOffsets[sprite.NumRenderBatchXs] = texXOffset;
@@ -1527,8 +1633,14 @@ class Raycaster {
               this.updateTranspSliceArrayIdx(x, null);
               const texXOffset = iTexX << lg2Pitch;
               if (sprite.IsMagnified) {
-                if (sprite.NumRenderBatchXs === 0 || texXOffset !== renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
-                  x !== renderBatchXs[sprite.NumRenderBatchXs - 1] + renderBatchXLens[sprite.NumRenderBatchXs - 1]) {
+                if (
+                  sprite.NumRenderBatchXs === 0 ||
+                  texXOffset !==
+                    renderBatchTexXOffsets[sprite.NumRenderBatchXs - 1] ||
+                  x !==
+                    renderBatchXs[sprite.NumRenderBatchXs - 1] +
+                      renderBatchXLens[sprite.NumRenderBatchXs - 1]
+                ) {
                   // start new batch
                   renderBatchXs[sprite.NumRenderBatchXs] = x;
                   renderBatchTexXOffsets[sprite.NumRenderBatchXs] = texXOffset;
@@ -1692,7 +1804,6 @@ class Raycaster {
   }
 
   public update(time: number) {
-    this.updateLookUpDown(time);
     this.updatePlayer(time);
     this.updateDoors();
   }
@@ -1827,52 +1938,46 @@ class Raycaster {
     }
   }
 
-  // TODO:
-  private updateLookUpDown(time: number) {
-    const OFFS = 15 * time;
-    if (this.isKeyDown(keys.KEY_E)) {
-      const yCenter = this.ProjYCenter + OFFS;
-      this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3) | 0;
-    }
-
-    if (this.isKeyDown(keys.KEY_C)) {
-      const yCenter = this.ProjYCenter - OFFS;
-      this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3) | 0;
-    }
-  }
-
-  private isKeyDown(key: Key): boolean {
-    return this.inputKeys[keyOffsets[key]] !== 0;
-  }
-
   private updatePlayer(time: number) {
+    const LOOKUP_OFFS = 15 * time;
+
+    if (this.lookUp.isPressed()) {
+      const yCenter = this.ProjYCenter + LOOKUP_OFFS;
+      this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3);
+    }
+
+    if (this.lookDown.isPressed()) {
+      const yCenter = this.ProjYCenter - LOOKUP_OFFS;
+      this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3);
+    }
+
     const MOVE_SPEED = 0.01; // 0.009; // TODO:
     const ROT_SPEED = 0.006; // TODO:
     const moveSpeed = time * MOVE_SPEED;
     const rotSpeed = time * ROT_SPEED;
 
-    if (this.isKeyDown(keys.KEY_W)) {
+    if (this.moveForward.isPressed()) {
       this.movePlayer(moveSpeed);
     }
-    if (this.isKeyDown(keys.KEY_S)) {
+    if (this.moveBackward.isPressed()) {
       this.movePlayer(-moveSpeed);
     }
-    if (this.isKeyDown(keys.KEY_A)) {
+    if (this.turnLeft.isPressed()) {
       this.rotatePlayer(-rotSpeed);
     }
-    if (this.isKeyDown(keys.KEY_D)) {
+    if (this.turnRight.isPressed()) {
       this.rotatePlayer(rotSpeed);
     }
-    if (this.isKeyDown(keys.KEY_Q)) {
-      this.updatePlayerHeight(1);
+    if (this.raiseHeight.isPressed()) {
+      this.increasePlayerHeight(1);
     }
-    if (this.isKeyDown(keys.KEY_Z)) {
-      this.updatePlayerHeight(-1);
+    if (this.lowerHeight.isPressed()) {
+      this.increasePlayerHeight(-1);
     }
   }
 
-  private updatePlayerHeight(dir: number) {
-    let height = this.player.PosZ + dir * 10;
+  private increasePlayerHeight(d: number) {
+    let height = this.player.PosZ + d * 10;
     const LIMIT = 100;
     if (height < LIMIT) {
       height = LIMIT;
@@ -1914,7 +2019,7 @@ class Raycaster {
   }
 
   private set ProjYCenter(val: number) {
-    this.wasmRun.WasmViews.view.setInt32(this.projYCenterPtr, val, true);
+    this.wasmRun.WasmViews.view.setInt32(this.projYCenterPtr, val | 0, true);
   }
 
   private get MaxWallDistance(): number {

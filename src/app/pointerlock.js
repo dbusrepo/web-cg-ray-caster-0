@@ -55,8 +55,4 @@ async function requestPointerLock(element) {
   );
 }
 
-export {
-  requestPointerLockWithoutUnadjustedMovement,
-  requestPointerLockWithUnadjustedMovement,
-  requestPointerLock,
-};
+export { requestPointerLock };

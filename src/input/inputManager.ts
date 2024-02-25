@@ -1,41 +1,61 @@
-import type { Key } from '../app/keys';
-import { keys, keyOffsets } from '../app/keys';
+import type { KeyCode } from '../app/keyCodes';
+import type {
+  KeyInputEvent,
+  MouseMoveEvent,
+  // CanvasDisplayResizeEvent,
+} from '../app/events';
+import { EnginePanelInputKeyCodeEnum } from '../app/keyCodes';
+import { InputAction, InputActionBehavior } from './inputAction';
 
 type KeyHandler = () => void;
 
-type KeyHandlers = Partial<Record<Key, KeyHandler[]>>;
+type KeyHandlersMap = Partial<Record<KeyCode, KeyHandler[]>>;
+
+enum MouseCodeEnum {
+  MOVE_LEFT = 0,
+  MOVE_RIGHT = 1,
+  MOVE_UP = 2,
+  MOVE_DOWN = 3,
+}
 
 class InputManager {
-  private keyDownHandlers: KeyHandlers = {};
-  private keyUpHandlers: KeyHandlers = {};
+  private keyActions: Partial<Record<KeyCode, InputAction>> = {};
+  private mouseActions: Partial<Record<MouseCodeEnum, InputAction>> = {};
 
-  public addKeyHandlers(
-    key: Key,
-    keyDownHandler: KeyHandler,
-    keyUpHandler: KeyHandler,
+  public mapToKey(key: KeyCode, action: InputAction) {
+    this.keyActions[key] = action;
+  }
+
+  public mapToMouse(code: MouseCodeEnum, action: InputAction) {
+    this.mouseActions[code] = action;
+  }
+
+  public onKeyDown({ code: key }: KeyInputEvent) {
+    this.keyActions[key]?.press();
+  }
+
+  public onKeyUp({ code: key }: KeyInputEvent) {
+    this.keyActions[key]?.release();
+  }
+
+  public onMouseMove({ dx, dy }: MouseMoveEvent) {
+    this.mouseMoveHelper(MouseCodeEnum.MOVE_LEFT, MouseCodeEnum.MOVE_RIGHT, dx);
+    this.mouseMoveHelper(MouseCodeEnum.MOVE_UP, MouseCodeEnum.MOVE_DOWN, dy);
+  }
+
+  private mouseMoveHelper(
+    codeNeg: MouseCodeEnum,
+    codePos: MouseCodeEnum,
+    amount: number,
   ) {
-    this.addKeyDownHandler(key, keyDownHandler);
-    this.addKeyUpHandler(key, keyUpHandler);
-  }
-
-  private addKeyDownHandler(key: Key, keyHandler: KeyHandler) {
-    (this.keyDownHandlers[key] = this.keyDownHandlers[key] ?? []).push(
-      keyHandler,
-    );
-  }
-
-  private addKeyUpHandler(key: Key, keyHandler: KeyHandler) {
-    (this.keyUpHandlers[key] = this.keyUpHandlers[key] ?? []).push(keyHandler);
-  }
-
-  public onKeyDown(key: Key) {
-    this.keyDownHandlers[key]?.forEach((h) => h());
-  }
-
-  public onKeyUp(key: Key) {
-    this.keyUpHandlers[key]?.forEach((h) => h());
+    const codeAction = amount < 0 ? codeNeg : codePos;
+    const action = this.mouseActions[codeAction];
+    if (action) {
+      action.press(Math.abs(amount));
+      action.release();
+    }
   }
 }
 
-export type { KeyHandler, Key };
-export { InputManager, keys, keyOffsets };
+// export type { KeyHandler, Key };
+export { InputManager, MouseCodeEnum, EnginePanelInputKeyCodeEnum };

@@ -8,7 +8,7 @@ import {
 import { ArenaAlloc, newArena } from './arenaAlloc';
 import { ObjectAllocator } from './objectAllocator';
 import * as utils from './utils';
-import { 
+import {
   clearBg,
   drawText,
   drawRect,
@@ -25,7 +25,6 @@ import {
   rgbaSurface0height,
   syncArrayPtr,
   sleepArrayPtr,
-  inputKeysPtr,
   hrTimerPtr,
   frameColorRGBAPtr,
   texturesPtr,
@@ -42,7 +41,7 @@ import { SArray } from './sarray';
 import { PTR_T, SIZE_T, NULL_PTR, getTypeSize } from './memUtils';
 import {
   Viewport, newViewport,
-  getViewportStartXPtr, getViewportStartYPtr, 
+  getViewportStartXPtr, getViewportStartYPtr,
   getViewportWidthPtr, getViewportHeightPtr,
 } from './raycaster/viewport';
 import {
@@ -90,7 +89,7 @@ import {
   getDoorNextPtrPtr,
 } from './raycaster/door';
 import { Map, newMap } from './raycaster/map';
-import { 
+import {
   Raycaster,
   newRaycaster,
   getBorderColorPtr,
@@ -127,7 +126,7 @@ import {
   setTranspSliceAtIdx,
   getActiveDoorsListPtr,
 } from './raycaster/raycaster';
-import { 
+import {
   allocSlice,
   getSliceDistancePtr,
   getSliceHitPtr,
@@ -146,9 +145,9 @@ import {
   getSliceIsSpritePtr,
 } from './raycaster/slice';
 import {
-  FrameColorRGBA, 
+  FrameColorRGBA,
   newFrameColorRGBA,
-  // deleteFrameColorRGBA, 
+  // deleteFrameColorRGBA,
   MAX_LIGHT_LEVELS,
   BPP_RGBA,
   getRedLightTablePtr,
@@ -158,7 +157,7 @@ import {
   getGreenFogTablePtr,
   getBlueFogTablePtr,
 } from './frameColorRGBA';
-import { 
+import {
   RaycasterParams,
   newRaycasterParams,
   deleteRaycasterParams,
@@ -265,7 +264,7 @@ function run(): void {
   }
 }
 
-export { 
+export {
   init,
   render,
   run,

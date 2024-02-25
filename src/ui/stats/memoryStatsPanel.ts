@@ -1,5 +1,5 @@
 import { StatsPanel } from './statsPanel';
-import { StatsNameEnum, StatsValues } from './stats';
+import { StatsEnum, StatsValues } from './stats';
 
 // TODO not used
 // const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -18,7 +18,8 @@ const ONE_MB = 1048576;
 class MemoryStatsPanel extends StatsPanel {
   constructor() {
     super({
-      title: StatsNameEnum.FPS,
+      id: StatsEnum.MEM,
+      title: 'MEM',
       fg: '#FF0',
       bg: '#220',
       graphHeight: 100,

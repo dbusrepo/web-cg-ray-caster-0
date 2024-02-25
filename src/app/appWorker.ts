@@ -1,28 +1,38 @@
 import assert from 'assert';
 import { MILLI_IN_SEC } from '../common';
 import { mainConfig } from '../config/mainConfig';
-import type { StatsValues } from '../ui/stats/stats';
-import { StatsNameEnum } from '../ui/stats/stats';
 import { AssetManager } from '../engine/assets/assetManager';
-import type { InputEvent, CanvasDisplayResizeEvent } from './events';
 import {
   AppPostInitParams,
   AppCommandEnum,
   PanelIdEnum,
   KeyEventsEnum,
+  EventLog,
 } from './appTypes';
-import type { KeyHandler, Key } from '../input/inputManager';
-import { InputManager, keys, keyOffsets } from '../input/inputManager';
+import type { StatsValues } from '../ui/stats/stats';
+import type {
+  KeyInputEvent,
+  MouseMoveEvent,
+  CanvasDisplayResizeEvent,
+} from './events';
 import type { AuxAppWorkerParams, AuxAppWorkerDesc } from './auxAppWorker';
-import { AuxAppWorkerCommandEnum } from './auxAppWorker';
+import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
+import type { WasmViews } from '../engine/wasmEngine/wasmViews';
 import type {
   WasmModules,
   WasmEngineModule,
 } from '../engine/wasmEngine/wasmLoader';
-import { WasmRun } from '../engine/wasmEngine/wasmRun';
-import type { WasmEngineParams } from '../engine/wasmEngine/wasmEngine';
+import { StatsEnum } from '../ui/stats/stats';
+import {
+  InputManager,
+  MouseCodeEnum,
+  EnginePanelInputKeyCodeEnum,
+} from '../input/inputManager';
+import { InputAction, InputActionBehavior } from '../input/inputAction';
+import { AuxAppWorkerCommandEnum } from './auxAppWorker';
 import { WasmEngine } from '../engine/wasmEngine/wasmEngine';
-import type { WasmViews } from '../engine/wasmEngine/wasmViews';
+import { WasmRun } from '../engine/wasmEngine/wasmRun';
+import * as utils from '../engine/utils';
 import {
   FrameColorRGBAWasm,
   getFrameColorRGBAWasmView,
@@ -74,8 +84,8 @@ class AppWorker {
   public async init(params: AppWorkerParams): Promise<void> {
     this.params = params;
     this.initGfx();
-    this.initInputManager();
     await this.initAssetManager();
+    this.initInput();
     await this.initWasmEngine();
     await this.initAuxWorkers();
     await this.initRaycaster();
@@ -111,18 +121,12 @@ class AppWorker {
     return ctx;
   }
 
-  private initInputManager() {
+  private initInput() {
     this.inputManager = new InputManager();
-    // no key handlers added here, we use the wasm engine key handlers
-    // and we check for key status with wasm view
-    this.addKeyHandlers();
+    this.initInputActions();
   }
 
-  private addKeyHandlers() {
-    // this.inputManager.addKeyHandlers(keys.KEY_A, () => {}, () => {});
-    // this.inputManager.addKeyHandlers(keys.KEY_S, () => {}, () => {});
-    // this.inputManager.addKeyHandlers(keys.KEY_D, () => {}, () => {});
-  }
+  private initInputActions() {}
 
   private async initAssetManager() {
     this.assetManager = new AssetManager();
@@ -138,7 +142,6 @@ class AppWorker {
       imageWidth: this.imageData.width,
       imageHeight: this.imageData.height,
       assetManager: this.assetManager,
-      inputManager: this.inputManager,
       numWorkers: mainConfig.numAuxWorkers,
     };
     await this.wasmEngine.init(wasmEngineParams);
@@ -155,7 +158,8 @@ class AppWorker {
       wasmRun: this.wasmRun,
       frameColorRGBAWasm: this.frameColorRGBAWasm,
     };
-    await this.raycaster.init(raycasterParams);
+    assert(this.inputManager);
+    await this.raycaster.init(raycasterParams, this.inputManager);
   }
 
   private async initAuxWorkers() {
@@ -239,15 +243,40 @@ class AppWorker {
     });
   }
 
+  private checkInput() {
+    // if (this.pressA.isPressed()) {
+    // console.log('A pressed');
+    // postMessage({
+    //   command: AppCommandEnum.EVENT,
+    //   params: {
+    //     event: 'A pressed',
+    //     msg: 'ahooo',
+    //   } as EventLog,
+    // });
+    // }
+    // if (this.mouseMoveLeft.isPressed()) {
+    //   console.log('Mouse move left');
+    // }
+    // if (this.mouseMoveRight.isPressed()) {
+    //   console.log('Mouse move right');
+    // }
+    // if (this.mouseMoveUp.isPressed()) {
+    //   console.log('Mouse move up');
+    // }
+    // if (this.mouseMoveDown.isPressed()) {
+    //   console.log('Mouse move down');
+    // }
+  }
+
   public async run(): Promise<void> {
     let lastFrameStartTime: number;
     // let last_render_t: number;
     let updTimeAcc: number;
     let elapsedTimeMs: number;
     let renderThen: number;
-    let timeSinceLastFrame: number;
+    let timeSinceLastFrameMs: number;
     let avgTimeSinceLastFrame: number;
-    let frameStartTime: number;
+    let frameStartTimeMs: number;
 
     let timeLastFrameCnt: number;
     let frameCnt: number;
@@ -259,8 +288,8 @@ class AppWorker {
     let lastStatsTime: number;
     let statsTimeAcc: number;
 
-    let frameTimeArr: Float64Array;
-    let timeSinceLastFrameArr: Float64Array;
+    let frameTimeMsArr: Float64Array;
+    let timeMsSinceLastFrameArr: Float64Array;
     let fpsArr: Float32Array;
     let upsArr: Float32Array;
 
@@ -270,10 +299,10 @@ class AppWorker {
 
     const mainLoopInit = () => {
       lastFrameStartTime = lastStatsTime = renderThen = performance.now();
-      frameTimeArr = new Float64Array(AppWorker.FRAME_TIMES_ARR_LEN);
+      frameTimeMsArr = new Float64Array(AppWorker.FRAME_TIMES_ARR_LEN);
       updTimeAcc = 0;
       elapsedTimeMs = 0;
-      timeSinceLastFrameArr = new Float64Array(
+      timeMsSinceLastFrameArr = new Float64Array(
         AppWorker.TIMES_SINCE_LAST_FRAME_ARR_LEN,
       );
       frameCnt = 1;
@@ -292,19 +321,23 @@ class AppWorker {
     };
 
     const begin = () => {
-      frameStartTime = performance.now();
-      timeSinceLastFrame = frameStartTime - lastFrameStartTime;
-      lastFrameStartTime = frameStartTime;
-      timeSinceLastFrame = Math.min(
-        timeSinceLastFrame,
+      frameStartTimeMs = performance.now();
+      timeSinceLastFrameMs = frameStartTimeMs - lastFrameStartTime;
+      lastFrameStartTime = frameStartTimeMs;
+      timeSinceLastFrameMs = Math.min(
+        timeSinceLastFrameMs,
         AppWorker.UPDATE_TIME_MAX,
       );
-      timeSinceLastFrame = Math.max(timeSinceLastFrame, 0);
-      timeSinceLastFrameArr[timeLastFrameCnt++ % timeSinceLastFrameArr.length] =
-        timeSinceLastFrame;
+      timeSinceLastFrameMs = Math.max(timeSinceLastFrameMs, 0);
+      timeMsSinceLastFrameArr[
+        timeLastFrameCnt++ % timeMsSinceLastFrameArr.length
+      ] = timeSinceLastFrameMs;
       // avgTimeSinceLastFrame = timeSinceLastFrame;
       // console.log(`avgTimeSinceLastFrame = ${avgTimeSinceLastFrame}`);
-      avgTimeSinceLastFrame = arrAvg(timeSinceLastFrameArr, timeLastFrameCnt);
+      avgTimeSinceLastFrame = utils.arrAvg(
+        timeMsSinceLastFrameArr,
+        timeLastFrameCnt,
+      );
     };
 
     const frame = () => {
@@ -328,6 +361,9 @@ class AppWorker {
         updTimeAcc = 0; // TODO
         // delta_time = App.UPD_PERIOD;
       }
+
+      this.checkInput();
+
       while (updTimeAcc >= AppWorker.UPDATE_PERIOD_MS) {
         // TODO: see multiplier in update_period def
         // update state with UPDATE_PERIOD_MS
@@ -344,19 +380,19 @@ class AppWorker {
       // this.wasmEngineModule.render();
       this.raycaster.render(frameCnt);
       this.waitWorkers();
-      this.drawWasmFrame();
+      this.drawFrame();
       saveFrameTime();
       renderCnt++;
     };
 
     const saveFrameTime = () => {
-      const frameTime = performance.now() - frameStartTime;
-      frameTimeArr[frameTimeCnt++ % frameTimeArr.length] = frameTime;
+      const frameTimeMs = performance.now() - frameStartTimeMs;
+      frameTimeMsArr[frameTimeCnt++ % frameTimeMsArr.length] = frameTimeMs;
     };
 
     const stats = () => {
       ++frameCnt;
-      statsTimeAcc += timeSinceLastFrame;
+      statsTimeAcc += timeSinceLastFrameMs;
       if (statsTimeAcc >= AppWorker.STATS_PERIOD_MS) {
         statsTimeAcc %= AppWorker.STATS_PERIOD_MS;
         // const tspent = (tnow - start_time) / App.MILLI_IN_SEC;
@@ -370,14 +406,16 @@ class AppWorker {
         const stat_idx = statsCnt++ % fpsArr.length;
         fpsArr[stat_idx] = fps;
         upsArr[stat_idx] = ups;
-        const avgFps = arrAvg(fpsArr, statsCnt);
-        const avgUps = arrAvg(upsArr, statsCnt);
-        const avgFrameTime = arrAvg(frameTimeArr, frameTimeCnt);
-        const avgUfps = MILLI_IN_SEC / avgFrameTime;
+        const avgFps = utils.arrAvg(fpsArr, statsCnt);
+        const avgUps = utils.arrAvg(upsArr, statsCnt);
+        const avgFrameTimeMs = utils.arrAvg(frameTimeMsArr, frameTimeCnt);
+        const avgUfps = MILLI_IN_SEC / avgFrameTimeMs;
+        // console.log(`avgUfps = ${avgUfps}, avgFrameTime = ${avgFrameTime}`);
         const statsValues: StatsValues = {
-          [StatsNameEnum.FPS]: avgFps,
-          [StatsNameEnum.UPS]: avgUps,
-          [StatsNameEnum.UFPS]: avgUfps,
+          [StatsEnum.FPS]: avgFps,
+          [StatsEnum.UPS]: avgUps,
+          [StatsEnum.UFPS]: avgUfps,
+          [StatsEnum.FRAME_TIME_MS]: avgFrameTimeMs,
         };
         postMessage({
           command: AppCommandEnum.UPDATE_STATS,
@@ -393,7 +431,7 @@ class AppWorker {
     // setInterval(() => {
     //   // console.log('sending...');
     //   postMessage({
-    //     command: PanelCommands.EVENT,
+    //     command: AppCommandEnum.EVENT,
     //     params: Math.floor(Math.random() * 100),
     //   });
     // }, 2000);
@@ -420,7 +458,7 @@ class AppWorker {
   //   // }
   // }
 
-  public drawWasmFrame() {
+  public drawFrame() {
     this.imageData.data.set(this.wasmViews.rgbaSurface0);
     this.ctx2d.putImageData(this.imageData, 0, 0);
   }
@@ -439,21 +477,34 @@ class AppWorker {
   //   this.inputManager.onKeyUp(inputEvent.code);
   // }
 
-  onMouseMove(mouseEvent: MouseEvent) {
-    // console.log('on mouse move dx = ', mouseEvent.dx, ' dy = ', mouseEvent.dy);
-    if (mouseEvent.dx) {
-      // const rotspeed = 0.005;
-      const rotspeed = 0.009;
-      this.raycaster.rotatePlayer(mouseEvent.dx > 0 ? rotspeed : -rotspeed);
-      // this.raycaster.rotatePlayer(mouseEvent.dx * rotspeed);
-    }
-    // if (mouseEvent.dy) {
-    //   this.raycaster.rotateCamera(mouseEvent.dy);
-    // }
+  // prev impl
+  // onMouseMove(mouseEvent: MouseEvent) {
+  //   // console.log('on mouse move dx = ', mouseEvent.dx, ' dy = ', mouseEvent.dy);
+  //   if (mouseEvent.dx) {
+  //     // const rotspeed = 0.005;
+  //     const rotspeed = 0.009;
+  //     this.raycaster.rotatePlayer(mouseEvent.dx > 0 ? rotspeed : -rotspeed);
+  //     // this.raycaster.rotatePlayer(mouseEvent.dx * rotspeed);
+  //   }
+  //   // if (mouseEvent.dy) {
+  //   //   this.raycaster.rotateCamera(mouseEvent.dy);
+  //   // }
+  // }
+
+  public onKeyDown(event: KeyInputEvent) {
+    this.inputManager.onKeyDown(event);
   }
 
-  onCanvasDisplayResize(displayWidth: number, displayHeight: number) {
-    // TODO:
+  public onKeyUp(event: KeyInputEvent) {
+    this.inputManager.onKeyUp(event);
+  }
+
+  public onMouseMove(inputEvent: MouseMoveEvent) {
+    this.inputManager.onMouseMove(inputEvent);
+  }
+
+  // TODO:
+  public onCanvasDisplayResize(displayWidth: number, displayHeight: number) {
     // console.log('onCanvasDisplayResize', displayWidth, displayHeight);
   }
 
@@ -473,11 +524,6 @@ const enum AppWorkerCommandEnum {
   RESIZE_CANVAS_DISPLAY_SIZE = 'app_worker_resize_canvas_display_size',
 }
 
-type MouseEvent = {
-  dx: number;
-  dy: number;
-};
-
 const commands = {
   [AppWorkerCommandEnum.INIT]: async (params: AppWorkerParams) => {
     appWorker = new AppWorker();
@@ -494,15 +540,14 @@ const commands = {
   [AppWorkerCommandEnum.RUN]: async () => {
     await appWorker.run();
   },
-  // not used
-  // [AppWorkerCommandEnum.KEY_DOWN]: (inputEvent: InputEvent) => {
-  //   appWorker.onKeyDown(inputEvent);
-  // },
-  // [AppWorkerCommandEnum.KEY_UP]: (inputEvent: InputEvent) => {
-  //   appWorker.onKeyUp(inputEvent);
-  // },
-  [AppWorkerCommandEnum.MOUSE_MOVE]: (mouseEvent: MouseEvent) => {
-    appWorker.onMouseMove(mouseEvent);
+  [AppWorkerCommandEnum.KEY_DOWN]: (inputEvent: KeyInputEvent) => {
+    appWorker.onKeyDown(inputEvent);
+  },
+  [AppWorkerCommandEnum.KEY_UP]: (inputEvent: KeyInputEvent) => {
+    appWorker.onKeyUp(inputEvent);
+  },
+  [AppWorkerCommandEnum.MOUSE_MOVE]: (inputEvent: MouseMoveEvent) => {
+    appWorker.onMouseMove(inputEvent);
   },
   [AppWorkerCommandEnum.RESIZE_CANVAS_DISPLAY_SIZE]: (
     resizeEvent: CanvasDisplayResizeEvent,

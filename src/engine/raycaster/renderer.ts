@@ -1126,7 +1126,13 @@ class Renderer {
   }
 
   private renderSpriteB2F(sprite: Sprite) {
-    const { frameBuf32, frameStride, frameRowPtrs, raycaster, wasmEngineModule } = this;
+    const {
+      frameBuf32,
+      frameStride,
+      frameRowPtrs,
+      raycaster,
+      wasmEngineModule,
+    } = this;
 
     const { TexRowSliceFullyTranspMap: texRowSliceFullyTranspMap } = raycaster;
 

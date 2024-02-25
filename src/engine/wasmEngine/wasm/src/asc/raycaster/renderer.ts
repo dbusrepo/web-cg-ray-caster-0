@@ -16,7 +16,6 @@ import {
   rgbaSurface0height,
   syncArrayPtr,
   sleepArrayPtr,
-  inputKeysPtr,
   hrTimerPtr,
   raycasterPtr,
 } from '../importVars';

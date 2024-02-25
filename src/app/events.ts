@@ -1,9 +1,14 @@
-import type { Key } from './keys';
+import type { KeyCode } from './keyCodes';
 import { PanelId } from './appTypes';
 
-type InputEvent = {
-  code: Key;
+type KeyInputEvent = {
+  code: KeyCode;
   panelId: PanelId;
+};
+
+type MouseMoveEvent = {
+  dx: number;
+  dy: number;
 };
 
 type CanvasDisplayResizeEvent = {
@@ -11,4 +16,9 @@ type CanvasDisplayResizeEvent = {
   height: number;
 };
 
-export type { InputEvent, CanvasDisplayResizeEvent };
+export type {
+  KeyCode,
+  KeyInputEvent,
+  MouseMoveEvent,
+  CanvasDisplayResizeEvent,
+};

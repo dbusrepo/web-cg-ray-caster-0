@@ -1,5 +1,6 @@
 import { eventLogConfig } from './eventLogConfig';
 import { consoleConfig } from './consoleConfig';
+import type { PanelId } from '../app/appTypes';
 
 const enum StartViewMode {
   WIN = 'win',
@@ -69,7 +70,7 @@ const panelConfig = {
 };
 
 type PanelConfig = typeof panelConfig & {
-  id: number;
+  id: PanelId;
 };
 
 export { StartViewMode, PanelConfig, panelConfig };

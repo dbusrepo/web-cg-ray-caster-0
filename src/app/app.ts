@@ -1,31 +1,35 @@
 // import assert from 'assert';
+import type { AppWorkerParams } from './appWorker';
+import type {
+  AppPostInitParams,
+  KeyEvent,
+  // PanelId,
+  EventLog,
+} from './appTypes';
+import type {
+  KeyCode,
+  KeyInputEvent,
+  // MouseMoveEvent,
+  // CanvasDisplayResizeEvent,
+} from './events';
 import {
   StartViewMode,
   EnginePanelConfig,
-  ViewPanelConfig,
+  // ViewPanelConfig,
   mainConfig,
 } from '../config/mainConfig';
-import {
-  requestPointerLock,
-  // requestPointerLockWithoutUnadjustedMovement,
-  // requestPointerLockWithUnadjustedMovement,
-} from './pointerlock';
+import { requestPointerLock } from './pointerlock';
 import { statsConfig } from '../ui/stats/statsConfig';
-import type { AppWorkerParams } from './appWorker';
 import { AppWorkerCommandEnum } from './appWorker';
-import { Stats, StatsNameEnum, StatsValues } from '../ui/stats/stats';
+import { Stats, StatsEnum, StatsValues } from '../ui/stats/stats';
 import { StatsPanel } from '../ui/stats/statsPanel';
 import { Panel } from '../panels/panel';
 import { EnginePanel } from '../panels/enginePanel';
 // import { ViewPanel } from '../panels/viewPanel';
-import type { AppPostInitParams, KeyEvent, PanelId } from './appTypes';
 import { AppCommandEnum, PanelIdEnum, KeyEventsEnum } from './appTypes';
 import * as WasmUtils from '../engine/wasmEngine/wasmMemUtils';
 import type { WasmViews } from '../engine/wasmEngine/wasmViews';
 import { buildWasmMemViews } from '../engine/wasmEngine/wasmViews';
-import type { Key } from '../input/inputManager';
-import { keyOffsets } from '../input/inputManager';
-import { EnginePanelInputKeysEnum } from '../panels/enginePanelTypes';
 
 class App {
   private stats: Stats;
@@ -48,7 +52,7 @@ class App {
   }
 
   private initKeyListeners(panel: Panel) {
-    const keyEvent2cmd = {
+    const keyEventCmd = {
       [KeyEventsEnum.KEY_DOWN]: AppWorkerCommandEnum.KEY_DOWN,
       [KeyEventsEnum.KEY_UP]: AppWorkerCommandEnum.KEY_UP,
     };
@@ -59,18 +63,14 @@ class App {
           panel.InputKeys.has(event.code) &&
           !panel.ignoreInputKey(event.code)
         ) {
-          const keyOffset = keyOffsets[event.code as Key];
-          if (keyOffset !== undefined) {
-            const { inputKeys } = this.wasmViews;
-            inputKeys[keyOffset] = keyEvent === KeyEventsEnum.KEY_DOWN ? 1 : 0;
-          }
-          // this.appWorker.postMessage({
-          //   command: keyEvent2cmd[keyEvent],
-          //   params: {
-          //     code: event.code,
-          //     panelId: panel.Id,
-          //   },
-          // });
+          const keyInputEvent: KeyInputEvent = {
+            code: event.code as KeyCode,
+            panelId: panel.Id,
+          };
+          this.appWorker.postMessage({
+            command: keyEventCmd[keyEvent],
+            params: keyInputEvent,
+          });
         }
       });
 
@@ -78,43 +78,36 @@ class App {
   }
 
   private initPointerLock(enginePanel: EnginePanel) {
-    const element = this.enginePanel.Canvas;
+    const canvasEl = enginePanel.Canvas;
 
-    let requestingPointerLock = false;
-
-    element.addEventListener('click', async (event: MouseEvent) => {
-      if (event.target !== element) {
+    const handleClick = async (event: MouseEvent) => {
+      if (event.target !== canvasEl) {
         return;
       }
       const canRequestPointerLock = !(
-        document.pointerLockElement ||
-        requestingPointerLock ||
-        this.enginePanel.isConsoleOpen
+        document.pointerLockElement || enginePanel.isConsoleOpen
       );
       if (canRequestPointerLock) {
-        // requestPointerLockWithUnadjustedMovement(element);
-        requestingPointerLock = true;
-        await requestPointerLock(element);
-        requestingPointerLock = false;
+        canvasEl.removeEventListener('click', handleClick);
+        await requestPointerLock(canvasEl);
+        canvasEl.addEventListener('click', handleClick);
       }
-    });
+    };
+
+    canvasEl.addEventListener('click', handleClick);
 
     const mouseMoveHandler = (event: MouseEvent) => {
-      // console.log('mouse move', event.movementX, event.movementY);
-      // this.appWorker.postMessage({
-      //   command: AppWorkerCommandEnum.MOUSE_MOVE,
-      //   params: {
-      //     dx: event.movementX,
-      //     dy: event.movementY,
-      //   },
-      // });
-      // const { inputKeys } = this.wasmViews;
-      // const keyOffset = keyOffsets[EnginePanelInputKeysEnum.KEY_D];
-      // inputKeys[keyOffset] = 1;
+      this.appWorker.postMessage({
+        command: AppWorkerCommandEnum.MOUSE_MOVE,
+        params: {
+          dx: event.movementX,
+          dy: event.movementY,
+        },
+      });
     };
 
     const pointerLockChangeHandler = () => {
-      if (document.pointerLockElement === element) {
+      if (document.pointerLockElement === canvasEl) {
         // console.log('pointer lock acquired');
         // this.appWorker.postMessage({
         //   command: AppWorkerCommandEnum.POINTER_LOCK_CHANGE,
@@ -122,9 +115,8 @@ class App {
         //     isLocked: true,
         //   },
         // });
-        document.addEventListener('mousemove', mouseMoveHandler, false);
+        canvasEl.addEventListener('mousemove', mouseMoveHandler, false);
       } else {
-        // pointerLockDeactivatedAt = performance.now();
         // console.log('pointer lock lost');
         // this.appWorker.postMessage({
         //   command: AppWorkerCommandEnum.POINTER_LOCK_CHANGE,
@@ -132,7 +124,7 @@ class App {
         //     isLocked: false,
         //   },
         // });
-        document.removeEventListener('mousemove', mouseMoveHandler, false);
+        canvasEl.removeEventListener('mousemove', mouseMoveHandler, false);
       }
     };
 
@@ -174,8 +166,7 @@ class App {
       height = entry.contentBoxSize[0].blockSize;
     } else {
       // legacy
-      width = entry.contentRect.width;
-      height = entry.contentRect.height;
+      ({ width, height } = entry.contentRect);
     }
     const displayWidth = Math.round(width * dpr);
     const displayHeight = Math.round(height * dpr);
@@ -242,10 +233,10 @@ class App {
       },
       [AppCommandEnum.UPDATE_STATS]: (values: StatsValues) => {
         enginePanel.Stats.update(values);
-        enginePanel.MenuGui.updateFps(values[StatsNameEnum.UFPS]);
+        enginePanel.MenuGui.updateFps(values[StatsEnum.UFPS] || 0);
       },
-      [AppCommandEnum.EVENT]: (msg: string) => {
-        enginePanel.EventLog?.log('event ' + msg, 'Hello ' + msg);
+      [AppCommandEnum.EVENT]: (eventObj: EventLog) => {
+        enginePanel.EventLog?.log(`event ${eventObj.event}`, eventObj.msg);
       },
     };
 
@@ -279,7 +270,8 @@ class App {
     };
     stats.init(cfg);
     const fpsPanel = new StatsPanel({
-      title: StatsNameEnum.FPS,
+      id: StatsEnum.FPS,
+      title: 'FPS',
       fg: '#0ff',
       bg: '#022',
       graphHeight: 200,
@@ -291,16 +283,26 @@ class App {
     //   graphHeight: 200,
     // });
     const upsPanel = new StatsPanel({
-      title: StatsNameEnum.UPS,
-      fg: '#0f0',
-      bg: '#020',
+      id: StatsEnum.UPS,
+      title: 'UPS',
+      // yellow
+      fg: '#ff0',
+      bg: '#220',
       graphHeight: 200,
     });
     const ufpsPanel = new StatsPanel({
-      title: StatsNameEnum.UFPS,
+      id: StatsEnum.UFPS,
+      title: 'UFPS',
       fg: '#f50',
       bg: '#110',
       graphHeight: 300,
+    });
+    const frameTimeMsPanel = new StatsPanel({
+      id: StatsEnum.FRAME_TIME_MS,
+      title: 'MS',
+      fg: '#0f0',
+      bg: '#020',
+      graphHeight: 100,
     });
     // const unlockedFpsPanel = new StatsPanel(StatsNames.FPSU, '#f50', '#110');
     // const wasmHeapMem = new StatsPanel(StatsNames.WASM_HEAP, '#0b0', '#030');
@@ -309,6 +311,7 @@ class App {
     // stats.addPanel(rpsPanel);
     stats.addPanel(upsPanel);
     stats.addPanel(ufpsPanel);
+    stats.addPanel(frameTimeMsPanel);
     // this._stats.addPanel(wasmHeapMem);
     // add mem stats panel
     // const memPanel = new MemoryStats(this._stats);

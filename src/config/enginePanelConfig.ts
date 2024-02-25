@@ -1,10 +1,15 @@
 import { PanelConfig, panelConfig } from './panelConfig';
 
-const enginePanelConfig = {
-  ...panelConfig,
+const enginePanelProps = {
   title: '3D Panel',
 };
 
-type EnginePanelConfig = typeof enginePanelConfig & PanelConfig;
+const enginePanelConfig = {
+  ...panelConfig,
+  ...enginePanelProps,
+};
 
-export { EnginePanelConfig, enginePanelConfig };
+type EnginePanelConfig = PanelConfig & typeof enginePanelProps;
+
+export type { EnginePanelConfig };
+export { enginePanelConfig };

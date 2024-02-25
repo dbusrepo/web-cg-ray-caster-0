@@ -1,4 +1,4 @@
-enum EnginePanelInputKeysEnum {
+enum EnginePanelInputKeyCodeEnum {
   KEY_W = 'KeyW',
   KEY_A = 'KeyA',
   KEY_S = 'KeyS',
@@ -10,7 +10,7 @@ enum EnginePanelInputKeysEnum {
   KEY_C = 'KeyC',
 }
 
-type EnginePanelInputKey = `${EnginePanelInputKeysEnum}`;
+type EnginePanelInputKeyCode = `${EnginePanelInputKeyCodeEnum}`;
 
-export type { EnginePanelInputKey };
-export { EnginePanelInputKeysEnum };
+export type { EnginePanelInputKeyCode };
+export { EnginePanelInputKeyCodeEnum };

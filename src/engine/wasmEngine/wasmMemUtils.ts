@@ -16,7 +16,6 @@ type WasmMemParams = {
   fontCharsSize: number;
   stringsSize: number;
   workersMemCountersSize: number;
-  inputKeysSize: number;
   hrTimerSize: number;
 };
 
@@ -35,7 +34,6 @@ const enum MemRegionsEnum {
   TEXTURES = 'TEXTURES',
   WORKERS_HEAPS = 'WORKERS_HEAPS',
   HEAP = 'HEAP',
-  INPUT_KEYS = 'INPUT_KEYS',
   MEM_COUNTERS = 'MEM_COUNTERS',
   HR_TIMER = 'HR_TIMER',
   START_MEM = 'START_MEM', // for the size/offset of all previous mem regions
@@ -63,7 +61,6 @@ function getMemRegionsSizes(params: WasmMemParams): WasmMemRegionsData {
     fontCharsSize,
     stringsSize,
     workersMemCountersSize,
-    inputKeysSize,
     hrTimerSize,
   } = params;
 
@@ -81,7 +78,6 @@ function getMemRegionsSizes(params: WasmMemParams): WasmMemRegionsData {
     [MemRegionsEnum.WORKERS_HEAPS]: numWorkers * workerHeapSize,
     [MemRegionsEnum.HEAP]: sharedHeapSize,
     [MemRegionsEnum.MEM_COUNTERS]: workersMemCountersSize,
-    [MemRegionsEnum.INPUT_KEYS]: inputKeysSize,
     [MemRegionsEnum.HR_TIMER]: hrTimerSize,
     [MemRegionsEnum.START_MEM]: 0,
   };
@@ -111,7 +107,6 @@ function getMemRegionsOffsets(
     [MemRegionsEnum.WORKERS_HEAPS]: 2,
     [MemRegionsEnum.HEAP]: 6,
     [MemRegionsEnum.MEM_COUNTERS]: 2,
-    [MemRegionsEnum.INPUT_KEYS]: 0,
     [MemRegionsEnum.HR_TIMER]: 3,
     [MemRegionsEnum.START_MEM]: 0,
   };
@@ -130,7 +125,6 @@ function getMemRegionsOffsets(
     MemRegionsEnum.STRINGS,
     MemRegionsEnum.TEXTURES_INDEX,
     MemRegionsEnum.TEXTURES,
-    MemRegionsEnum.INPUT_KEYS,
     MemRegionsEnum.WORKERS_HEAPS,
     MemRegionsEnum.HEAP,
   ];

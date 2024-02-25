@@ -41,7 +41,7 @@ class AuxAppWorker {
     await this.initWasmRun();
     this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
     await this.initRaycaster();
-    await this.initFrameBuf();
+    this.initFrameBuf();
   }
 
   private async initWasmRun() {
@@ -68,10 +68,11 @@ class AuxAppWorker {
 
   private async initRaycaster() {
     this.raycaster = new Raycaster();
-    await this.raycaster.init({
+    const raycasterParams: RaycasterParams = {
       wasmRun: this.wasmRun,
       frameColorRGBAWasm: this.frameColorRGBAWasm,
-    });
+    };
+    await this.raycaster.initGraphics(raycasterParams);
   }
 
   async run() {

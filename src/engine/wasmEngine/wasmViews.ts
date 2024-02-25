@@ -22,7 +22,6 @@ type WasmViews = {
   texturesIndex: Uint8Array;
   texels: Uint8Array;
   workersMemCounters: Uint32Array;
-  inputKeys: Uint8Array;
   hrTimer: BigUint64Array;
 };
 
@@ -102,12 +101,6 @@ function buildWasmMemViews(
     memSizes[MemRegionsEnum.MEM_COUNTERS],
   );
 
-  const inputKeys = new Uint8Array(
-    wasmMem.buffer,
-    memOffsets[MemRegionsEnum.INPUT_KEYS],
-    memSizes[MemRegionsEnum.INPUT_KEYS],
-  );
-
   const hrTimer = new BigUint64Array(
     wasmMem.buffer,
     memOffsets[MemRegionsEnum.HR_TIMER],
@@ -136,7 +129,6 @@ function buildWasmMemViews(
     fontChars,
     strings,
     workersMemCounters,
-    inputKeys,
     hrTimer,
   };
 

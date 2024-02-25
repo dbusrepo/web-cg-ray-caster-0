@@ -1,4 +1,5 @@
 import assert from 'assert';
+import { StatsEnum } from './stats';
 
 const PR = Math.round(window.devicePixelRatio || 1); // #pixels per col
 
@@ -22,6 +23,7 @@ const GRAPH_HEIGHT = CSS_GRAPH_HEIGHT * PR;
 const BG_ALPHA = 0.9;
 
 type StatsPanelConfig = {
+  id: StatsEnum;
   title: string;
   fg: string;
   bg: string;
@@ -32,9 +34,6 @@ class StatsPanel {
   private cfg: StatsPanelConfig;
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
-  private title: string;
-  private fgCol: string;
-  private bgCol: string;
   private values: number[]; // as a circular array store last N values
   private nextIdx: number; // next value index
   private min = Infinity;
@@ -51,9 +50,6 @@ class StatsPanel {
     this.canvas.style.width = `${CSS_WIDTH}px`;
     this.canvas.style.height = `${CSS_HEIGHT}px`;
     this.canvas.style.display = 'inline-block';
-    this.title = this.cfg.title;
-    this.fgCol = this.cfg.fg;
-    this.bgCol = this.cfg.bg;
 
     const context = this.canvas.getContext('2d');
     assert(context);
@@ -82,7 +78,11 @@ class StatsPanel {
   }
 
   get Title(): string {
-    return this.title;
+    return this.cfg.title;
+  }
+
+  get Id(): StatsEnum {
+    return this.cfg.id;
   }
 
   appendAsChild(parent: HTMLElement): void {
@@ -94,10 +94,10 @@ class StatsPanel {
   // }
 
   private drawGraphBackground(): void {
-    this.context.fillStyle = this.fgCol;
+    this.context.fillStyle = this.cfg.fg;
     this.context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
 
-    this.context.fillStyle = this.bgCol;
+    this.context.fillStyle = this.cfg.bg;
     this.context.globalAlpha = BG_ALPHA;
     this.context.fillRect(GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT);
   }
@@ -135,19 +135,19 @@ class StatsPanel {
     this.max = Math.max(this.max, value);
 
     // draw the text background
-    this.context.fillStyle = this.bgCol;
+    this.context.fillStyle = this.cfg.bg;
     this.context.globalAlpha = 1;
     this.context.fillRect(0, 0, WIDTH, GRAPH_Y);
 
     // draw the text
-    const text = Math.round(value) + ' ' + this.title;
+    const text = Math.round(value) + ' ' + this.cfg.title;
     // + ' ('
     // + // Math.round(this._min)
     // + // '-'
     // + Math.round(this._max)
     // + ')';
 
-    this.context.fillStyle = this.fgCol;
+    this.context.fillStyle = this.cfg.fg;
     this.context.fillText(
       text,
       TEXT_X,
@@ -207,7 +207,7 @@ class StatsPanel {
     /* DRAW THE LAST COL (value): two steps: full col with fg col + upper part with bg col */
 
     // draw the last (new) col: first draw the entire col with the fg background
-    this.context.fillStyle = this.fgCol;
+    this.context.fillStyle = this.cfg.fg;
     this.context.globalAlpha = 1;
     this.context.fillRect(
       GRAPH_X + GRAPH_WIDTH - PR,
@@ -221,7 +221,7 @@ class StatsPanel {
       (1 - value / this.heightScaleFactor) * GRAPH_HEIGHT,
     );
     // console.log('Last col: ' + (1 - value / this._redrawThreshold));
-    this.context.fillStyle = this.bgCol;
+    this.context.fillStyle = this.cfg.bg;
     this.context.globalAlpha = BG_ALPHA;
     this.context.fillRect(GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, hUpper);
 

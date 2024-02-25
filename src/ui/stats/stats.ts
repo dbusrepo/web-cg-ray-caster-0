@@ -3,23 +3,24 @@ import { StatsPanel } from './statsPanel';
 import { StatsConfig } from './statsConfig';
 import { dragElement } from '../drag';
 
-enum StatsNameEnum {
+enum StatsEnum {
   FPS = 'FPS',
   // RPS = 'RPS',
   UPS = 'UPS',
   UFPS = 'UFPS',
-  // MEM = 'MEM',
+  FRAME_TIME_MS = 'FRAME_TIME_MS',
+  MEM = 'MEM',
   // WASM_HEAP = 'WASM_HEAP', // heap mem allocated by wasm workers in the private heap + in the shared heap
 }
 
 type StatsValues = {
-  -readonly [property in keyof typeof StatsNameEnum]: number;
+  -readonly [property in keyof typeof StatsEnum]?: number;
 };
 
 class Stats {
   private cfg: StatsConfig;
   private container: HTMLDivElement;
-  private panels = new Map<string, StatsPanel>();
+  private panels = new Map<StatsEnum, StatsPanel>();
 
   init(cfg: StatsConfig) {
     this.cfg = structuredClone(cfg);
@@ -35,7 +36,7 @@ class Stats {
   }
 
   addPanel(statsPanel: StatsPanel) {
-    this.panels.set(statsPanel.Title, statsPanel);
+    this.panels.set(statsPanel.Id, statsPanel);
     statsPanel.appendAsChild(this.container);
   }
 
@@ -56,9 +57,9 @@ class Stats {
     // this.container.style.zIndex = '10000';
   }
 
-  update(stats: { [k: string]: number }): void {
+  update(stats: StatsValues) {
     for (const [k, v] of Object.entries(stats)) {
-      const panel = this.panels.get(k);
+      const panel = this.panels.get(k as StatsEnum);
       if (panel) {
         panel.update(v);
       }
@@ -75,4 +76,4 @@ class Stats {
 }
 
 export type { StatsValues };
-export { Stats, StatsNameEnum };
+export { Stats, StatsEnum };

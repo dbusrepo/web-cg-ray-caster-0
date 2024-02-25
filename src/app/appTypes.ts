@@ -8,7 +8,7 @@ enum AppCommandEnum {
 }
 
 enum PanelIdEnum {
-  ENGINE = 0,
+  ENGINE = 'engine_panel',
 }
 
 type PanelId = `${PanelIdEnum}`;
@@ -26,6 +26,10 @@ type AppPostInitParams = {
   wasmMemRegionsSizes: WasmUtils.WasmMemRegionsData;
 };
 
-export type { AppPostInitParams };
-export type { KeyEvent, PanelId };
+type EventLog = {
+  event: string;
+  msg: string;
+};
+
+export type { AppPostInitParams, KeyEvent, PanelId, EventLog };
 export { AppCommandEnum, PanelIdEnum, KeyEventsEnum };

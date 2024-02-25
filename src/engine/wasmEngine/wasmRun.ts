@@ -108,8 +108,6 @@ class WasmRun {
       stringsDataSize: memSizes[WasmUtils.MemRegionsEnum.STRINGS],
       workersMemCountersPtr: memOffsets[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
       workersMemCountersSize: memSizes[WasmUtils.MemRegionsEnum.MEM_COUNTERS],
-      inputKeysPtr: memOffsets[WasmUtils.MemRegionsEnum.INPUT_KEYS],
-      inputKeysSize: memSizes[WasmUtils.MemRegionsEnum.INPUT_KEYS],
       hrTimerPtr: memOffsets[WasmUtils.MemRegionsEnum.HR_TIMER],
 
       FONT_X_SIZE, // TODO:
