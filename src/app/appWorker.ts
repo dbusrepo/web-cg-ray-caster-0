@@ -381,9 +381,9 @@ class AppWorker {
         const oneOverElapsed = MILLI_IN_SEC / elapsedTimeMs;
         const fps = frameCnt * oneOverElapsed;
         const ups = updateCnt * oneOverElapsed;
-        const stat_idx = statsCnt++ % fpsArr.length;
-        fpsArr[stat_idx] = fps;
-        upsArr[stat_idx] = ups;
+        const statIdx = statsCnt++ % fpsArr.length;
+        fpsArr[statIdx] = fps;
+        upsArr[statIdx] = ups;
         const avgFps = utils.arrAvg(fpsArr, statsCnt);
         const avgUps = utils.arrAvg(upsArr, statsCnt);
         const avgFrameTimeMs = utils.arrAvg(frameTimeMsArr, frameTimeCnt);
