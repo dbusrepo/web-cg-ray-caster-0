@@ -23,6 +23,7 @@
     "plugin:import/recommended",
     "plugin:import/typescript",
     "airbnb",
+    "airbnb-typescript",
     "prettier"
   ],
   "parser": "@typescript-eslint/parser",
