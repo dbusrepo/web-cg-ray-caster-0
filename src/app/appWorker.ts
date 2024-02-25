@@ -463,7 +463,7 @@ class AppWorker {
     this.ctx2d.putImageData(this.imageData, 0, 0);
   }
 
-  updateState(step: number, time: number) {
+  private updateState(step: number, time: number) {
     this.raycaster.update(time);
   }
 
