@@ -205,6 +205,7 @@ class AppWorker {
             command: AuxAppWorkerCommandEnum.INIT,
             params: workerParams,
           });
+          // eslint-disable-next-line @typescript-eslint/no-loop-func
           engineWorker.worker.onmessage = ({ data }) => {
             --remWorkers;
             console.log(
@@ -243,30 +244,7 @@ class AppWorker {
     });
   }
 
-  private checkInput() {
-    // if (this.pressA.isPressed()) {
-    // console.log('A pressed');
-    // postMessage({
-    //   command: AppCommandEnum.EVENT,
-    //   params: {
-    //     event: 'A pressed',
-    //     msg: 'ahooo',
-    //   } as EventLog,
-    // });
-    // }
-    // if (this.mouseMoveLeft.isPressed()) {
-    //   console.log('Mouse move left');
-    // }
-    // if (this.mouseMoveRight.isPressed()) {
-    //   console.log('Mouse move right');
-    // }
-    // if (this.mouseMoveUp.isPressed()) {
-    //   console.log('Mouse move up');
-    // }
-    // if (this.mouseMoveDown.isPressed()) {
-    //   console.log('Mouse move down');
-    // }
-  }
+  private checkInput() {}
 
   public async run(): Promise<void> {
     let lastFrameStartTime: number;
