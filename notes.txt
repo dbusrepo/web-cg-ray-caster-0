@@ -18,7 +18,7 @@ under src/engine/wasmEngine/wasm/src/asc/
 see asconfig.json:
 
 each worker instantiate each wasm module ...passing the global memory + the
-other import vars... 
+other import vars...
 
 ->att on module instance vs import for let module var ? For now we use only one
 module (the engine worker module) and all other files are simply imported (with
@@ -55,7 +55,7 @@ runtime in AssemblyScript, be sure to take a look at the --memoryBase flag in
 the AssemblyScript compiler. See here:
 https://wasmbyexample.dev/examples/webassembly-linear-memory/webassembly-linear-memory.assemblyscript.en-us.html
 
-asc: 
+asc:
 https://github.com/AssemblyScript/assemblyscript/pull/1547
 compile time asserts?
 https://github.com/AssemblyScript/assemblyscript/issues/2171
@@ -85,7 +85,7 @@ i64.load32_u(...)        // <i64>load<u32>(...)
 as standard lib:
 https://www.assemblyscript.org/stdlib/globals.html
 Math vs Mathf ...
-console.time 
+console.time
 process > hrtime: monotic high res timer
 
 
@@ -333,7 +333,7 @@ Tests if the specified type or expression is of a SIMD vector type. Compiles to 
 notes makefile:
 A backslash ( \ ) followed by a newline character is interpreted as a space in the command
 
-@rm -f $@; \                 
+@rm -f $@; \
 node ./genDepList.mjs $< > $@
 
 circular dependency webpack:
@@ -342,3 +342,22 @@ https://stackoverflow.com/questions/73157442/webpack-warning-using-webworker-cir
 https://stackoverflow.com/questions/73499449/webpack-dev-server-not-reloading
 
 // console.log(`px ${pX.toFixed(2)} py ${pY.toFixed(2)}`); // dirX ${dirX} dirY ${dirY}`);// planeX ${planeX} planeY ${planeY} pitch ${pitch} posZ ${posZ}`)
+
+private syncWorkers() {
+  for (let i = 0; i < this.auxWorkers.length; ++i) {
+    const { index: workerIdx } = this.auxWorkers[i];
+    Atomics.store(this.syncArray, workerIdx, 1);
+    Atomics.notify(this.syncArray, workerIdx);
+  }
+  // this.wasmEngine.syncWorkers(this.auxWorkers);
+}
+
+private waitWorkers() {
+  for (let i = 0; i < this.auxWorkers.length; ++i) {
+    const { index: workerIdx } = this.auxWorkers[i];
+    Atomics.wait(this.syncArray, workerIdx, 1);
+  }
+  // this.wasmEngine.waitWorkers(this.auxWorkers);
+}
+
+https://github.com/iamturns/create-exposed-app/blob/master/package.json

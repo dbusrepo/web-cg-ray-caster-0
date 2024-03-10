@@ -36,10 +36,12 @@ class EnginePanelGui extends PanelGui {
     // https://github.com/cocopon/tweakpane/issues/415
     // disable monitor interval and update it only in updateFps ? use
     // interval: 0,
-    this.fpsMonitor = this.tweakPane.addMonitor(
+
+    this.fpsMonitor = this.tweakPane.addBinding(
       this.tweakOptions,
       EnginePanelTweakOptionsKeys.FPS,
       {
+        readonly: true,
         view: 'graph',
         // interval: 100,
         interval: 0,
@@ -48,7 +50,7 @@ class EnginePanelGui extends PanelGui {
         // max: 1000,
         bufferSize,
       },
-    );
+    ) as MonitorBindingApi<number>;
     this.maxDeque = new MaxDeque(bufferSize);
     // this.fpsMonitor.disabled = true;
   }
@@ -57,15 +59,17 @@ class EnginePanelGui extends PanelGui {
     this.maxDeque.push(fps);
     this.tweakOptions[EnginePanelTweakOptionsKeys.FPS] = fps;
     this.fpsMonitor.label = 'FPS'; // `${fps.toFixed(0)} FPS`; // TODO: use padding
+
+    const max = this.maxDeque.max * 1.5;
+
     // https://github.com/cocopon/tweakpane/issues/371
-    // // @ts-ignore
-    // const max = this.fpsMonitor.controller_.valueController.props_?.get('maxValue');
+    // recent issues about updating graph/fps monitor value:
+    // https://github.com/cocopon/tweakpane/issues/360
+    // https://github.com/cocopon/tweakpane/issues/582
     // @ts-ignore
-    this.fpsMonitor.controller_.valueController.props_.set(
-      'maxValue',
-      this.maxDeque.max * 1.5,
-    );
-    // console.log(this.fpsMonitor.controller_.valueController);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    this.fpsMonitor.controller.valueController.props.valMap_.max.value_ = max;
     this.fpsMonitor.refresh();
   }
 

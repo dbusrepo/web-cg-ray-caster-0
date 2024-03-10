@@ -15,12 +15,12 @@ type PanelGuiConfig = {
 };
 
 enum PanelTweakOptionsKeys {
-  STATS = 'stats',
+  STATS_ENABLED = 'stats_enabled',
   EVENTS = 'events',
 }
 
 type PanelTweakOptions = {
-  [PanelTweakOptionsKeys.STATS]: boolean;
+  [PanelTweakOptionsKeys.STATS_ENABLED]: boolean;
   [PanelTweakOptionsKeys.EVENTS]: EventLogVis;
 };
 
@@ -100,7 +100,7 @@ abstract class PanelGui {
 
     // to make overflow scroll work
     if (this.tweakPane.element.clientHeight > container.clientHeight) {
-      this.tweakPane.element.style.height = container.clientHeight + 'px';
+      this.tweakPane.element.style.height = `${container.clientHeight}px`;
     }
   }
 
@@ -115,7 +115,7 @@ abstract class PanelGui {
 
   protected initTweakPaneOptionsObj(): void {
     this.tweakOptions = {
-      [PanelTweakOptionsKeys.STATS]: this.panel.isStatsVisible,
+      [PanelTweakOptionsKeys.STATS_ENABLED]: this.panel.isStatsVisible,
       [PanelTweakOptionsKeys.EVENTS]: this.getEventLogVisState(),
     };
   }
@@ -127,18 +127,22 @@ abstract class PanelGui {
       title: 'Stats',
       expanded: false,
     });
-    this.statsInput = statsFolder.addInput(
+
+    this.statsInput = statsFolder.addBinding(
       this.tweakOptions,
-      PanelTweakOptionsKeys.STATS,
-    );
+      PanelTweakOptionsKeys.STATS_ENABLED,
+    ) as InputBindingApi<unknown, boolean>;
+
     this.statsInput.on('change', (ev) => {
       this.panel.setStatsVisible(ev.value);
       PanelGui.updateStatsOptPanels(this);
     });
+
     const btn = statsFolder.addButton({
       title: 'Move top-left',
       // label: '',   // optional
     });
+
     btn.on('click', () => {
       this.panel.Stats.setPos(0, 0);
     });
@@ -150,7 +154,7 @@ abstract class PanelGui {
       expanded: false,
     });
 
-    const eventLogPosInput = eventsFolder.addInput(
+    const eventLogPosInput = eventsFolder.addBinding(
       this.tweakOptions,
       PanelTweakOptionsKeys.EVENTS,
       {
@@ -181,10 +185,11 @@ abstract class PanelGui {
     });
   }
 
-  public static updateStatsOptPanels(originPanel: PanelGui): void {
+  public static updateStatsOptPanels(sourcePanelGui: PanelGui): void {
     for (let panelGui of PanelGui.panelGuiList) {
-      if (panelGui !== originPanel) {
-        panelGui.tweakOptions.stats = originPanel.tweakOptions.stats;
+      if (panelGui !== sourcePanelGui) {
+        panelGui.tweakOptions[PanelTweakOptionsKeys.STATS_ENABLED] =
+          sourcePanelGui.tweakOptions[PanelTweakOptionsKeys.STATS_ENABLED];
         // panelGui._tweakPane.refresh();
         panelGui.statsInput.refresh();
       }
