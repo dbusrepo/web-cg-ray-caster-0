@@ -18,6 +18,12 @@ const NO_HIT_WALL_SIDES_COL = [
   FrameColorRGBA.darkColor(NO_HIT_WALL_COL), // side 1
 ];
 
+type RendererOptions = {
+  isFloorTextured : boolean;
+  vertFloor : boolean;
+  back2Front : boolean;
+};
+
 class Renderer {
   private raycaster: Raycaster;
   private wasmRun: WasmRun;
@@ -40,7 +46,7 @@ class Renderer {
   private back2front = false;
   private vertFloor = false;
 
-  constructor(raycaster: Raycaster) {
+  constructor(raycaster: Raycaster, options: RendererOptions) {
     this.raycaster = raycaster;
     const viewport = raycaster.Viewport;
     const {
@@ -86,6 +92,10 @@ class Renderer {
     this.spansFloorLY = new Float32Array(vpHeight);
 
     this.textures = raycaster.Textures;
+
+    this.isFloorTextured = options.isFloorTextured;
+    this.vertFloor = options.vertFloor;
+    this.back2front = options.back2Front;
   }
 
   public get UseWasmRenderer(): boolean {

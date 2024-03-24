@@ -231,10 +231,10 @@ class Raycaster {
 
   public async init(params: RaycasterParams, inputManager: InputManager) {
     this.initInput(inputManager);
-    await this.initGraphics(params);
+    this.initGraphics(params);
   }
 
-  public async initGraphics(params: RaycasterParams) {
+  public initGraphics(params: RaycasterParams) {
     this.wasmRun = params.wasmRun;
     this.wasmViews = this.wasmRun.WasmViews;
     this.wasmEngineModule = this.wasmRun.WasmModules.engine;
@@ -246,21 +246,14 @@ class Raycaster {
     this.initRenderer();
 
     this.renderer.renderBorders(this.BorderColor);
-
-    // this.renderBackground();
-    // this.rotate(Math.PI / 4);
-
-    // this._2float = new Float32Array(1);
-    // example
-    // this._2float[0] = tY; // convert tY to float
-    // const tYf = this._2float[0];
   }
 
   private initRenderer() {
-    this.renderer = new Renderer(this);
-    this.renderer.IsFloorTextured = true;
-    this.renderer.VertFloor = false;
-    this.renderer.Back2Front = true;
+    this.renderer = new Renderer(this, {
+      isFloorTextured: true,
+      vertFloor: false,
+      back2Front: true,
+    });
   }
 
   private mapKeytoInputAction(
@@ -320,26 +313,6 @@ class Raycaster {
       EnginePanelInputKeyCodeEnum.KEY_Z,
       this.lowerHeight,
     );
-
-    // this.pressA = new InputAction('A', InputActionBehavior.NORMAL);
-    // // this.pressA = new InputAction(
-    // //   'A',
-    // //   InputActionBehavior.DETECT_INITAL_PRESS_ONLY,
-    // // );
-    //
-    // this.mouseMoveLeft = new InputAction(
-    //   'MouseLeft',
-    //   InputActionBehavior.NORMAL,
-    // );
-    // this.mouseMoveRight = new InputAction(
-    //   'MouseRight',
-    //   InputActionBehavior.NORMAL,
-    // );
-    // this.mouseMoveUp = new InputAction('MouseUp', InputActionBehavior.NORMAL);
-    // this.mouseMoveDown = new InputAction(
-    //   'MouseDown',
-    //   InputActionBehavior.NORMAL,
-    // );
   }
 
   private initData() {

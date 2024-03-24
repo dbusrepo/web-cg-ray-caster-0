@@ -2430,3 +2430,25 @@ for (; framePtr < frameLimitPtr; ++framePtr) {
 //     batchFramePtr = framePtr;
 //   }
 // }
+
+// this.pressA = new InputAction('A', InputActionBehavior.NORMAL);
+// // this.pressA = new InputAction(
+// //   'A',
+// //   InputActionBehavior.DETECT_INITAL_PRESS_ONLY,
+// // );
+//
+// this.mouseMoveLeft = new InputAction(
+//   'MouseLeft',
+//   InputActionBehavior.NORMAL,
+// );
+// this.mouseMoveRight = new InputAction(
+//   'MouseRight',
+//   InputActionBehavior.NORMAL,
+// );
+// this.mouseMoveUp = new InputAction('MouseUp', InputActionBehavior.NORMAL);
+// this.mouseMoveDown = new InputAction(
+//   'MouseDown',
+//   InputActionBehavior.NORMAL,
+// );
+
+
