@@ -1016,11 +1016,11 @@ class Raycaster {
     return false;
   }
 
-  private findActiveDoor(side: number, mPos: number): DoorRef {
+  private findActiveDoor(side: number, pos: number): DoorRef {
     const { activeDoors } = this;
     for (let i = 0; i < activeDoors.length; i++) {
       const door = activeDoors[i];
-      if (door.Type === side && door.Mpos === mPos) {
+      if (door.Type === side && door.Mpos === pos) {
         return door;
       }
     }
@@ -1231,17 +1231,17 @@ class Raycaster {
           const nextPos = this.calcNextPos(side, steps);
           isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
-            const halfDist = deltaDist[side] * 0.5;
-            const nextfWallx = fWallX + halfDist * rayDir[side ^ 1];
-            if (nextfWallx < 0 || nextfWallx >= 1) {
+            const perpHalfCellDist = .5 * deltaDist[side];
+            fWallX += perpHalfCellDist * rayDir[side ^ 1];
+            if (fWallX < 0 || fWallX >= 1) {
               this.advanceRay(side, nextPos);
               continue;
             } else {
-              fWallX = nextfWallx;
               // assert(fWallX >= 0 && fWallX < 1, `invalid door fWallX ${fWallX}`)
-              perpWallDist += halfDist;
-              const mPos = checkWallIdx + checkWallIdxOffsDoor[side];
-              const activeDoor = this.findActiveDoor(side, mPos);
+              perpWallDist += perpHalfCellDist;
+              // note: doors are 2 cells wide, calc the least (x/y) coord to check only mPos in findActiveDoor
+              const doorPos = checkWallIdx + checkWallIdxOffsDoor[side];
+              const activeDoor = this.findActiveDoor(side, doorPos);
               if (activeDoor) {
                 const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
                 if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
@@ -1250,26 +1250,34 @@ class Raycaster {
                   // check door open at ColOffset
                   fWallX += doorOffsX;
                   if (fWallX >= 1) {
+                    // door open on this col
                     this.advanceRay(side, nextPos);
                     if (sideDist[side] > sideDist[side ^ 1]) {
+                      // flip side (door on y/x side, ray continues to x/y side)
                       continue;
                     } else {
-                      // if next int is of the same side advance 1 more time
+                      // side changed, advanced 1 more time (rem: doors use 2 cells)
                       const nextPos = this.calcNextPos(side, steps);
                       isRayValid = this.isRayValid(side, nextPos, steps);
                       if (isRayValid) {
                         this.advanceRay(side, nextPos);
                         continue;
                       } else {
-                        // out of map, adjust dist to show not hit wall
-                        perpWallDist += halfDist;
+                        // out of map, adjust dist to render the special edge wall
+                        perpWallDist += perpHalfCellDist;
                       }
                     }
                   }
+                  // else {
+                  //   // door not open on this col, render the door as wall
+                  // }
                 } else {
                   // TODO: split door type
                 }
               }
+              // else {
+              //   // door not active, render the door as wall
+              // }
             }
           }
         }
