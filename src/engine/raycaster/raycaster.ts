@@ -1755,17 +1755,16 @@ class Raycaster {
   private resetTranspSlices() {
     this.numTranspSlicesLists = 0;
     this.wasmEngineModule.resetTranspSlicesPtrs(this.raycasterPtr);
-    for (let i = 0; i < this.transpSlices.length; i++) {
-      this.transpSlices[i] = null;
+    for (let i = 0, { transpSlices } = this, { length } = transpSlices; i < length; i++) {
+      transpSlices[i] = null;
     }
   }
 
   private freeTranspSlices() {
     if (this.numTranspSlicesLists) {
-      for (let i = 0; i < this.transpSlices.length; i++) {
-        if (this.transpSlices[i]) {
-          const slice = this.transpSlices[i] as Slice;
-          freeTranspSliceViewsList(slice);
+      for (let i = 0, { transpSlices } = this, { length } = transpSlices; i < length; i++) {
+        if (transpSlices[i]) {
+          freeTranspSliceViewsList(transpSlices[i] as Slice);
         }
       }
       this.resetTranspSlices();
