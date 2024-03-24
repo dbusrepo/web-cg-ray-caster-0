@@ -1034,6 +1034,23 @@ class Raycaster {
     this.wallMapOffs[side ^ 1] += this.wallMapIncOffs[side << 1];
   }
 
+  private updateWallSlice(slice: Slice, side: number, wallTop: number, wallBottom: number, perpWallDist: number, clipTop: number) {
+    slice.Side = side;
+    slice.Top = wallTop;
+    slice.Bottom = wallBottom;
+    slice.Distance = perpWallDist;
+    slice.ClipTop = clipTop;
+    slice.IsSprite = false;
+  }
+
+  private calcNextPos(side: number, steps: number): number {
+    return this.curMapPos[side] + this.step[side];
+  }
+
+  private isRayValid(side: number, nextPos: number, steps: number): boolean {
+    return nextPos >= 0 && nextPos < this.mapLimits[side] && --steps > 0;
+  }
+
   private calcWallsVis() {
     const { mapWidth, mapHeight } = this;
     const { xWallMap: xMap, yWallMap: yMap } = this;
@@ -1166,19 +1183,19 @@ class Raycaster {
       const wallSlice = wallSlices[x];
       wallSlice.Hit = 0;
 
-      let steps = MAX_RAY_STEPS;
       let side: number;
-      let nextPos: number;
+      // let nextPos: number;
+      let steps = MAX_RAY_STEPS;
 
       for (;;) {
-        side = sideDist[X] < sideDist[Y] ? X : Y;
+        // side = sideDist[X] < sideDist[Y] ? X : Y;
+        side = Number(sideDist[X] > sideDist[Y]);
         const checkWallIdx = wallMapOffs[side] + checkWallIdxOffs[side];
-        const wallMap = wallMaps[side];
-        const wallCode = wallMap[checkWallIdx];
+        const wallCode = wallMaps[side][checkWallIdx];
         let isRayValid = true;
         if (!(wallCode & WALL_CODE_MASK)) {
-          nextPos = curMapPos[side] + step[side];
-          isRayValid = nextPos >= 0 && nextPos < mapLimits[side] && steps-- > 0;
+          const nextPos = this.calcNextPos(side, steps);
+          isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
             this.advanceRay(side, nextPos);
             continue;
@@ -1194,7 +1211,8 @@ class Raycaster {
         let mipLvl: number;
         let mipmap: Mipmap;
         let image: BitImageRGBA;
-        let texWidth: number, texHeight: number;
+        let texWidth: number
+        let texHeight: number;
 
         if (isRayValid) {
           texIdx = (wallCode & WALL_CODE_MASK) - 1;
@@ -1210,8 +1228,8 @@ class Raycaster {
 
         if (wallCode & WALL_FLAGS.IS_DOOR) {
           // first check if the door in on the map edge (should not happen, if it's the case render as wall with Hit 0)
-          nextPos = curMapPos[side] + step[side];
-          isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+          const nextPos = this.calcNextPos(side, steps);
+          isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
             const halfDist = deltaDist[side] * 0.5;
             const nextfWallx = fWallX + halfDist * rayDir[side ^ 1];
@@ -1237,8 +1255,8 @@ class Raycaster {
                       continue;
                     } else {
                       // if next int is of the same side advance 1 more time
-                      nextPos = curMapPos[side] + step[side];
-                      isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+                      const nextPos = this.calcNextPos(side, steps);
+                      isRayValid = this.isRayValid(side, nextPos, steps);
                       if (isRayValid) {
                         this.advanceRay(side, nextPos);
                         continue;
@@ -1261,13 +1279,13 @@ class Raycaster {
         const srcWallBottom = (projYcenter + posZ * ratio) | 0;
         const srcWallTop = srcWallBottom - wallSliceProjHeight + 1;
         // const sliceHeight = srcWallBottom - srcWallTop + 1;
-        const clipTop = Math.max(0, -srcWallTop);
-        const wallTop = Math.max(0, srcWallTop); // wallTop = srcWallTop + clipTop;
-        const wallBottom = Math.min(srcWallBottom, vpHeight - 1);
+        const clipTop = srcWallTop < 0 ? -srcWallTop : 0; // Math.max(0, -srcWallTop);
+        const wallTop = srcWallTop + clipTop; // Math.max(0, srcWallTop);
+        const wallBottom = srcWallBottom < vpHeight ? srcWallBottom : vpHeight - 1; // Math.min(srcWallBottom, vpHeight - 1);
         // assert(wallTop <= wallBottom, `invalid top ${wallTop} and bottom`); // <= ?
 
         if (isRayValid) {
-          assert(fWallX >= 0 && fWallX < 1, `invalid fWallX ${fWallX}`);
+          // assert(fWallX >= 0 && fWallX < 1, `invalid fWallX ${fWallX}`);
           const srcTexX = (fWallX * texHeight!) | 0;
           // const flipTexX = side === 0 ? rayDir[X] > 0 : rayDir[Y] < 0;
           // const texX = flipTexX ? texWidth - srcTexX - 1 : srcTexX;
@@ -1275,22 +1293,9 @@ class Raycaster {
           const texX = srcTexX!;
           // assert(texX >= 0 && texX < texWidth, `invalid texX ${texX}`);
 
-          let slice = wallSlice;
+          const isTranspWall = (wallCode & WALL_FLAGS.IS_TRANSP) && this.texSlicePartialTranspMap[texIdx!][mipLvl!][texX];
 
-          const isTranspSliceArr =
-            this.texSlicePartialTranspMap[texIdx!][mipLvl!];
-          const isTranspWall =
-            wallCode & WALL_FLAGS.IS_TRANSP && isTranspSliceArr[texX];
-
-          if (isTranspWall) {
-            slice = this.newWallTranspSlice(x);
-            slice.Side = side;
-            slice.Distance = perpWallDist;
-            slice.ClipTop = clipTop;
-            slice.Top = wallTop;
-            slice.Bottom = wallBottom;
-            slice.IsSprite = false;
-          }
+          const slice = isTranspWall ? this.newWallTranspSlice(x) : wallSlice;
 
           const texStepY = texHeight! / wallSliceProjHeight;
           const texY = clipTop * texStepY;
@@ -1302,8 +1307,9 @@ class Raycaster {
           slice.MipMapIdx = mipmap!.WasmIdx; // used in render wasm
 
           if (isTranspWall) {
-            nextPos = curMapPos[side] + step[side];
-            isRayValid = nextPos >= 0 && nextPos < mapLimits[side];
+            this.updateWallSlice(slice, side, wallTop, wallBottom, perpWallDist, clipTop);
+            const nextPos = curMapPos[side] + step[side];
+            isRayValid = this.isRayValid(side, nextPos, steps);
             if (isRayValid) {
               this.advanceRay(side, nextPos);
               continue;
@@ -1315,11 +1321,7 @@ class Raycaster {
         wallZBuffer[x] = perpWallDist;
         wallSlice.Hit = isRayValid ? 1 : 0;
 
-        wallSlice.Side = side;
-        wallSlice.Distance = perpWallDist;
-        wallSlice.ClipTop = clipTop;
-        wallSlice.Top = wallTop;
-        wallSlice.Bottom = wallBottom;
+        this.updateWallSlice(wallSlice, side, wallTop, wallBottom, perpWallDist, clipTop);
 
         if (this.IsFloorVertTextured) {
           floorWall[side ^ 1] = curMapPos[side ^ 1] + fWallX;
@@ -1329,12 +1331,21 @@ class Raycaster {
           [wallSlice.FloorWallX, wallSlice.FloorWallY] = floorWall;
         }
 
-        maxWallDistance = Math.max(maxWallDistance, perpWallDist);
-        // TODO:
-        minWallTop = Math.min(minWallTop, wallTop);
-        maxWallTop = Math.max(maxWallTop, wallTop);
-        minWallBottom = Math.min(minWallBottom, wallBottom);
-        maxWallBottom = Math.max(maxWallBottom, wallBottom);
+        if (perpWallDist > maxWallDistance) {
+          maxWallDistance = perpWallDist;
+        }
+        if (wallTop < minWallTop) {
+          minWallTop = wallTop;
+        }
+        if (wallTop > maxWallTop) {
+          maxWallTop = wallTop;
+        }
+        if (wallBottom < minWallBottom) {
+          minWallBottom = wallBottom;
+        }
+        if (wallBottom > maxWallBottom) {
+          maxWallBottom = wallBottom;
+        }
 
         break; // ray done
       }
@@ -1578,7 +1589,7 @@ class Raycaster {
             }
           }
 
-          slice = this.newTranspSlice();
+          slice = newSliceView();
           // assert(slice);
 
           slice.Side = 0;
@@ -1733,11 +1744,6 @@ class Raycaster {
   private newWallTranspSlice(idx: number): Slice {
     const newSlice = newSliceView();
     this.addTranspSliceAtFront(newSlice, idx);
-    return newSlice;
-  }
-
-  private newTranspSlice(): Slice {
-    const newSlice = newSliceView();
     return newSlice;
   }
 
