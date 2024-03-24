@@ -28,41 +28,42 @@ class Slice {
     private isSpritePtr: number,
   ) {}
 
-  init(
-    slicePtr: number,
-    distancePtr: number,
-    clipTopPtr: number,
-    hitPtr: number,
-    sidePtr: number,
-    topPtr: number,
-    bottomPtr: number,
-    mipMapIdxPtr: number,
-    texXPtr: number,
-    texStepYPtr: number,
-    texYPtr: number,
-    floorWallXPtr: number,
-    floorWallYPtr: number,
-    prevPtrPtr: number,
-    nextPtrPtr: number,
-    isSpritePtr: number,
-  ) {
-    this.slicePtr = slicePtr;
-    this.distancePtr = distancePtr;
-    this.clipTopPtr = clipTopPtr;
-    this.hitPtr = hitPtr;
-    this.sidePtr = sidePtr;
-    this.topPtr = topPtr;
-    this.bottomPtr = bottomPtr;
-    this.mipMapIdxPtr = mipMapIdxPtr;
-    this.texXPtr = texXPtr;
-    this.texStepYPtr = texStepYPtr;
-    this.texYPtr = texYPtr;
-    this.floorWallXPtr = floorWallXPtr;
-    this.floorWallYPtr = floorWallYPtr;
-    this.prevPtrPtr = prevPtrPtr;
-    this.nextPtrPtr = nextPtrPtr;
-    this.isSpritePtr = isSpritePtr;
-  }
+  // // not used
+  // init(
+  //   slicePtr: number,
+  //   distancePtr: number,
+  //   clipTopPtr: number,
+  //   hitPtr: number,
+  //   sidePtr: number,
+  //   topPtr: number,
+  //   bottomPtr: number,
+  //   mipMapIdxPtr: number,
+  //   texXPtr: number,
+  //   texStepYPtr: number,
+  //   texYPtr: number,
+  //   floorWallXPtr: number,
+  //   floorWallYPtr: number,
+  //   prevPtrPtr: number,
+  //   nextPtrPtr: number,
+  //   isSpritePtr: number,
+  // ) {
+  //   this.slicePtr = slicePtr;
+  //   this.distancePtr = distancePtr;
+  //   this.clipTopPtr = clipTopPtr;
+  //   this.hitPtr = hitPtr;
+  //   this.sidePtr = sidePtr;
+  //   this.topPtr = topPtr;
+  //   this.bottomPtr = bottomPtr;
+  //   this.mipMapIdxPtr = mipMapIdxPtr;
+  //   this.texXPtr = texXPtr;
+  //   this.texStepYPtr = texStepYPtr;
+  //   this.texYPtr = texYPtr;
+  //   this.floorWallXPtr = floorWallXPtr;
+  //   this.floorWallYPtr = floorWallYPtr;
+  //   this.prevPtrPtr = prevPtrPtr;
+  //   this.nextPtrPtr = nextPtrPtr;
+  //   this.isSpritePtr = isSpritePtr;
+  // }
 
   get WasmPtr(): number {
     return this.slicePtr;
@@ -216,7 +217,7 @@ class Slice {
 let freeList: SliceRef = null;
 
 const newSliceView = () => {
-  const wasmEngineModule = gWasmRun.WasmModules.engine;
+  const { engine: wasmEngineModule } = gWasmRun.WasmModules;
   let sliceView;
   if (freeList) {
     sliceView = freeList;
@@ -244,27 +245,27 @@ const freeTranspSliceViewsList = (slice: Slice) => {
 let sliceViewMap = new Map<number, Slice>();
 
 function getSliceView(slicePtr: number): Slice {
-  const wasmEngineModule = gWasmRun.WasmModules.engine;
   if (!sliceViewMap.has(slicePtr)) {
+    const { engine: wasmEngineMod } = gWasmRun.WasmModules;
     sliceViewMap.set(
       slicePtr,
       new Slice(
         slicePtr,
-        wasmEngineModule.getSliceDistancePtr(slicePtr),
-        wasmEngineModule.getSliceClipTopPtr(slicePtr),
-        wasmEngineModule.getSliceHitPtr(slicePtr),
-        wasmEngineModule.getSliceSidePtr(slicePtr),
-        wasmEngineModule.getSliceTopPtr(slicePtr),
-        wasmEngineModule.getSliceBottomPtr(slicePtr),
-        wasmEngineModule.getSliceMipMapIdxPtr(slicePtr),
-        wasmEngineModule.getSliceTexXPtr(slicePtr),
-        wasmEngineModule.getSliceTexStepYPtr(slicePtr),
-        wasmEngineModule.getSliceTexYPtr(slicePtr),
-        wasmEngineModule.getSliceFloorWallXPtr(slicePtr),
-        wasmEngineModule.getSliceFloorWallYPtr(slicePtr),
-        wasmEngineModule.getSlicePrevPtrPtr(slicePtr),
-        wasmEngineModule.getSliceNextPtrPtr(slicePtr),
-        wasmEngineModule.getSliceIsSpritePtr(slicePtr),
+        wasmEngineMod.getSliceDistancePtr(slicePtr),
+        wasmEngineMod.getSliceClipTopPtr(slicePtr),
+        wasmEngineMod.getSliceHitPtr(slicePtr),
+        wasmEngineMod.getSliceSidePtr(slicePtr),
+        wasmEngineMod.getSliceTopPtr(slicePtr),
+        wasmEngineMod.getSliceBottomPtr(slicePtr),
+        wasmEngineMod.getSliceMipMapIdxPtr(slicePtr),
+        wasmEngineMod.getSliceTexXPtr(slicePtr),
+        wasmEngineMod.getSliceTexStepYPtr(slicePtr),
+        wasmEngineMod.getSliceTexYPtr(slicePtr),
+        wasmEngineMod.getSliceFloorWallXPtr(slicePtr),
+        wasmEngineMod.getSliceFloorWallYPtr(slicePtr),
+        wasmEngineMod.getSlicePrevPtrPtr(slicePtr),
+        wasmEngineMod.getSliceNextPtrPtr(slicePtr),
+        wasmEngineMod.getSliceIsSpritePtr(slicePtr),
       ),
     );
   }
@@ -272,11 +273,11 @@ function getSliceView(slicePtr: number): Slice {
 }
 
 function getWasmWallSlicesView(wasmRaycasterPtr: number): Slice[] {
-  const wasmEngineModule = gWasmRun.WasmModules.engine;
-  const numWallSlices = wasmEngineModule.getWallSlicesLength(wasmRaycasterPtr);
+  const { engine: wasmEngineMod } = gWasmRun.WasmModules;
+  const numWallSlices = wasmEngineMod.getWallSlicesLength(wasmRaycasterPtr);
   const wallSlices = new Array<Slice>(numWallSlices);
   for (let i = 0; i < numWallSlices; i++) {
-    const wallSlicePtr = wasmEngineModule.getWallSlicePtr(wasmRaycasterPtr, i);
+    const wallSlicePtr = wasmEngineMod.getWallSlicePtr(wasmRaycasterPtr, i);
     wallSlices[i] = getSliceView(wallSlicePtr);
   }
   return wallSlices;
