@@ -951,13 +951,11 @@ class Raycaster {
     this.floorMap[4 * this.mapWidth + 4] = tex.WasmIdx;
   }
 
-  private preRender() {
-    this.freeTranspSlices();
-    this.wallSlicesOccludedBySprites.fill(0);
+  private preProcRender() {
+    this.resetTranspSlices();
+    this.resetSliceSpriteOcclusionArr();
     this.initActiveDoorsList();
   }
-
-  private postRender() {}
 
   private isSliceFullyTransp(texX: number, image: BitImageRGBA) {
     const { Buf32: mipPixels, Width: texWidth, Lg2Pitch: lg2Pitch } = image;
@@ -1350,11 +1348,15 @@ class Raycaster {
   }
 
   public render(frameCnt: number) {
-    this.preRender();
+    this.preProcRender();
     this.calcWallsVis();
     this.processSprites();
     this.renderer.render(frameCnt);
-    this.postRender();
+    this.postProcRender();
+  }
+
+  private postProcRender() {
+    this.freeTranspSlices();
   }
 
   private occludeWallSlice(
@@ -1369,6 +1371,12 @@ class Raycaster {
     this.wallZBuffer[x] = tY;
     this.MinWallTop = Math.min(this.MinWallTop, startY);
     this.MaxWallBottom = Math.max(this.MaxWallBottom, endY);
+  }
+
+  private resetSliceSpriteOcclusionArr() {
+    this.wallSlicesOccludedBySprites.fill(0);
+    // this.spritesTop.fill(0);
+    // this.spritesBottom.fill(0);
   }
 
   private processSprites(): void {
@@ -1767,7 +1775,6 @@ class Raycaster {
           freeTranspSliceViewsList(transpSlices[i] as Slice);
         }
       }
-      this.resetTranspSlices();
     }
   }
 
