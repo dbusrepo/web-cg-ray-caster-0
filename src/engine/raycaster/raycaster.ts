@@ -73,10 +73,10 @@ const WALL_FLAGS = {
 };
 
 // two types of doors, use 1 bit mask for door type
-const WALL_DOOR_TYPE_OFFSET = WALL_FLAGS_OFFSET + 2;
-const WALL_DOOR_TYPE_MASK = 1 << WALL_DOOR_TYPE_OFFSET;
-const WALL_DOOR_TYPE_SLIDE = 0 << WALL_DOOR_TYPE_OFFSET;
-const WALL_DOOR_TYPE_SPLIT = 1 << WALL_DOOR_TYPE_OFFSET;
+const DOOR_TYPE_OFFSET = WALL_FLAGS_OFFSET + 2;
+const DOOR_TYPE_MASK = 1 << DOOR_TYPE_OFFSET;
+const DOOR_TYPE_SLIDE = 0 << DOOR_TYPE_OFFSET;
+const DOOR_TYPE_SPLIT = 1 << DOOR_TYPE_OFFSET;
 
 // #define DOOR_OPENING	0x80		/* On if door is currently opening */
 // #define DOOR_CLOSING	0x40		/* On if door is currently closing */
@@ -764,18 +764,18 @@ class Raycaster {
 
         this.xWallMap[0] = 0; // test hole
 
-        {
-          // init an active door
-          const door = this.newActiveDoor();
-          door.Type = 1;
-          door.Flags = 0;
-          door.Mpos = 0 + this.yWallMapWidth * 0;
-          door.Mpos1 = 0 + this.yWallMapWidth * 1;
-          door.ColOffset = 0.4;
-          door.Speed = 0.0;
-          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        }
+        // {
+        //   // init an active door
+        //   const door = this.newActiveDoor();
+        //   door.Type = 1;
+        //   door.Flags = 0;
+        //   door.Mpos = 0 + this.yWallMapWidth * 0;
+        //   door.Mpos1 = 0 + this.yWallMapWidth * 1;
+        //   door.ColOffset = 0.4;
+        //   door.Speed = 0.0;
+        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // }
       }
 
       {
@@ -794,21 +794,21 @@ class Raycaster {
         this.yWallMap[1 + this.yWallMapWidth * 4] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
 
-        // {
-        //   // init an active door
-        //   const door = this.newActiveDoor();
-        //   door.Type = 1;
-        //   door.Mpos = 1 + this.yWallMapWidth * 3;
-        //   door.Mpos1 = 1 + this.yWallMapWidth * 4;
-        //   door.Mcode = this.yWallMap[1 + this.yWallMapWidth * 3];
-        //   door.Mcode1 = this.yWallMap[1 + this.yWallMapWidth * 4];
-        //   door.ColOffset = 0.1;
-        //   // door.Speed = 0.001;
-        //   door.Speed = 0.007;
-        //   door.Flags = DOOR_OPENING | DOOR_AREA_CLOSED_FLAG;
-        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        // }
+        {
+          // init an active door
+          const door = this.newActiveDoor();
+          door.Type = 1;
+          door.Mpos = 1 + this.yWallMapWidth * 3;
+          door.Mpos1 = 1 + this.yWallMapWidth * 4;
+          door.Mcode = this.yWallMap[1 + this.yWallMapWidth * 3];
+          door.Mcode1 = this.yWallMap[1 + this.yWallMapWidth * 4];
+          door.ColOffset = 0.1;
+          // door.Speed = 0.001;
+          door.Speed = 0.007;
+          door.Flags = DOOR_OPENING | DOOR_AREA_CLOSED_FLAG;
+          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        }
       }
 
       {
@@ -825,18 +825,18 @@ class Raycaster {
         this.xWallMap[3 + this.xWallMapWidth * 8] =
           doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
 
-        {
-          // init an active door
-          const door = this.newActiveDoor();
-          door.Type = 0;
-          door.Flags = 0;
-          door.Mpos = 2 + this.xWallMapWidth * 8;
-          door.Mpos1 = 3 + this.yWallMapWidth * 8;
-          door.ColOffset = 0.2;
-          door.Speed = 0.0;
-          door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-          door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        }
+        // {
+        //   // init an active door
+        //   const door = this.newActiveDoor();
+        //   door.Type = 0;
+        //   door.Flags = 0;
+        //   door.Mpos = 2 + this.xWallMapWidth * 8;
+        //   door.Mpos1 = 3 + this.yWallMapWidth * 8;
+        //   door.ColOffset = 0.2;
+        //   door.Speed = 0.0;
+        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
+        // }
       }
 
       {
@@ -1016,11 +1016,11 @@ class Raycaster {
     return false;
   }
 
-  private findActiveDoor(side: number, pos: number): DoorRef {
+  private findActiveDoor(side: number, mPos: number): DoorRef {
     const { activeDoors } = this;
-    for (let i = 0; i < activeDoors.length; i++) {
+    for (let i = 0, { length } = activeDoors; i < length; i++) {
       const door = activeDoors[i];
-      if (door.Type === side && door.Mpos === pos) {
+      if (door.Type === side && door.Mpos === mPos) {
         return door;
       }
     }
@@ -1243,8 +1243,8 @@ class Raycaster {
               const doorPos = checkWallIdx + checkWallIdxOffsDoor[side];
               const activeDoor = this.findActiveDoor(side, doorPos);
               if (activeDoor) {
-                const wallDoorType = wallCode & WALL_DOOR_TYPE_MASK;
-                if (wallDoorType === WALL_DOOR_TYPE_SLIDE) {
+                const wallDoorType = wallCode & DOOR_TYPE_MASK;
+                if (wallDoorType === DOOR_TYPE_SLIDE) {
                   const doorOffsX = activeDoor.ColOffset;
                   // assert(doorOffsX >= 0 && doorOffsX < 1, 'invalid doorOffsX here');
                   // check door open at ColOffset
@@ -1822,7 +1822,7 @@ class Raycaster {
     while (wasmDoorPtr !== WASM_NULL_PTR) {
       const curDoor = getDoorView(wasmDoorPtr);
       this.activeDoors.push(curDoor);
-      wasmDoorPtr = curDoor.Next ? curDoor.Next.WasmPtr : WASM_NULL_PTR;
+      wasmDoorPtr = curDoor.NextPtr;
     }
   }
 
@@ -1839,36 +1839,6 @@ class Raycaster {
   private activateDoors() {
     // TODO:
     // use newActiveDoor
-  }
-
-  private newActiveDoor(): Door {
-    // insert new door at front, doubly linked list, not circular
-    const newDoor = newDoorView();
-    newDoor.Prev = newDoor.Next = null;
-    const doorListPtr = this.ActiveDoorsListPtr;
-    if (doorListPtr !== WASM_NULL_PTR) {
-      const doorList = getDoorView(doorListPtr);
-      newDoor.Next = doorList;
-      doorList.Prev = newDoor;
-    }
-    this.ActiveDoorsListPtr = newDoor.WasmPtr;
-    return newDoor;
-  }
-
-  private freeDoor(door: Door) {
-    // remove door from doubly linked list
-    const prevDoor = door.Prev;
-    const nextDoor = door.Next;
-    if (prevDoor) {
-      prevDoor.Next = nextDoor;
-    }
-    if (nextDoor) {
-      nextDoor.Prev = prevDoor;
-    }
-    if (door.WasmPtr === this.ActiveDoorsListPtr) {
-      this.ActiveDoorsListPtr = nextDoor ? nextDoor.WasmPtr : WASM_NULL_PTR;
-    }
-    freeDoorView(door);
   }
 
   private updateActiveDoors() {
@@ -1929,6 +1899,36 @@ class Raycaster {
       //     }
       //   }
     }
+  }
+
+  private newActiveDoor(): Door {
+    // insert new door at front, doubly linked list, not circular
+    const newDoor = newDoorView();
+    newDoor.Prev = newDoor.Next = null;
+    const doorListPtr = this.ActiveDoorsListPtr;
+    if (doorListPtr !== WASM_NULL_PTR) {
+      const doorList = getDoorView(doorListPtr);
+      newDoor.Next = doorList;
+      doorList.Prev = newDoor;
+    }
+    this.ActiveDoorsListPtr = newDoor.WasmPtr;
+    return newDoor;
+  }
+
+  private freeDoor(door: Door) {
+    // remove door from doubly linked list
+    const prevDoor = door.Prev;
+    const nextDoor = door.Next;
+    if (prevDoor) {
+      prevDoor.Next = nextDoor;
+    }
+    if (nextDoor) {
+      nextDoor.Prev = prevDoor;
+    }
+    if (door.WasmPtr === this.ActiveDoorsListPtr) {
+      this.ActiveDoorsListPtr = nextDoor ? nextDoor.WasmPtr : WASM_NULL_PTR;
+    }
+    freeDoorView(door);
   }
 
   private updatePlayer(time: number) {
