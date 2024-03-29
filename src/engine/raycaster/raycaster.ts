@@ -75,22 +75,13 @@ const WALL_FLAGS_BIT_MASK = {
   IS_DOOR: 1 << (WALL_FLAGS_OFFS_BASE + 1),
 };
 
-// two types of doors on wall maps: slide and split, use 1 bit mask for door type
-const DOOR_TYPE_OFFS = WALL_FLAGS_OFFS_BASE + 2;
-const DOOR_TYPE_MASK = 1 << DOOR_TYPE_OFFS;
-const DOOR_TYPE_SLIDE = 0 << DOOR_TYPE_OFFS;
-const DOOR_TYPE_SPLIT = 1 << DOOR_TYPE_OFFS;
-
-// #define DOOR_OPENING	0x80		/* On if door is currently opening */
-// #define DOOR_CLOSING	0x40		/* On if door is currently closing */
-
 // Door view flags field
 
 // first bit is the door status: opening or closing
-const DOOR_STATUS_OFFS = 0;
-const DOOR_STATUS_MASK = 0 << DOOR_STATUS_OFFS;
-const DOOR_OPENING = 0 << DOOR_STATUS_OFFS;
-const DOOR_CLOSING = 1 << DOOR_STATUS_OFFS;
+// const DOOR_OPENING_OFFS = 0;
+// const DOOR_OPENING = 1 << DOOR_OPENING_OFFS;
+// const DOOR_CLOSED_OFFS = 1;
+// const DOOR_CLOSING = 1 << DOOR_CLOSED_OFFS;
 
 // // second bit is the door area status: open or closed
 // const DOOR_AREA_STATUS_OFFS = 1;
@@ -99,10 +90,19 @@ const DOOR_CLOSING = 1 << DOOR_STATUS_OFFS;
 // const DOOR_AREA_CLOSED_FLAG = 1 << DOOR_AREA_STATUS_OFFS;
 
 // door view Type field
-const DOOR_TYPE_X = 0;
-const DOOR_TYPE_Y = 1;
+const DOOR_SIDE_TYPE_OFFS = 0;
+const DOOR_SIDE_TYPE_MASK = 1 << DOOR_SIDE_TYPE_OFFS;
+const DOOR_SIDE_TYPE_X = 0 << DOOR_SIDE_TYPE_OFFS;
+const DOOR_SIDE_TYPE_Y = 1 << DOOR_SIDE_TYPE_OFFS;
 
-const MAX_DOOR_COL_OFFSET = 1.5; // max door ext before it starts to close
+// // two types of doors on wall maps: slide and split, use 1 bit mask for door type
+const DOOR_TYPE_OFFS = 1;
+const DOOR_TYPE_MASK = 1 << DOOR_TYPE_OFFS;
+const DOOR_TYPE_SLIDE = 0 << DOOR_TYPE_OFFS;
+const DOOR_TYPE_SPLIT = 1 << DOOR_TYPE_OFFS;
+
+const CELL_MAX_OPEN_DOOR = 1.0;
+const DOOR_OPEN_MAX_COL_OFFS = CELL_MAX_OPEN_DOOR + 0.0;
 
 const darkWallTexKeys: typeof WALL_TEX_KEYS = Object.entries(
   WALL_TEX_KEYS,
@@ -407,20 +407,25 @@ class Raycaster {
 
   private initPlayer() {
     this.player = getWasmPlayerView(this.wasmEngineModule, this.raycasterPtr);
-    this.player.PosX = 0.5;
+    this.player.PosX = 1.5;
     this.player.PosY = 1.5;
     assert(this.WallHeight);
     this.player.PosZ = this.WallHeight / 2; // TODO:
     // rotated east
-    this.player.DirX = 1;
-    this.player.DirY = 0;
-    this.player.PlaneX = 0;
-    this.player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
+    // this.player.DirX = 1;
+    // this.player.DirY = 0;
+    // this.player.PlaneX = 0;
+    // this.player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
     // rotated north
     // player.DirX = 0;
     // player.DirY = -1;
     // player.PlaneX = 0.66;
     // player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
+    // rotated south
+    this.player.DirX = 0;
+    this.player.DirY = 1;
+    this.player.PlaneX = -0.66;
+    this.player.PlaneY = 0; // FOV 2*atan(0.66) ~ 60 deg
   }
 
   private initDoors() {
@@ -770,8 +775,9 @@ class Raycaster {
         const mPos = 0 + this.yWallMapWidth * 0;
         const mPos1 = 0 + this.yWallMapWidth * 1;
 
-        const mCode = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_DOOR;
-        const mCode1 = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_DOOR;
+        const mCode =
+          doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_DOOR | DOOR_TYPE_SLIDE;
+        const mCode1 = mCode;
 
         // edge case door on y edge of map
         this.yWallMap[mPos] = mCode;
@@ -779,18 +785,18 @@ class Raycaster {
 
         this.xWallMap[0] = 0; // test hole
 
-        {
-          // init an active door
-          const door = this.newDoor();
-          door.Type = 1;
-          door.Flags = 0;
-          door.Mpos = mPos;
-          door.Mpos1 = mPos1;
-          door.ColOffset = 0.4;
-          door.Speed = 0.0;
-          door.Mcode = mCode;
-          door.Mcode1 = mCode1;
-        }
+        // {
+        //   // init an active door
+        //   const door = this.newDoor();
+        //   door.Type = DOOR_XY_TYPE_X | DOOR_TYPE_SLIDE;
+        //   door.Flags = 0;
+        //   door.Mpos = mPos;
+        //   door.Mpos1 = mPos1;
+        //   door.ColOffset = 0.4;
+        //   door.Speed = 0.0;
+        //   door.Mcode = mCode;
+        //   door.Mcode1 = mCode1;
+        // }
       }
 
       {
@@ -808,7 +814,7 @@ class Raycaster {
         const mPos1 = 1 + this.yWallMapWidth * 4;
 
         const mCode = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_DOOR;
-        const mCode1 = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_DOOR;
+        const mCode1 = mCode;
 
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
@@ -816,13 +822,13 @@ class Raycaster {
         {
           // init an active door
           const door = this.newDoor();
-          door.Type = DOOR_TYPE_Y;
+          door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
           door.Mpos = mPos;
           door.Mpos1 = mPos1;
           door.ColOffset = 0.1;
           // door.Speed = 0.001;
           door.Speed = 0.007;
-          door.Flags = DOOR_OPENING;
+          door.Flags = 0; // DOOR_OPENING;
           door.Mcode = mCode;
           door.Mcode1 = mCode1;
         }
@@ -1037,7 +1043,10 @@ class Raycaster {
     const { activeDoors } = this;
     for (let i = 0, { length } = activeDoors; i < length; i++) {
       const door = activeDoors[i];
-      if (door.Type === side && door.Mpos === mPos) {
+      if (
+        (door.Type & DOOR_SIDE_TYPE_MASK) === side << DOOR_SIDE_TYPE_OFFS &&
+        door.Mpos === mPos
+      ) {
         return door;
       }
     }
@@ -1260,42 +1269,51 @@ class Raycaster {
               const doorMpos = checkWallIdx + checkWallIdxOffsDoor[side];
               const activeDoor = this.findActiveDoor(side, doorMpos);
               if (activeDoor) {
-                const wallDoorType = wallCode & DOOR_TYPE_MASK;
-                if (wallDoorType === DOOR_TYPE_SLIDE) {
+                const doorOffs = activeDoor.ColOffset;
+                let isDoorOpenOnCol;
+                if ((activeDoor.Type & DOOR_TYPE_MASK) === DOOR_TYPE_SLIDE) {
                   // check door open at ColOffset
-                  const doorOffs = activeDoor.ColOffset;
                   // assert(doorOffs >= 0 && doorOffs < 1, 'invalid doorOffs here');
                   fDoorCoord += doorOffs; // open right to left
-                  const isDoorOpenOnCol = fDoorCoord >= 1; // open right to left
+                  isDoorOpenOnCol = fDoorCoord >= 1; // with this check, for y doors, open right to left
                   // fDoorCoord -= doorOffs; // open left to right
                   // const isDoorOpenOnCol = fDoorCoord < 0 // open left to right
-                  if (isDoorOpenOnCol) {
-                    this.advanceRay(side, nextPos);
-                    if (sideDist[side] > sideDist[side ^ 1]) {
-                      // flip side (door on y/x side, ray continues to x/y side)
+                } else {
+                  // DOOR_TYPE_SPLIT
+                  if (fDoorCoord < 0.5) {
+                    // door opens from right to left
+                    fDoorCoord += doorOffs; // open right to left
+                    isDoorOpenOnCol = fDoorCoord >= 0.5;
+                  } else {
+                    // door opens from left to right
+                    fDoorCoord -= doorOffs; // open left to right
+                    isDoorOpenOnCol = fDoorCoord < 0.5;
+                  }
+                }
+
+                if (isDoorOpenOnCol) {
+                  this.advanceRay(side, nextPos);
+                  if (sideDist[side] > sideDist[side ^ 1]) {
+                    // flip side (door on y/x side, ray continues to x/y side)
+                    continue;
+                  } else {
+                    // same side, advance 1 more time (doors are 2 cells wide)
+                    // eslint-disable-next-line @typescript-eslint/no-shadow
+                    const nextPos = this.calcNextPos(side, steps);
+                    isRayValid = this.isRayValid(side, nextPos, steps);
+                    if (isRayValid) {
+                      this.advanceRay(side, nextPos);
                       continue;
                     } else {
-                      // same side, advance 1 more time (doors are 2 cells wide)
-                      // eslint-disable-next-line @typescript-eslint/no-shadow
-                      const nextPos = this.calcNextPos(side, steps);
-                      isRayValid = this.isRayValid(side, nextPos, steps);
-                      if (isRayValid) {
-                        this.advanceRay(side, nextPos);
-                        continue;
-                      } else {
-                        // out of map, adjust dist to render the special edge wall
-                        perpWallDist += deltaDist[side];
-                        fWallX += deltaDist[side] * rayDir[side ^ 1];
-                        break doorCheck;
-                      }
+                      // out of map, adjust dist to render the special edge wall
+                      perpWallDist += deltaDist[side];
+                      fWallX += deltaDist[side] * rayDir[side ^ 1];
+                      break doorCheck;
                     }
                   }
-                  // door not open on this col, render the door as a wall. cont on else door not active
-                } else {
-                  // we want to handle here the split doors, i.e. doors that open half on the left and half on the right
                 }
-              }
-              // else door not active
+                // door not open on this col, render the door as a wall. cont on else door not active
+              } // else door not active
               // door not active or not open at the col check, render the door as wall
               perpWallDist += perpHalfDist;
               fWallX = fDoorCoord;
@@ -1892,28 +1910,30 @@ class Raycaster {
     this.initActiveDoorsList();
     const { activeDoors, wallMaps, player } = this;
     for (let door of activeDoors) {
-      const wallMap = wallMaps[door.Type];
+      const doorSide = (door.Type >>> DOOR_SIDE_TYPE_OFFS) & 1;
+      const wallMap = wallMaps[doorSide];
       assert(
         wallMap[door.Mpos] === wallMap[door.Mpos1],
         'invalid wallmap code door',
       );
       const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
       door.ColOffset += door.Speed;
-      if (door.ColOffset >= 1) {
+      const upFact = (door.Type & DOOR_TYPE_MASK) === DOOR_TYPE_SPLIT ? 0.5 : 1; // half for split doors
+      const cellMaxOpenOffs = CELL_MAX_OPEN_DOOR * upFact;
+      if (door.ColOffset >= cellMaxOpenOffs && door.Speed > 0) {
         if (isDoorCellClosed) {
           wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
         } else {
-          assert(
-            wallMap[door.Mpos] === 0 && wallMap[door.Mpos1] === 0,
-            'invalid wallmap code door open',
-          );
-          if (door.ColOffset >= MAX_DOOR_COL_OFFSET) {
+          // assert(
+          //   wallMap[door.Mpos] === 0 && wallMap[door.Mpos1] === 0,
+          //   'invalid wallmap code door open',
+          // );
+          if (door.ColOffset >= DOOR_OPEN_MAX_COL_OFFS * upFact) {
             door.Speed = -door.Speed;
           }
         }
       } else {
-        // colOffset < 1
-        if (door.Speed < 0) {
+        if (door.ColOffset < cellMaxOpenOffs && door.Speed < 0) {
           if (isDoorCellClosed) {
             if (door.ColOffset <= 0) {
               // this.freeDoor(door);
@@ -1925,10 +1945,11 @@ class Raycaster {
             }
           } else {
             const { PosX: posX, PosY: posY } = player;
+            const isYDoor =
+              (door.Type & DOOR_SIDE_TYPE_MASK) === DOOR_SIDE_TYPE_Y;
             const pMpos =
               (posX | 0) +
-              (posY | 0) *
-                (door.Type ? this.yWallMapWidth : this.xWallMapWidth);
+              (posY | 0) * (isYDoor ? this.yWallMapWidth : this.xWallMapWidth);
             if (pMpos !== door.Mpos) {
               // close the area
               wallMap[door.Mpos] = door.Mcode;
@@ -1952,6 +1973,7 @@ class Raycaster {
       doorList.Prev = newDoor;
     }
     this.ActiveDoorsListPtr = newDoor.WasmPtr;
+    // newDoor.Flags = 0; // TODO:
     return newDoor;
   }
 
