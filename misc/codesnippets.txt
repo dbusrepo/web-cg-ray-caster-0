@@ -2451,4 +2451,13 @@ for (; framePtr < frameLimitPtr; ++framePtr) {
 //   InputActionBehavior.NORMAL,
 // );
 
-
+// from updateActiveDoors:
+// if (door.Flags & DOOR_AREA_CLOSED_FLAG) {
+//   if (door.ColOffset >= 1) {
+//     const wallMap = wallMaps[door.Type];
+//     wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
+//     door.Flags &= ~DOOR_AREA_CLOSED_FLAG;
+//     if (door.ColOffset >= 5) { // TODO:
+//       door.Speed = -door.Speed;
+//     }
+//   }
