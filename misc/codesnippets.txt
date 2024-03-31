@@ -2461,3 +2461,10 @@ for (; framePtr < frameLimitPtr; ++framePtr) {
 //       door.Speed = -door.Speed;
 //     }
 //   }
+
+// if (this.moveForward.isPressed()) {
+//   this.movePlayer(moveSpeed);
+// }
+// if (this.moveBackward.isPressed()) {
+//   this.movePlayer(-moveSpeed);
+// }

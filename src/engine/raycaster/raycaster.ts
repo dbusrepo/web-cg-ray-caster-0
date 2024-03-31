@@ -40,6 +40,7 @@ import {
   FrameColorRGBAWasm,
   // getFrameColorRGBAWasmView,
 } from '../wasmEngine/frameColorRGBAWasm';
+import { CollisionInfo, collideAndSlide } from './collision';
 
 type RaycasterParams = {
   wasmRun: WasmRun;
@@ -232,6 +233,8 @@ class Raycaster {
   private wallMaps = new Array<Uint16Array>(2);
   private mapLimits = new Int32Array(2);
   private floorWall = new Float32Array(2);
+
+  private collisionInfo = new CollisionInfo(0.3, 0.3); // TODO:
 
   // private _2float: Float32Array;
   // private _1u32: Uint32Array;
@@ -1994,39 +1997,53 @@ class Raycaster {
 
   private updatePlayer(time: number) {
     const LOOKUP_OFFS = 15 * time;
+    const MOVE_SPEED = 0.01; // 0.009; // TODO:
+    const ROT_SPEED = 0.006; // TODO:
 
     if (this.lookUp.isPressed()) {
       const yCenter = this.ProjYCenter + LOOKUP_OFFS;
       this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3);
     }
-
     if (this.lookDown.isPressed()) {
       const yCenter = this.ProjYCenter - LOOKUP_OFFS;
       this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3);
     }
-
-    const MOVE_SPEED = 0.01; // 0.009; // TODO:
-    const ROT_SPEED = 0.006; // TODO:
-    const moveSpeed = time * MOVE_SPEED;
-    const rotSpeed = time * ROT_SPEED;
-
-    if (this.moveForward.isPressed()) {
-      this.movePlayer(moveSpeed);
-    }
-    if (this.moveBackward.isPressed()) {
-      this.movePlayer(-moveSpeed);
-    }
-    if (this.turnLeft.isPressed()) {
-      this.rotatePlayer(-rotSpeed);
-    }
-    if (this.turnRight.isPressed()) {
-      this.rotatePlayer(rotSpeed);
-    }
     if (this.raiseHeight.isPressed()) {
       this.increasePlayerHeight(1);
     }
+
     if (this.lowerHeight.isPressed()) {
       this.increasePlayerHeight(-1);
+    }
+
+    let turnSpeed = 0;
+
+    if (this.turnLeft.isPressed()) {
+      turnSpeed -= time * ROT_SPEED;
+    }
+    if (this.turnRight.isPressed()) {
+      turnSpeed += time * ROT_SPEED;
+    }
+
+    this.rotatePlayer(turnSpeed);
+
+    let moveSpeed = 0;
+
+    if (this.moveForward.isPressed()) {
+      moveSpeed += time * MOVE_SPEED;
+    }
+
+    if (this.moveBackward.isPressed()) {
+      moveSpeed -= time * MOVE_SPEED;
+    }
+
+    if (moveSpeed) {
+      const velX = this.player.DirX * moveSpeed;
+      const velY = this.player.DirY * moveSpeed;
+      // const posX = this.player.PosX + velX;
+      // const posY = this.player.PosY + velY;
+      // this.movePlayer(posX, posY);
+      collideAndSlide(this, velX, velY);
     }
   }
 
@@ -2042,10 +2059,9 @@ class Raycaster {
     this.player.PosZ = height;
   }
 
-  private movePlayer(moveSpeed: number) {
-    const { player } = this;
-    player.PosX += player.DirX * moveSpeed;
-    player.PosY += player.DirY * moveSpeed;
+  public movePlayer(posX: number, posY: number) {
+    this.player.PosX = posX;
+    this.player.PosY = posY;
   }
 
   public rotatePlayer(rotSpeed: number) {
@@ -2213,6 +2229,10 @@ class Raycaster {
 
   get ViewportHeight() {
     return this.viewport.Height;
+  }
+
+  get CollisionInfo() {
+    return this.collisionInfo;
   }
 }
 
