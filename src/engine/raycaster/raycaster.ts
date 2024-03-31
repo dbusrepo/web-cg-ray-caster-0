@@ -40,7 +40,11 @@ import {
   FrameColorRGBAWasm,
   // getFrameColorRGBAWasmView,
 } from '../wasmEngine/frameColorRGBAWasm';
-import { CollisionInfo, collideAndSlide } from './collision';
+import {
+  CollisionInfo,
+  collideAndSlide,
+  checkEdgeCollision,
+} from './collision';
 
 type RaycasterParams = {
   wasmRun: WasmRun;
@@ -2076,6 +2080,55 @@ class Raycaster {
     player.PlaneY = oldPlaneX * sin + player.PlaneY * cos;
   }
 
+  public checkXCollisions() {
+    const { r2PosX, r2PosY, r2VelX, r2VelY } = this.CollisionInfo;
+    const minX = Math.max(Math.min(r2PosX, r2PosX + r2VelX), 0);
+    const minY = Math.max(Math.min(r2PosY, r2PosY + r2VelY), 0);
+    const maxX = Math.min(
+      Math.max(r2PosX, r2PosX + r2VelX) + 1,
+      this.XWallMapWidth - 1,
+    );
+    const maxY = Math.min(
+      Math.max(r2PosY, r2PosY + r2VelY) + 1,
+      this.XWallMapHeight - 1,
+    );
+
+    for (let y = minY; y <= maxY; y++) {
+      const yOffs = y * this.XWallMapWidth;
+      for (let x = minX; x <= maxX; x++) {
+        const cellOffs = yOffs + x;
+        if (this.XWallMap[cellOffs] & WALL_CODE_MASK) {
+          checkEdgeCollision(this, x, x, y, y + 1);
+        }
+      }
+    }
+  }
+
+  public checkYCollisions() {
+    const { r2PosX, r2PosY, r2VelX, r2VelY } = this.CollisionInfo;
+
+    const minX = Math.max(Math.min(r2PosX, r2PosX + r2VelX), 0);
+    const minY = Math.max(Math.min(r2PosY, r2PosY + r2VelY), 0);
+    const maxX = Math.min(
+      Math.max(r2PosX, r2PosX + r2VelX) + 1,
+      this.YWallMapWidth - 1,
+    );
+    const maxY = Math.min(
+      Math.max(r2PosY, r2PosY + r2VelY) + 1,
+      this.YWallMapHeight - 1,
+    );
+
+    for (let y = minY; y <= maxY; y++) {
+      const yOffs = y * this.YWallMapWidth;
+      for (let x = minX; x <= maxX; x++) {
+        const cellOffs = yOffs + x;
+        if (this.YWallMap[cellOffs] & WALL_CODE_MASK) {
+          checkEdgeCollision(this, x, x + 1, y, y);
+        }
+      }
+    }
+  }
+
   private get WallHeight(): number {
     return this.wasmRun.WasmViews.view.getUint32(this.wallHeightPtr, true);
   }
@@ -2233,6 +2286,30 @@ class Raycaster {
 
   get CollisionInfo() {
     return this.collisionInfo;
+  }
+
+  get XWallMap() {
+    return this.xWallMap;
+  }
+
+  get YWallMap() {
+    return this.yWallMap;
+  }
+
+  get XWallMapWidth() {
+    return this.xWallMapWidth;
+  }
+
+  get XWallMapHeight() {
+    return this.xWallMapHeight;
+  }
+
+  get YWallMapWidth() {
+    return this.yWallMapWidth;
+  }
+
+  get YWallMapHeight() {
+    return this.yWallMapHeight;
   }
 }
 
