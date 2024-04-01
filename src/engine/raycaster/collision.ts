@@ -96,13 +96,13 @@ function collideWithWorld(raycaster: Raycaster) {
     eVelY = eDestY - ePosY;
     console.log('new vel: ', eVelX, eVelY);
 
-    // const newVelLen = Math.sqrt(eVelX * eVelX + eVelY * eVelY);
-    // if (newVelLen < veryCloseDistance) {
-    //   console.log('new vel len < very close distance. stop');
-    //   ePosX = eDestX;
-    //   ePosY = eDestY;
-    //   break;
-    // }
+    const newVelLen = Math.sqrt(eVelX * eVelX + eVelY * eVelY);
+    if (newVelLen < veryCloseDistance) {
+      console.log('new vel len < very close distance. stop');
+      ePosX = eDestX;
+      ePosY = eDestY;
+      break;
+    }
 
     collInfo.eBasePointX = ePosX;
     collInfo.eBasePointY = ePosY;
@@ -184,7 +184,10 @@ function checkEdgeCollision(
   let eY1 = y1 / eRadY;
 
   // swap eX0,eY0 with eX1,eY1 if player is on the negative side of the edge
-  if (eX0 * (eBasePointY - eY0) + eY0 * (eX0 - eBasePointX) < 0) {
+  if (
+    (eBasePointX - eX0) * (eY0 - eY1) + (eBasePointY - eY0) * (eX1 - eX0) <
+    0
+  ) {
     console.log(
       'player on negative side of edge ',
       eX0,

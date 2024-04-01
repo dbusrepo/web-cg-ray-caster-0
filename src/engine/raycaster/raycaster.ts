@@ -826,19 +826,19 @@ class Raycaster {
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
 
-        {
-          // init an active door
-          const door = this.newDoor();
-          door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
-          door.Mpos = mPos;
-          door.Mpos1 = mPos1;
-          door.ColOffset = 0.1;
-          // door.Speed = 0.001;
-          door.Speed = 0.007;
-          door.Flags = 0; // DOOR_OPENING;
-          door.Mcode = mCode;
-          door.Mcode1 = mCode1;
-        }
+        // {
+        //   // init an active door
+        //   const door = this.newDoor();
+        //   door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
+        //   door.Mpos = mPos;
+        //   door.Mpos1 = mPos1;
+        //   door.ColOffset = 0.1;
+        //   // door.Speed = 0.001;
+        //   door.Speed = 0.007;
+        //   door.Flags = 0; // DOOR_OPENING;
+        //   door.Mcode = mCode;
+        //   door.Mcode1 = mCode1;
+        // }
       }
 
       {
@@ -2002,7 +2002,8 @@ class Raycaster {
   private updatePlayer(time: number) {
     const LOOKUP_OFFS = 15 * time;
     // const MOVE_SPEED = 0.01; // 0.009; // TODO:
-    const MOVE_SPEED = 0.002; // 0.009; // TODO:
+    const MOVE_SPEED = 0.005;
+    // const MOVE_SPEED = 0.002; // 0.009; // TODO:
     const ROT_SPEED = 0.006; // TODO:
 
     if (this.lookUp.isPressed()) {
