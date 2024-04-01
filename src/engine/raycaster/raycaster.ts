@@ -238,7 +238,7 @@ class Raycaster {
   private mapLimits = new Int32Array(2);
   private floorWall = new Float32Array(2);
 
-  private collisionInfo = new CollisionInfo(0.3, 0.3); // TODO:
+  private collisionInfo = new CollisionInfo(0.2, 0.2); // TODO:
 
   // private _2float: Float32Array;
   // private _1u32: Uint32Array;
@@ -2001,7 +2001,8 @@ class Raycaster {
 
   private updatePlayer(time: number) {
     const LOOKUP_OFFS = 15 * time;
-    const MOVE_SPEED = 0.01; // 0.009; // TODO:
+    // const MOVE_SPEED = 0.01; // 0.009; // TODO:
+    const MOVE_SPEED = 0.002; // 0.009; // TODO:
     const ROT_SPEED = 0.006; // TODO:
 
     if (this.lookUp.isPressed()) {
@@ -2081,49 +2082,62 @@ class Raycaster {
   }
 
   public checkXCollisions() {
-    const { r2PosX, r2PosY, r2VelX, r2VelY } = this.CollisionInfo;
-    const minX = Math.max(Math.min(r2PosX, r2PosX + r2VelX), 0);
-    const minY = Math.max(Math.min(r2PosY, r2PosY + r2VelY), 0);
-    const maxX = Math.min(
-      Math.max(r2PosX, r2PosX + r2VelX) + 1,
-      this.XWallMapWidth - 1,
-    );
-    const maxY = Math.min(
-      Math.max(r2PosY, r2PosY + r2VelY) + 1,
-      this.XWallMapHeight - 1,
-    );
+    const { r2PosX, r2PosY, r2VelX, r2VelY, eRadX, eRadY } = this.CollisionInfo;
+
+    const minX =
+      Math.max(Math.ceil(Math.min(r2PosX, r2PosX + r2VelX) - eRadX), 0) | 0;
+    const minY =
+      Math.max(Math.floor(Math.min(r2PosY, r2PosY + r2VelY) - eRadY), 0) | 0;
+    const maxX =
+      Math.min(
+        Math.floor(Math.max(r2PosX, r2PosX + r2VelX) + eRadX),
+        this.XWallMapWidth - 1,
+      ) | 0;
+    const maxY =
+      Math.min(
+        Math.floor(Math.max(r2PosY, r2PosY + r2VelY) + eRadY),
+        this.XWallMapHeight - 1,
+      ) | 0;
+
+    console.log('checking X collisions ', minX, minY, maxX, maxY);
 
     for (let y = minY; y <= maxY; y++) {
       const yOffs = y * this.XWallMapWidth;
       for (let x = minX; x <= maxX; x++) {
         const cellOffs = yOffs + x;
         if (this.XWallMap[cellOffs] & WALL_CODE_MASK) {
-          checkEdgeCollision(this, x, x, y, y + 1);
+          checkEdgeCollision(this, x, y, x, y + 1);
         }
       }
     }
   }
 
   public checkYCollisions() {
-    const { r2PosX, r2PosY, r2VelX, r2VelY } = this.CollisionInfo;
+    const { r2PosX, r2PosY, r2VelX, r2VelY, eRadX, eRadY } = this.CollisionInfo;
 
-    const minX = Math.max(Math.min(r2PosX, r2PosX + r2VelX), 0);
-    const minY = Math.max(Math.min(r2PosY, r2PosY + r2VelY), 0);
-    const maxX = Math.min(
-      Math.max(r2PosX, r2PosX + r2VelX) + 1,
-      this.YWallMapWidth - 1,
-    );
-    const maxY = Math.min(
-      Math.max(r2PosY, r2PosY + r2VelY) + 1,
-      this.YWallMapHeight - 1,
-    );
+    const minX =
+      Math.max(Math.floor(Math.min(r2PosX, r2PosX + r2VelX) - eRadX), 0) | 0;
+    const minY =
+      Math.max(Math.ceil(Math.min(r2PosY, r2PosY + r2VelY) - eRadY), 0) | 0;
+    const maxX =
+      Math.min(
+        Math.floor(Math.max(r2PosX, r2PosX + r2VelX) + eRadX),
+        this.YWallMapWidth - 1,
+      ) | 0;
+    const maxY =
+      Math.min(
+        Math.floor(Math.max(r2PosY, r2PosY + r2VelY) + eRadY),
+        this.YWallMapHeight - 1,
+      ) | 0;
+
+    console.log('checking Y collisions ', minX, minY, maxX, maxY);
 
     for (let y = minY; y <= maxY; y++) {
       const yOffs = y * this.YWallMapWidth;
       for (let x = minX; x <= maxX; x++) {
         const cellOffs = yOffs + x;
         if (this.YWallMap[cellOffs] & WALL_CODE_MASK) {
-          checkEdgeCollision(this, x, x + 1, y, y);
+          checkEdgeCollision(this, x, y, x + 1, y);
         }
       }
     }
