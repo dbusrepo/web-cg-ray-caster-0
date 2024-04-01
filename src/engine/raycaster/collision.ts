@@ -80,11 +80,11 @@ function getLowestRoot(
   let r1, r2;
 
   // if (b < 0) {
-  //   r1 = (-b + sqrtD) / (2 * a);
-  //   r2 = (2 * c) / (-b + sqrtD);
+  //   r1 = (2 * c) / (-b + sqrtD);
+  //   r2 = (-b + sqrtD) / (2 * a);
   // } else {
-  //   r1 = (2 * c) / (-b - sqrtD);
-  //   r2 = (-b - sqrtD) / (2 * a);
+  //   r1 = (-b - sqrtD) / (2 * a);
+  //   r2 = (2 * c) / (-b - sqrtD);
   // }
 
   r1 = (-b - sqrtD) / (2 * a);
@@ -156,8 +156,8 @@ function checkEdgeCollision(
   // distance from edge
   const dist = a * eBasePointX + b * eBasePointY + c;
 
-  console.log('pos: ', r2PosX, r2PosY);
-  console.log('vel: ', r2VelX, r2VelY);
+  console.log('pos: ', r2PosX, r2PosY, ' espace: ', eBasePointX, eBasePointY);
+  console.log('vel: ', r2VelX, r2VelY, ' espace: ', eVelX, eVelY);
   console.log(
     'check with edge',
     x0,
@@ -193,14 +193,17 @@ function checkEdgeCollision(
     t1 = 1;
   } else {
     // compute intersection points
-    t0 = (-1 - dist) / normalDotVel;
-    t1 = (1 - dist) / normalDotVel;
+    const invNormalDotVel = 1 / normalDotVel;
+    t0 = (-1 - dist) * invNormalDotVel;
+    t1 = (1 - dist) * invNormalDotVel;
 
     if (t0 > t1) {
       const temp = t0;
       t0 = t1;
       t1 = temp;
     }
+
+    console.log('t0: ', t0, ' t1: ', t1);
 
     if (t0 > 1 || t1 < 0) {
       console.log('no collision cur vel with edge ', x0, y0, x1, y1);
@@ -228,8 +231,8 @@ function checkEdgeCollision(
   let t = 1.0;
 
   if (!embedded) {
-    const intersectX = eBasePointX + eVelX * t0 - a;
-    const intersectY = eBasePointY + eVelY * t0 - b;
+    const intersectX = eBasePointX + eVelX * t0 - a * dist; // TODO * dist ?
+    const intersectY = eBasePointY + eVelY * t0 - b * dist;
 
     // check if intersection point is on edge
     const dot0 =
@@ -267,51 +270,51 @@ function checkEdgeCollision(
     }
   }
 
-  // if (!foundCollision) {
-  //   // check collision with end points
-  //
-  //   // find the closest end point
-  //   let dist0 =
-  //     (eBasePointX - eX0) * (eBasePointX - eX0) +
-  //     (eBasePointY - eY0) * (eBasePointY - eY0);
-  //   let dist1 =
-  //     (eBasePointX - eX1) * (eBasePointX - eX1) +
-  //     (eBasePointY - eY1) * (eBasePointY - eY1);
-  //   let closestX, closestY;
-  //   if (dist0 < dist1) {
-  //     closestX = eX0;
-  //     closestY = eY0;
-  //   } else {
-  //     closestX = eX1;
-  //     closestY = eY1;
-  //   }
-  //   console.log('closest end point ', closestX, closestY);
-  //
-  //   // now check if collision with closest end point
-  //   const a0 = eVelX * eVelX + eVelY * eVelY;
-  //   const b0 =
-  //     2 * ((eBasePointX - closestX) * eVelX + (eBasePointY - closestY) * eVelY);
-  //   const c0 =
-  //     (closestX - eBasePointX) * (closestX - eBasePointX) +
-  //     (closestY - eBasePointY) * (closestY - eBasePointY) -
-  //     1;
-  //
-  //   const root = getLowestRoot(a0, b0, c0, t);
-  //   console.log('root: ', root);
-  //   if (root !== null) {
-  //     console.log(
-  //       'collision with end point ',
-  //       closestX,
-  //       closestY,
-  //       ' at ',
-  //       root,
-  //     );
-  //     foundCollision = true;
-  //     t = root;
-  //     collisionX = closestX;
-  //     collisionY = closestY;
-  //   }
-  // }
+  if (!foundCollision) {
+    // check collision with end points
+
+    // find the closest end point
+    let dist0 =
+      (eBasePointX - eX0) * (eBasePointX - eX0) +
+      (eBasePointY - eY0) * (eBasePointY - eY0);
+    let dist1 =
+      (eBasePointX - eX1) * (eBasePointX - eX1) +
+      (eBasePointY - eY1) * (eBasePointY - eY1);
+    let closestX, closestY;
+    if (dist0 < dist1) {
+      closestX = eX0;
+      closestY = eY0;
+    } else {
+      closestX = eX1;
+      closestY = eY1;
+    }
+    console.log('closest end point ', closestX, closestY);
+
+    // now check if collision with closest end point
+    const a0 = eVelX * eVelX + eVelY * eVelY;
+    const b0 =
+      2 * ((eBasePointX - closestX) * eVelX + (eBasePointY - closestY) * eVelY);
+    const c0 =
+      (eBasePointX - closestX) * (eBasePointX - closestX) +
+      (eBasePointY - closestY) * (eBasePointY - closestY) -
+      1;
+
+    const root = getLowestRoot(a0, b0, c0, t);
+    console.log('root: ', root);
+    if (root !== null) {
+      console.log(
+        'collision with end point ',
+        closestX,
+        closestY,
+        ' at ',
+        root,
+      );
+      foundCollision = true;
+      t = root;
+      collisionX = closestX;
+      collisionY = closestY;
+    }
+  }
 
   if (foundCollision) {
     const collisionDist = t * Math.sqrt(eVelX * eVelX + eVelY * eVelY);
@@ -319,13 +322,15 @@ function checkEdgeCollision(
     if (collisionDist < collInfo.nearestDistance) {
       console.log(
         'collision with edge ',
-        x0,
-        y0,
-        x1,
-        y1,
+        eX0,
+        eY0,
+        eX1,
+        eY1,
         ' at ',
         collisionX,
         collisionY,
+        ' distance: ',
+        collisionDist,
       );
       // collInfo.foundCollision = true;
       // collInfo.nearestDistance = collisionDist;
