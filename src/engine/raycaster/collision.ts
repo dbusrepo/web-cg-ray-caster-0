@@ -13,13 +13,17 @@ class CollisionInfo {
   eBasePointY: number;
   eVelX: number;
   eVelY: number;
-  // eNormVelX: number;
-  // eNormVelY: number;
+  eNormVelX: number;
+  eNormVelY: number;
 
   foundCollision: boolean;
-  nearestDistance: number;
-  nearestX: number;
-  nearestY: number;
+  eCollisionDist: number;
+  eCollisionX: number;
+  eCollisionY: number;
+
+  // eSlidePlaneA: number;
+  // eSlidePlaneB: number;
+  // eSlidePlaneC: number;
 
   constructor(eRadX: number, eRadY: number) {
     this.eRadX = eRadX;
@@ -43,24 +47,76 @@ const collideAndSlide = (raycaster: Raycaster, velX: number, velY: number) => {
 function collideWithWorld(raycaster: Raycaster) {
   const collInfo = raycaster.CollisionInfo;
 
-  const finalPosX = collInfo.eBasePointX + collInfo.eVelX;
-  const finalPosY = collInfo.eBasePointY + collInfo.eVelY;
+  let ePosX = collInfo.eBasePointX;
+  let ePosY = collInfo.eBasePointY;
 
-  raycaster.CollisionInfo.foundCollision = false;
-  raycaster.CollisionInfo.nearestDistance = Number.MAX_VALUE;
+  const veryCloseDistance = 1e-3;
+  const longRadius = 1.0 + veryCloseDistance;
 
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 5; i++) {
+    console.log('iter: ', i);
+    let { eVelX, eVelY } = collInfo;
+    let eDestX = ePosX + eVelX;
+    let eDestY = ePosY + eVelY;
+    console.log('dest: ', eDestX, eDestY);
+    collInfo.foundCollision = false;
+    collInfo.eCollisionDist = Number.MAX_VALUE;
     raycaster.checkXCollisions();
     raycaster.checkYCollisions();
     if (!raycaster.CollisionInfo.foundCollision) {
+      ePosX = eDestX;
+      ePosY = eDestY;
       break;
     }
-    // collision response TODO:
+    const dist = raycaster.CollisionInfo.eCollisionDist;
+    const shortDist = Math.max(dist - veryCloseDistance, 0);
+    ePosX += shortDist * collInfo.eNormVelX;
+    ePosY += shortDist * collInfo.eNormVelY;
+    console.log('new pos: ', ePosX, ePosY);
+
+    // slide plane
+
+    let slidePlaneA = ePosX - collInfo.eCollisionX;
+    let slidePlaneB = ePosY - collInfo.eCollisionY;
+    const slidePlaneNormalLen =
+      1 / Math.sqrt(slidePlaneA * slidePlaneA + slidePlaneB * slidePlaneB);
+    slidePlaneA *= slidePlaneNormalLen;
+    slidePlaneB *= slidePlaneNormalLen;
+    const slidePlaneC =
+      -slidePlaneA * collInfo.eCollisionX - slidePlaneB * collInfo.eCollisionY;
+
+    console.log('slide plane: ', slidePlaneA, slidePlaneB, slidePlaneC);
+
+    // project dest to slide plane
+    const destDist = slidePlaneA * eDestX + slidePlaneB * eDestY + slidePlaneC;
+    console.log('dest vs slide plane dist: ', destDist);
+    eDestX -= (destDist - longRadius) * slidePlaneA;
+    eDestY -= (destDist - longRadius) * slidePlaneB;
+    eVelX = eDestX - ePosX;
+    eVelY = eDestY - ePosY;
+    console.log('new vel: ', eVelX, eVelY);
+
+    // const newVelLen = Math.sqrt(eVelX * eVelX + eVelY * eVelY);
+    // if (newVelLen < veryCloseDistance) {
+    //   console.log('new vel len < very close distance. stop');
+    //   ePosX = eDestX;
+    //   ePosY = eDestY;
+    //   break;
+    // }
+
+    collInfo.eBasePointX = ePosX;
+    collInfo.eBasePointY = ePosY;
+    collInfo.eVelX = eVelX; // TODO:
+    collInfo.eVelY = eVelY;
+    collInfo.r2PosX = ePosX * collInfo.eRadX;
+    collInfo.r2PosY = ePosY * collInfo.eRadY;
+    collInfo.r2VelX = eVelX * collInfo.eRadX;
+    collInfo.r2VelY = eVelY * collInfo.eRadY;
   }
 
   // cvt back to r2
-  const r2FinalPosX = finalPosX * raycaster.CollisionInfo.eRadX;
-  const r2FinalPosY = finalPosY * raycaster.CollisionInfo.eRadY;
+  const r2FinalPosX = ePosX * collInfo.eRadX;
+  const r2FinalPosY = ePosY * collInfo.eRadY;
   raycaster.movePlayer(r2FinalPosX, r2FinalPosY);
 }
 
@@ -79,16 +135,16 @@ function getLowestRoot(
   const sqrtD = Math.sqrt(determinant);
   let r1, r2;
 
-  // if (b < 0) {
-  //   r1 = (2 * c) / (-b + sqrtD);
-  //   r2 = (-b + sqrtD) / (2 * a);
-  // } else {
-  //   r1 = (-b - sqrtD) / (2 * a);
-  //   r2 = (2 * c) / (-b - sqrtD);
-  // }
+  if (b < 0) {
+    r1 = (2 * c) / (-b + sqrtD);
+    r2 = (-b + sqrtD) / (2 * a);
+  } else {
+    r1 = (-b - sqrtD) / (2 * a);
+    r2 = (2 * c) / (-b - sqrtD);
+  }
 
-  r1 = (-b - sqrtD) / (2 * a);
-  r2 = (-b + sqrtD) / (2 * a);
+  // r1 = (-b - sqrtD) / (2 * a);
+  // r2 = (-b + sqrtD) / (2 * a);
 
   console.log('r1: ', r1, ' r2: ', r2, ' maxR: ', maxR);
 
@@ -117,28 +173,33 @@ function checkEdgeCollision(
   y1: number,
 ) {
   // console.log('check with edge', x0, y0, x1, y1);
-
   console.log('');
 
   const collInfo = raycaster.CollisionInfo;
   const { eRadX, eRadY, eBasePointX, eBasePointY, eVelX, eVelY } = collInfo;
-  const { r2PosX, r2PosY, r2VelX, r2VelY } = collInfo;
 
-  // swap x0,y0 with x1,y1 if player is on the negative side of the edge
-  if (x0 * (r2PosY - y0) + y0 * (x0 - r2PosX) < 0) {
-    console.log('player on negative side of edge ', x0, y0, x1, y1, ' swap...');
-    let temp = x0;
-    x0 = x1;
-    x1 = temp;
-    temp = y0;
-    y0 = y1;
-    y1 = temp;
+  let eX0 = x0 / eRadX;
+  let eY0 = y0 / eRadY;
+  let eX1 = x1 / eRadX;
+  let eY1 = y1 / eRadY;
+
+  // swap eX0,eY0 with eX1,eY1 if player is on the negative side of the edge
+  if (eX0 * (eBasePointY - eY0) + eY0 * (eX0 - eBasePointX) < 0) {
+    console.log(
+      'player on negative side of edge ',
+      eX0,
+      eY0,
+      eX1,
+      eY1,
+      ' swap...',
+    );
+    let temp = eX0;
+    eX0 = eX1;
+    eX1 = temp;
+    temp = eY0;
+    eY0 = eY1;
+    eY1 = temp;
   }
-
-  const eX0 = x0 / eRadX;
-  const eY0 = y0 / eRadY;
-  const eX1 = x1 / eRadX;
-  const eY1 = y1 / eRadY;
 
   // edge line eq
   let a = eY0 - eY1;
@@ -156,8 +217,8 @@ function checkEdgeCollision(
   // distance from edge
   const dist = a * eBasePointX + b * eBasePointY + c;
 
-  console.log('pos: ', r2PosX, r2PosY, ' espace: ', eBasePointX, eBasePointY);
-  console.log('vel: ', r2VelX, r2VelY, ' espace: ', eVelX, eVelY);
+  console.log('pos espace: ', eBasePointX, eBasePointY);
+  console.log('vel espace: ', eVelX, eVelY);
   console.log(
     'check with edge',
     x0,
@@ -231,8 +292,9 @@ function checkEdgeCollision(
   let t = 1.0;
 
   if (!embedded) {
-    const intersectX = eBasePointX + eVelX * t0 - a * dist; // TODO * dist ?
-    const intersectY = eBasePointY + eVelY * t0 - b * dist;
+    // get the intersection point on the edge
+    const intersectX = eBasePointX + eVelX * t0 - a;
+    const intersectY = eBasePointY + eVelY * t0 - b;
 
     // check if intersection point is on edge
     const dot0 =
@@ -317,9 +379,10 @@ function checkEdgeCollision(
   }
 
   if (foundCollision) {
-    const collisionDist = t * Math.sqrt(eVelX * eVelX + eVelY * eVelY);
+    const velLen = Math.sqrt(eVelX * eVelX + eVelY * eVelY);
+    const collisionDist = t * velLen;
 
-    if (collisionDist < collInfo.nearestDistance) {
+    if (collisionDist < collInfo.eCollisionDist) {
       console.log(
         'collision with edge ',
         eX0,
@@ -332,33 +395,18 @@ function checkEdgeCollision(
         ' distance: ',
         collisionDist,
       );
-      // collInfo.foundCollision = true;
-      // collInfo.nearestDistance = collisionDist;
-      // collInfo.nearestX = collisionX!;
-      // collInfo.nearestY = collisionY!;
+      collInfo.foundCollision = true; // TODO:
+      collInfo.eCollisionDist = collisionDist;
+      collInfo.eCollisionX = collisionX!;
+      collInfo.eCollisionY = collisionY!;
+      collInfo.eNormVelX = eVelX / velLen;
+      collInfo.eNormVelY = eVelY / velLen;
+
+      // collInfo.eSlidePlaneA = a;
+      // collInfo.eSlidePlaneB = b;
+      // collInfo.eSlidePlaneC = c;
     }
   }
 }
-
-// const collideWithWorld = (raycaster: Raycaster, pos: Vec2, vel: Vec2) =>
-//   collideWithWorldRec(raycaster, pos, vel, 0);
-//
-// const MAX_REC_DEPTH = 5;
-//
-// const collisionInfo = new CollisionInfo();
-//
-// const collideWithWorldRec = (
-//   raycaster: Raycaster,
-//   pos: Vec2,
-//   vel: Vec2,
-//   recDepth: number,
-// ) => {
-//   if (recDepth > MAX_REC_DEPTH) {
-//     return pos;
-//   }
-// };
-
-// export type {
-// };
 
 export { CollisionInfo, collideAndSlide, checkEdgeCollision };
