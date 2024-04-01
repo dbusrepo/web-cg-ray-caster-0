@@ -54,11 +54,9 @@ function collideWithWorld(raycaster: Raycaster) {
   const longRadius = 1.0 + veryCloseDistance;
 
   for (let i = 0; i < 5; i++) {
-    console.log('iter: ', i);
     let { eVelX, eVelY } = collInfo;
     let eDestX = ePosX + eVelX;
     let eDestY = ePosY + eVelY;
-    console.log('dest: ', eDestX, eDestY);
     collInfo.foundCollision = false;
     collInfo.eCollisionDist = Number.MAX_VALUE;
     raycaster.checkXCollisions();
@@ -72,7 +70,6 @@ function collideWithWorld(raycaster: Raycaster) {
     const shortDist = Math.max(dist - veryCloseDistance, 0);
     ePosX += shortDist * collInfo.eNormVelX;
     ePosY += shortDist * collInfo.eNormVelY;
-    console.log('new pos: ', ePosX, ePosY);
 
     // slide plane
 
@@ -85,20 +82,15 @@ function collideWithWorld(raycaster: Raycaster) {
     const slidePlaneC =
       -slidePlaneA * collInfo.eCollisionX - slidePlaneB * collInfo.eCollisionY;
 
-    console.log('slide plane: ', slidePlaneA, slidePlaneB, slidePlaneC);
-
     // project dest to slide plane
     const destDist = slidePlaneA * eDestX + slidePlaneB * eDestY + slidePlaneC;
-    console.log('dest vs slide plane dist: ', destDist);
     eDestX -= (destDist - longRadius) * slidePlaneA;
     eDestY -= (destDist - longRadius) * slidePlaneB;
     eVelX = eDestX - ePosX;
     eVelY = eDestY - ePosY;
-    console.log('new vel: ', eVelX, eVelY);
 
     const newVelLen = Math.sqrt(eVelX * eVelX + eVelY * eVelY);
     if (newVelLen < veryCloseDistance) {
-      console.log('new vel len < very close distance. stop');
       ePosX = eDestX;
       ePosY = eDestY;
       break;
@@ -135,6 +127,9 @@ function getLowestRoot(
   const sqrtD = Math.sqrt(determinant);
   let r1, r2;
 
+  // r1 = (-b - sqrtD) / (2 * a);
+  // r2 = (-b + sqrtD) / (2 * a);
+
   if (b < 0) {
     r1 = (2 * c) / (-b + sqrtD);
     r2 = (-b + sqrtD) / (2 * a);
@@ -142,11 +137,6 @@ function getLowestRoot(
     r1 = (-b - sqrtD) / (2 * a);
     r2 = (2 * c) / (-b - sqrtD);
   }
-
-  // r1 = (-b - sqrtD) / (2 * a);
-  // r2 = (-b + sqrtD) / (2 * a);
-
-  console.log('r1: ', r1, ' r2: ', r2, ' maxR: ', maxR);
 
   if (r1 > r2) {
     const temp = r1;
@@ -172,9 +162,6 @@ function checkEdgeCollision(
   x1: number,
   y1: number,
 ) {
-  // console.log('check with edge', x0, y0, x1, y1);
-  console.log('');
-
   const collInfo = raycaster.CollisionInfo;
   const { eRadX, eRadY, eBasePointX, eBasePointY, eVelX, eVelY } = collInfo;
 
@@ -188,14 +175,6 @@ function checkEdgeCollision(
     (eBasePointX - eX0) * (eY0 - eY1) + (eBasePointY - eY0) * (eX1 - eX0) <
     0
   ) {
-    console.log(
-      'player on negative side of edge ',
-      eX0,
-      eY0,
-      eX1,
-      eY1,
-      ' swap...',
-    );
     let temp = eX0;
     eX0 = eX1;
     eX1 = temp;
@@ -219,39 +198,16 @@ function checkEdgeCollision(
 
   // distance from edge
   const dist = a * eBasePointX + b * eBasePointY + c;
-
-  console.log('pos espace: ', eBasePointX, eBasePointY);
-  console.log('vel espace: ', eVelX, eVelY);
-  console.log(
-    'check with edge',
-    x0,
-    y0,
-    x1,
-    y1,
-    'in e space:',
-    eX0,
-    eY0,
-    eX1,
-    eY1,
-  );
-  console.log('dist: ', dist);
-  console.log('normal: ', a, b);
-  // console.log('inv normal: ', invNormLen);
-
   let t0, t1;
   let embedded = false;
 
   // normal dot vel
   const normalDotVel = a * eVelX + b * eVelY;
-  // console.log('vel: ', eVelX, eVelY);
-  // console.log('normal dot vel: ', normalDotVel);
 
   if (Math.abs(normalDotVel) < 1e-3) {
     if (dist >= 1) {
-      console.log('no collision with edge ', x0, y0, x1, y1);
       return;
     }
-    // console.log('embedded in edge ', x0, y0, x1, y1);
     embedded = true;
     t0 = 0;
     t1 = 1;
@@ -267,27 +223,12 @@ function checkEdgeCollision(
       t1 = temp;
     }
 
-    console.log('t0: ', t0, ' t1: ', t1);
-
     if (t0 > 1 || t1 < 0) {
-      console.log('no collision cur vel with edge ', x0, y0, x1, y1);
       return;
     }
 
     t0 = Math.max(t0, 0);
     t1 = Math.min(t1, 1);
-
-    console.log(
-      'collision cur vel with edge ',
-      eX0,
-      eY0,
-      eX1,
-      eY1,
-      ' at t0:',
-      t0,
-      ' t1:',
-      t1,
-    );
   }
 
   let foundCollision = false;
@@ -305,33 +246,10 @@ function checkEdgeCollision(
     const dot1 =
       (intersectX - eX1) * (eX0 - eX1) + (intersectY - eY1) * (eY0 - eY1);
     if (dot0 >= 0 && dot1 >= 0) {
-      console.log(
-        'collision point ',
-        intersectX,
-        intersectY,
-        ' inside edge ',
-        eX0,
-        eY0,
-        eX1,
-        eY1,
-        ' at t0: ',
-        t0,
-      );
       foundCollision = true;
       t = t0;
       collisionX = intersectX;
       collisionY = intersectY;
-    } else {
-      console.log(
-        'collision point ',
-        intersectX,
-        intersectY,
-        ' outside edge ',
-        eX0,
-        eY0,
-        eX1,
-        eY1,
-      );
     }
   }
 
@@ -353,7 +271,6 @@ function checkEdgeCollision(
       closestX = eX1;
       closestY = eY1;
     }
-    console.log('closest end point ', closestX, closestY);
 
     // now check if collision with closest end point
     const a0 = eVelX * eVelX + eVelY * eVelY;
@@ -365,15 +282,7 @@ function checkEdgeCollision(
       1;
 
     const root = getLowestRoot(a0, b0, c0, t);
-    console.log('root: ', root);
     if (root !== null) {
-      console.log(
-        'collision with end point ',
-        closestX,
-        closestY,
-        ' at ',
-        root,
-      );
       foundCollision = true;
       t = root;
       collisionX = closestX;
@@ -386,28 +295,12 @@ function checkEdgeCollision(
     const collisionDist = t * velLen;
 
     if (collisionDist < collInfo.eCollisionDist) {
-      console.log(
-        'collision with edge ',
-        eX0,
-        eY0,
-        eX1,
-        eY1,
-        ' at ',
-        collisionX,
-        collisionY,
-        ' distance: ',
-        collisionDist,
-      );
       collInfo.foundCollision = true; // TODO:
       collInfo.eCollisionDist = collisionDist;
       collInfo.eCollisionX = collisionX!;
       collInfo.eCollisionY = collisionY!;
       collInfo.eNormVelX = eVelX / velLen;
       collInfo.eNormVelY = eVelY / velLen;
-
-      // collInfo.eSlidePlaneA = a;
-      // collInfo.eSlidePlaneB = b;
-      // collInfo.eSlidePlaneC = c;
     }
   }
 }

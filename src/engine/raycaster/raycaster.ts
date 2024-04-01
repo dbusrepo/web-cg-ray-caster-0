@@ -2100,8 +2100,6 @@ class Raycaster {
         this.XWallMapHeight - 1,
       ) | 0;
 
-    console.log('checking X collisions ', minX, minY, maxX, maxY);
-
     for (let y = minY; y <= maxY; y++) {
       const yOffs = y * this.XWallMapWidth;
       for (let x = minX; x <= maxX; x++) {
@@ -2130,8 +2128,6 @@ class Raycaster {
         Math.floor(Math.max(r2PosY, r2PosY + r2VelY) + eRadY),
         this.YWallMapHeight - 1,
       ) | 0;
-
-    console.log('checking Y collisions ', minX, minY, maxX, maxY);
 
     for (let y = minY; y <= maxY; y++) {
       const yOffs = y * this.YWallMapWidth;
