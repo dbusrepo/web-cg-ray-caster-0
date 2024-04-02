@@ -58,6 +58,7 @@ const WALL_TEX_KEYS = {
   BRICK1: imageKeys.BRICK1,
   STONE_0: imageKeys.STONE_0,
   DOOR_0: imageKeys.DOOR_0,
+  SPLITDOOR_0: imageKeys.SPLITDOOR_0,
   TRANSP0: imageKeys.TRANSP0,
   TRANSP1: imageKeys.TRANSP1,
   TRANSP2: imageKeys.TRANSP2,
@@ -810,11 +811,13 @@ class Raycaster {
         // y door
         const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
         assert(tex);
+        this.yWallMap[0 + this.yWallMapWidth * 3] = tex.WallMapIdx;
+        this.yWallMap[2 + this.yWallMapWidth * 3] = tex.WallMapIdx;
 
         this.xWallMap[1 + this.xWallMapWidth * 3] = tex.WallMapIdx;
         this.xWallMap[2 + this.xWallMapWidth * 3] = tex.WallMapIdx;
 
-        const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
+        const doorTex = this.findTex(WALL_TEX_KEYS.SPLITDOOR_0);
         assert(doorTex);
 
         const mPos = 1 + this.yWallMapWidth * 3;
@@ -826,19 +829,19 @@ class Raycaster {
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
 
-        // {
-        //   // init an active door
-        //   const door = this.newDoor();
-        //   door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
-        //   door.Mpos = mPos;
-        //   door.Mpos1 = mPos1;
-        //   door.ColOffset = 0.1;
-        //   // door.Speed = 0.001;
-        //   door.Speed = 0.007;
-        //   door.Flags = 0; // DOOR_OPENING;
-        //   door.Mcode = mCode;
-        //   door.Mcode1 = mCode1;
-        // }
+        {
+          // init an active door
+          const door = this.newDoor();
+          door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
+          door.Mpos = mPos;
+          door.Mpos1 = mPos1;
+          door.ColOffset = 0.1;
+          // door.Speed = 0.001;
+          door.Speed = 0.007;
+          door.Flags = 0; // DOOR_OPENING;
+          door.Mcode = mCode;
+          door.Mcode1 = mCode1;
+        }
       }
 
       {
