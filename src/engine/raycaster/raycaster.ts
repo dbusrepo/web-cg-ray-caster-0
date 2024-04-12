@@ -107,8 +107,10 @@ const DOOR_TYPE_MASK = 1 << DOOR_TYPE_OFFS;
 const DOOR_TYPE_SLIDE = 0 << DOOR_TYPE_OFFS;
 const DOOR_TYPE_SPLIT = 1 << DOOR_TYPE_OFFS;
 
-const CELL_MAX_OPEN_DOOR = 1.0;
-const DOOR_OPEN_MAX_COL_OFFS = CELL_MAX_OPEN_DOOR + 0.0;
+const SLIDE_DOOR_MAX_OPEN_OFFS = 1.0;
+const SLIDE_DOOR_MAX_EXT_OFFS = 3.0;
+const SPLIT_DOOR_MAX_OPEN_OFFS = 0.5;
+const SPLIT_DOOR_MAX_EXT_OFFS = 0.5;
 
 const darkWallTexKeys: typeof WALL_TEX_KEYS = Object.entries(
   WALL_TEX_KEYS,
@@ -128,6 +130,9 @@ const FLOOR_TEX_KEYS = {
 
 const MIN_SPRITE_DIST = 0.1;
 const MAX_SPRITE_DIST = 1000; // TODO:
+
+const COLL_RADIUS = 0.2;
+const DOOR_COLL_MIN_DIST = 0.5 + COLL_RADIUS;
 
 class Raycaster {
   private params: RaycasterParams;
@@ -239,7 +244,7 @@ class Raycaster {
   private mapLimits = new Int32Array(2);
   private floorWall = new Float32Array(2);
 
-  private collisionInfo = new CollisionInfo(0.2, 0.2); // TODO:
+  private collisionInfo = new CollisionInfo(COLL_RADIUS, COLL_RADIUS);
 
   // private _2float: Float32Array;
   // private _1u32: Uint32Array;
@@ -769,7 +774,7 @@ class Raycaster {
       this.yWallMap[5 + this.yWallMapWidth * 2] = tex.WallMapIdx;
     }
 
-    // test doors
+    // test map doors
     {
       {
         // edge cases y door
@@ -1926,46 +1931,62 @@ class Raycaster {
         wallMap[door.Mpos] === wallMap[door.Mpos1],
         'invalid wallmap code door',
       );
-      const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
       door.ColOffset += door.Speed;
-      const upFact = (door.Type & DOOR_TYPE_MASK) === DOOR_TYPE_SPLIT ? 0.5 : 1; // half for split doors
-      const cellMaxOpenOffs = CELL_MAX_OPEN_DOOR * upFact;
-      if (door.ColOffset >= cellMaxOpenOffs && door.Speed > 0) {
-        if (isDoorCellClosed) {
-          wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
-        } else {
-          // assert(
-          //   wallMap[door.Mpos] === 0 && wallMap[door.Mpos1] === 0,
-          //   'invalid wallmap code door open',
-          // );
-          if (door.ColOffset >= DOOR_OPEN_MAX_COL_OFFS * upFact) {
-            door.Speed = -door.Speed;
+
+      const isSplitDoor = (door.Type & DOOR_TYPE_MASK) === DOOR_TYPE_SPLIT;
+
+      const doorOpenOffs = isSplitDoor
+        ? SPLIT_DOOR_MAX_OPEN_OFFS
+        : SLIDE_DOOR_MAX_OPEN_OFFS;
+
+      if (door.Speed > 0) {
+        if (door.ColOffset >= doorOpenOffs) {
+          const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
+          if (isDoorCellClosed) {
+            // console.log('Opening the door cell');
+            wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
+          } else {
+            // assert(
+            //   wallMap[door.Mpos] === 0 && wallMap[door.Mpos1] === 0,
+            //   'invalid wallmap code door open',
+            // );
+            const doorOpenMaxExtOffs = isSplitDoor
+              ? SPLIT_DOOR_MAX_EXT_OFFS
+              : SLIDE_DOOR_MAX_EXT_OFFS;
+            if (door.ColOffset >= doorOpenOffs + doorOpenMaxExtOffs) {
+              door.Speed = -door.Speed;
+            }
           }
         }
       } else {
-        if (door.ColOffset < cellMaxOpenOffs && door.Speed < 0) {
+        if (door.ColOffset < doorOpenOffs) {
+          const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
           if (isDoorCellClosed) {
             if (door.ColOffset <= 0) {
+              // console.log('reopening the door...');
+              // door is closed now, free it
               // this.freeDoor(door);
               // continue;
 
-              // // to test opening <-> closing
+              // // to test (re)opening <-> closing
               door.ColOffset = 0;
               door.Speed = -door.Speed;
             }
           } else {
-            const { PosX: posX, PosY: posY } = player;
+            // door closing but still not visible
+            // check if player is in the door cell pos and in case stop the door
             const isYDoor =
               (door.Type & DOOR_SIDE_TYPE_MASK) === DOOR_SIDE_TYPE_Y;
-            const pMpos =
-              (posX | 0) +
-              (posY | 0) * (isYDoor ? this.yWallMapWidth : this.xWallMapWidth);
-            if (pMpos !== door.Mpos) {
-              // close the area
+            // check vert (xdoor) or horz (ydoor) distance from door cell center
+            const playerDoorDist = isYDoor
+              ? player.PosY - door.Mpos / this.yWallMapWidth
+              : player.PosX - (door.Mpos % this.xWallMapWidth);
+            if (Math.abs(playerDoorDist) > DOOR_COLL_MIN_DIST) {
+              console.log('player not in door cell, close the door cell');
               wallMap[door.Mpos] = door.Mcode;
               wallMap[door.Mpos1] = door.Mcode1;
             } else {
-              // player is in the door cell pos, undo door movement
+              console.log('player in door cell, keep the door open');
               door.ColOffset -= door.Speed;
             }
           }
