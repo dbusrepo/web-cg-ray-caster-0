@@ -81,19 +81,19 @@ const WALL_FLAGS_BIT_MASK = {
   IS_DOOR: 1 << (WALL_FLAGS_OFFS_BASE + 1),
 };
 
-// Door view flags field
+// Door flags field
 
-// first bit is the door status: opening or closing
+// (prev) first bit is the door status: opening or closing
 // const DOOR_OPENING_OFFS = 0;
 // const DOOR_OPENING = 1 << DOOR_OPENING_OFFS;
 // const DOOR_CLOSED_OFFS = 1;
 // const DOOR_CLOSING = 1 << DOOR_CLOSED_OFFS;
 
-// // second bit is the door area status: open or closed
-// const DOOR_AREA_STATUS_OFFS = 1;
-// const DOOR_AREA_STATUS_MASK = 1 << DOOR_AREA_STATUS_OFFS;
-// const DOOR_AREA_OPEN_FLAG = 0 << DOOR_AREA_STATUS_OFFS;
-// const DOOR_AREA_CLOSED_FLAG = 1 << DOOR_AREA_STATUS_OFFS;
+// first bit is the door cell open/closed status
+const DOOR_CELL_CLOSE_STATUS_OFFS = 1;
+const DOOR_CELL_FLAG_CLOSE_STATUS_MASK = 1 << DOOR_CELL_CLOSE_STATUS_OFFS;
+// const DOOR_CELL_FLAG_OPEN = 0 << DOOR_CELL_CLOSE_STATUS_OFFS;
+const DOOR_CELL_FLAG_CLOSED = 1 << DOOR_CELL_CLOSE_STATUS_OFFS;
 
 // door view Type field
 const DOOR_SIDE_TYPE_OFFS = 0;
@@ -843,12 +843,13 @@ class Raycaster {
           door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
           door.Mpos = mPos;
           door.Mpos1 = mPos1;
-          door.ColOffset = 0.1;
+          door.ColOffset = 0.0; // 0.1; // start offset
           // door.Speed = 0.001;
           door.Speed = 0.005;
           door.Flags = 0; // DOOR_OPENING;
           door.Mcode = mCode;
           door.Mcode1 = mCode1;
+          door.Flags = DOOR_CELL_FLAG_CLOSED;
         }
       }
 
@@ -871,19 +872,19 @@ class Raycaster {
         this.xWallMap[mPos] = mCode;
         this.xWallMap[mPos1] = mCode1;
 
-        // {
-        //   // init an active door
-        //   const door = this.newDoor();
-        //   door.Type = DOOR_SIDE_TYPE_X | DOOR_TYPE_SLIDE;
-        //   door.Mpos = mPos;
-        //   door.Mpos1 = mPos1;
-        //   door.ColOffset = 0.2;
-        //   door.Speed = 0.01;
-        //   // door.Speed = 0.0;
-        //   door.Mcode = mCode;
-        //   door.Mcode1 = mCode1;
-        //   door.Flags = 0;
-        // }
+        {
+          // init an active door
+          const door = this.newDoor();
+          door.Type = DOOR_SIDE_TYPE_X | DOOR_TYPE_SLIDE;
+          door.Mpos = mPos;
+          door.Mpos1 = mPos1;
+          door.ColOffset = 0.0;
+          door.Speed = 0.01;
+          // door.Speed = 0.0;
+          door.Mcode = mCode;
+          door.Mcode1 = mCode1;
+          door.Flags = DOOR_CELL_FLAG_CLOSED;
+        }
       }
 
       {
@@ -1958,10 +1959,9 @@ class Raycaster {
       if (door.Speed > 0) {
         // console.log('speed > 0', door.ColOffset);
         if (door.ColOffset >= doorOpenOffs) {
-          const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
-          if (isDoorCellClosed) {
-            // console.log('Opening the door cell');
+          if (door.Flags & DOOR_CELL_FLAG_CLOSE_STATUS_MASK) {
             wallMap[door.Mpos] = wallMap[door.Mpos1] = 0;
+            door.Flags &= ~DOOR_CELL_FLAG_CLOSE_STATUS_MASK;
           } else {
             // assert(
             //   wallMap[door.Mpos] === 0 && wallMap[door.Mpos1] === 0,
@@ -1976,14 +1976,9 @@ class Raycaster {
           }
         }
       } else {
-        // console.log('speed < 0', door.ColOffset, ' wall map code: ', wallMap[door.Mpos]);
         if (door.ColOffset < doorOpenOffs) {
-          // console.log('Closing the door', door.ColOffset, door.Speed);
-          const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
-          if (isDoorCellClosed) {
-            // console.log('cell already closed');
+          if (door.Flags & DOOR_CELL_FLAG_CLOSE_STATUS_MASK) {
             if (door.ColOffset <= 0) {
-              // console.log('reopening the door');
               // door is closed now, free it
               // this.freeDoor(door);
               // continue;
@@ -2002,7 +1997,7 @@ class Raycaster {
             // const mapHeight = isYDoor ? this.xWallMapWidth : this.yWallMapWidth;
 
             const doorMapX = door.Mpos % mapWidth;
-            const doorMapY = ((door.Mpos / mapWidth) | 0);
+            const doorMapY = (door.Mpos / mapWidth) | 0;
 
             const { PosX: playerX, PosY: playerY } = player;
 
@@ -2010,10 +2005,6 @@ class Raycaster {
             const mapY = playerY | 0;
 
             let keepDoorOpen = true;
-
-            // console.log('doorMapX', doorMapX, 'doorMapY', doorMapY);
-            // console.log('playerX', playerX, 'playerY', playerY);
-            // console.log('p mapX', mapX, 'p mapY', mapY);
 
             if (mapX !== doorMapX || mapY !== doorMapY) {
               let playerDoorDist;
@@ -2026,7 +2017,6 @@ class Raycaster {
                   playerDoorDist = playerX - doorMapX - 0.5;
                 }
               }
-              // console.log('playerDoorDist', playerDoorDist);
               if (playerDoorDist !== undefined) {
                 keepDoorOpen = Math.abs(playerDoorDist) <= DOOR_COLL_MIN_DIST;
               }
@@ -2034,11 +2024,10 @@ class Raycaster {
 
             if (keepDoorOpen) {
               door.ColOffset -= door.Speed;
-              console.log('Keeping the door cell open');
             } else {
               wallMap[door.Mpos] = door.Mcode;
               wallMap[door.Mpos1] = door.Mcode1;
-              console.log('Closing the door cell');
+              door.Flags |= DOOR_CELL_FLAG_CLOSE_STATUS_MASK;
             }
           }
         }

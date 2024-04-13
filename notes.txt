@@ -361,3 +361,5 @@ private waitWorkers() {
 }
 
 https://github.com/iamturns/create-exposed-app/blob/master/package.json
+
+// const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
