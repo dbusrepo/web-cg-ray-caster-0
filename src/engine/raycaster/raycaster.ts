@@ -80,6 +80,7 @@ const WALL_FLAGS_BIT_MASK = {
   IS_TRANSP: 1 << (WALL_FLAGS_OFFS_BASE + 0),
   IS_SLIDE_DOOR: 1 << (WALL_FLAGS_OFFS_BASE + 1),
   IS_SPLIT_DOOR: 1 << (WALL_FLAGS_OFFS_BASE + 2),
+  IS_DOOR_OPENABLE: 1 << (WALL_FLAGS_OFFS_BASE + 3),
 };
 
 const WALL_DOOR_MASK =
@@ -835,7 +836,10 @@ class Raycaster {
         const doorTex = this.findTex(WALL_TEX_KEYS.SPLITDOOR_0);
         assert(doorTex);
 
-        const mCode = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_SPLIT_DOOR;
+        const mCode =
+          doorTex.WallMapIdx |
+          WALL_FLAGS_BIT_MASK.IS_SPLIT_DOOR |
+          WALL_FLAGS_BIT_MASK.IS_DOOR_OPENABLE;
         const mCode1 = mCode;
 
         const mPos = 1 + this.yWallMapWidth * 3;
@@ -873,7 +877,10 @@ class Raycaster {
         const mPos = 2 + this.xWallMapWidth * 8;
         const mPos1 = 3 + this.xWallMapWidth * 8;
 
-        const mCode = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_SLIDE_DOOR;
+        const mCode =
+          doorTex.WallMapIdx |
+          WALL_FLAGS_BIT_MASK.IS_SLIDE_DOOR |
+          WALL_FLAGS_BIT_MASK.IS_DOOR_OPENABLE;
         const mCode1 = mCode;
 
         this.xWallMap[mPos] = mCode;
@@ -1964,7 +1971,11 @@ class Raycaster {
   }
 
   private checkDoor(side: number, checkPos: number, deltaMPos: number) {
-    if (this.wallMaps[side][checkPos] & WALL_DOOR_MASK) {
+    const wallCode = this.wallMaps[side][checkPos];
+    if (
+      wallCode & WALL_DOOR_MASK &&
+      wallCode & WALL_FLAGS_BIT_MASK.IS_DOOR_OPENABLE
+    ) {
       this.activateDoor(side, checkPos + deltaMPos);
     }
   }
