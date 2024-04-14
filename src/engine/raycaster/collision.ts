@@ -51,9 +51,10 @@ function collideWithWorld(raycaster: Raycaster) {
   let ePosY = collInfo.eBasePointY;
 
   const veryCloseDistance = 1e-3;
+  const veryCloseDistanceSqr = veryCloseDistance * veryCloseDistance;
   const longRadius = 1.0 + veryCloseDistance;
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 3; i++) {
     let { eVelX, eVelY } = collInfo;
     let eDestX = ePosX + eVelX;
     let eDestY = ePosY + eVelY;
@@ -88,8 +89,8 @@ function collideWithWorld(raycaster: Raycaster) {
     eVelX = eDestX - ePosX;
     eVelY = eDestY - ePosY;
 
-    const newVelLen = Math.sqrt(eVelX * eVelX + eVelY * eVelY);
-    if (newVelLen < veryCloseDistance) {
+    const newVelLen = eVelX * eVelX + eVelY * eVelY;
+    if (newVelLen < veryCloseDistanceSqr) {
       ePosX = eDestX;
       ePosY = eDestY;
       break;
@@ -103,6 +104,8 @@ function collideWithWorld(raycaster: Raycaster) {
     collInfo.r2PosY = ePosY * collInfo.eRadY;
     collInfo.r2VelX = eVelX * collInfo.eRadX;
     collInfo.r2VelY = eVelY * collInfo.eRadY;
+    // console.log('Collision found at: ', collInfo.r2PosX, collInfo.r2PosY);
+    // console.log('New vel: ', eVelX, eVelY);
   }
 
   // cvt back to r2

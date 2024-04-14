@@ -475,7 +475,19 @@ class Raycaster {
       this.viewSprites = new Array<Sprite>(1 + this.sprites.length);
       this.viewSpritesSrcIdxs = new Array<number>(1 + this.sprites.length);
 
-      // // test sprite
+      // test single sprite
+      // {
+      //   const tex = this.findTex(WALL_TEX_KEYS.BARREL);
+      //   assert(tex);
+      //   const sprite = this.sprites[0];
+      //   sprite.PosX = 4.5;
+      //   sprite.PosY = 3.5;
+      //   sprite.PosZ = 0;
+      //   sprite.TexIdx = tex.WasmIdx;
+      //   sprite.Visible = 1;
+      // }
+
+      // test sprite
       // {
       //   const tex = this.findTex(wallTexKeys.PILLAR);
       //   assert(tex);
@@ -521,7 +533,6 @@ class Raycaster {
         sprite.Visible = 1;
       }
 
-      //
       {
         const tex = this.findTex(WALL_TEX_KEYS.PILLAR);
         assert(tex);
@@ -534,7 +545,7 @@ class Raycaster {
         sprite.TexIdx = tex.WasmIdx; // use wasmIndx for sprites tex
         sprite.Visible = 1;
       }
-      //
+
       {
         const tex = this.findTex(WALL_TEX_KEYS.BARREL);
         assert(tex);
@@ -2040,7 +2051,6 @@ class Raycaster {
 
           if (door.Flags & DOOR_CELL_FLAG_CLOSE_STATUS_MASK) {
             if (keepDoorOpen) {
-              console.log('reopen door');
               door.Speed = -door.Speed;
             } else {
               if (door.ColOffset <= 0) {
@@ -2054,7 +2064,6 @@ class Raycaster {
           } else {
             // door closing but still not visible so the door cell is still open
             if (keepDoorOpen) {
-              console.log('keep door open');
               // door.ColOffset -= door.Speed;
               door.ColOffset = doorOpenOffs;
             } else {
@@ -2182,6 +2191,8 @@ class Raycaster {
   public checkCollisions() {
     this.checkXCollisions();
     this.checkYCollisions();
+    // sprite collisions
+    this.checkSpriteCollisions();
   }
 
   private checkXCollisions() {
@@ -2239,6 +2250,67 @@ class Raycaster {
           checkEdgeCollision(this, x, y, x + 1, y);
         }
       }
+    }
+  }
+
+  private checkSpriteCollisions() {
+    const { player, viewSprites, sprites } = this;
+    const { PosX: playerX, PosY: playerY } = player;
+
+    const boxEdgeLen = 0.5; // 1
+    const boxHalfEdgeLen = boxEdgeLen / 2;
+    const radius = boxHalfEdgeLen * Math.SQRT2;
+    const SPRITE_COLL_MIN_DIST = (radius + 0.5) ** 2;
+
+    for (let i = 0; i < sprites.length; i++) {
+      const sprite = sprites[i];
+      const { PosX: spriteX, PosY: spriteY } = sprite;
+
+      const dist = (playerX - spriteX) ** 2 + (playerY - spriteY) ** 2;
+
+      if (dist > SPRITE_COLL_MIN_DIST) {
+        continue;
+      }
+
+      // generate collision box
+
+      // top segment
+      checkEdgeCollision(
+        this,
+        spriteX - boxHalfEdgeLen,
+        spriteY - boxHalfEdgeLen,
+        spriteX + boxHalfEdgeLen,
+        spriteY - boxHalfEdgeLen,
+      );
+
+      // left segment
+      checkEdgeCollision(
+        this,
+        // 4, 2, 4, 3,
+        // 4, 3, 4, 4,
+        spriteX - boxHalfEdgeLen,
+        spriteY - boxHalfEdgeLen,
+        spriteX - boxHalfEdgeLen,
+        spriteY + boxHalfEdgeLen,
+      );
+
+      // bottom segment
+      checkEdgeCollision(
+        this,
+        spriteX - boxHalfEdgeLen,
+        spriteY + boxHalfEdgeLen,
+        spriteX + boxHalfEdgeLen,
+        spriteY + boxHalfEdgeLen,
+      );
+
+      // right segment
+      checkEdgeCollision(
+        this,
+        spriteX + boxHalfEdgeLen,
+        spriteY - boxHalfEdgeLen,
+        spriteX + boxHalfEdgeLen,
+        spriteY + boxHalfEdgeLen,
+      );
     }
   }
 
