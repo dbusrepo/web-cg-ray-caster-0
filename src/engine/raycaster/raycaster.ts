@@ -807,19 +807,6 @@ class Raycaster {
         // edge case door on y edge of map
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
-
-        // {
-        //   // init an active door
-        //   const door = this.newDoor();
-        //   door.Type = DOOR_XY_TYPE_X | DOOR_TYPE_SLIDE;
-        //   door.Flags = 0;
-        //   door.Mpos = mPos;
-        //   door.Mpos1 = mPos1;
-        //   door.ColOffset = 0.4;
-        //   door.Speed = 0.0;
-        //   door.Mcode = mCode;
-        //   door.Mcode1 = mCode1;
-        // }
       }
 
       {
@@ -847,21 +834,6 @@ class Raycaster {
 
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
-
-        // {
-        //   // init an active door
-        //   const door = this.newDoor();
-        //   door.Type = DOOR_SIDE_TYPE_Y | DOOR_TYPE_SPLIT;
-        //   door.Mpos = mPos;
-        //   door.Mpos1 = mPos1;
-        //   door.ColOffset = 0.0; // 0.1; // start offset
-        //   // door.Speed = 0.001;
-        //   door.Speed = 0.005;
-        //   door.Flags = 0; // DOOR_OPENING;
-        //   door.Mcode = mCode;
-        //   door.Mcode1 = mCode1;
-        //   door.Flags = DOOR_CELL_FLAG_CLOSED;
-        // }
       }
 
       {
@@ -885,20 +857,6 @@ class Raycaster {
 
         this.xWallMap[mPos] = mCode;
         this.xWallMap[mPos1] = mCode1;
-
-        // {
-        //   // init an active door
-        //   const door = this.newDoor();
-        //   door.Type = DOOR_SIDE_TYPE_X | DOOR_TYPE_SLIDE;
-        //   door.Mpos = mPos;
-        //   door.Mpos1 = mPos1;
-        //   door.ColOffset = 0.0;
-        //   door.Speed = 0.01;
-        //   // door.Speed = 0.0;
-        //   door.Mcode = mCode;
-        //   door.Mcode1 = mCode1;
-        //   door.Flags = DOOR_CELL_FLAG_CLOSED;
-        // }
       }
 
       {
@@ -924,19 +882,6 @@ class Raycaster {
 
         // test hole
         this.yWallMap[0 + this.yWallMapWidth * (this.yWallMapHeight - 1)] = 0;
-
-        // {
-        //   // init an active door
-        //   const door = this.newDoor();
-        //   door.Type = 0;
-        //   door.Flags = 0;
-        //   door.Mpos = 0 + this.xWallMapWidth * (this.xWallMapHeight - 1);
-        //   door.Mpos1 = 1 + this.xWallMapWidth * (this.xWallMapHeight - 1);
-        //   door.ColOffset = 0.4;
-        //   door.Speed = 0.1;
-        //   door.Mcode = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        //   door.Mcode1 = doorTex.WallMapIdx | WALL_FLAGS.IS_DOOR;
-        // }
       }
 
       // hole with door code
