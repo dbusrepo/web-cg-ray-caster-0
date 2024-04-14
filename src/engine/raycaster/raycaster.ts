@@ -2179,7 +2179,12 @@ class Raycaster {
     player.PlaneY = oldPlaneX * sin + player.PlaneY * cos;
   }
 
-  public checkXCollisions() {
+  public checkCollisions() {
+    this.checkXCollisions();
+    this.checkYCollisions();
+  }
+
+  private checkXCollisions() {
     const { r2PosX, r2PosY, r2VelX, r2VelY, eRadX, eRadY } = this.CollisionInfo;
 
     const minX =
@@ -2208,7 +2213,7 @@ class Raycaster {
     }
   }
 
-  public checkYCollisions() {
+  private checkYCollisions() {
     const { r2PosX, r2PosY, r2VelX, r2VelY, eRadX, eRadY } = this.CollisionInfo;
 
     const minX =

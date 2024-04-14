@@ -59,8 +59,7 @@ function collideWithWorld(raycaster: Raycaster) {
     let eDestY = ePosY + eVelY;
     collInfo.foundCollision = false;
     collInfo.eCollisionDist = Number.MAX_VALUE;
-    raycaster.checkXCollisions();
-    raycaster.checkYCollisions();
+    raycaster.checkCollisions();
     if (!raycaster.CollisionInfo.foundCollision) {
       ePosX = eDestX;
       ePosY = eDestY;
