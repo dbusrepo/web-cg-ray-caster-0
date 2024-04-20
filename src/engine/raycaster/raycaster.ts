@@ -816,16 +816,16 @@ class Raycaster {
         assert(tex);
         this.xWallMap[1 + this.xWallMapWidth * 0] = tex.WallMapIdx;
         this.xWallMap[0] = 0; // test hole
-
+      
         const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
         assert(doorTex);
-
+      
         const mCode = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_SLIDE_DOOR;
         const mCode1 = mCode;
-
+      
         const mPos = 0 + this.yWallMapWidth * 0;
         const mPos1 = 0 + this.yWallMapWidth * 1;
-
+      
         // edge case door on y edge of map
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
@@ -835,28 +835,28 @@ class Raycaster {
         // y door
         const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
         assert(tex);
-
+      
         this.yWallMap[0 + this.yWallMapWidth * 4] = tex.WallMapIdx;
         this.yWallMap[2 + this.yWallMapWidth * 4] = tex.WallMapIdx;
-
+      
         this.xWallMap[1 + this.xWallMapWidth * 4] = tex.WallMapIdx;
         this.xWallMap[2 + this.xWallMapWidth * 4] = tex.WallMapIdx;
-
+      
         const doorTex = this.findTex(WALL_TEX_KEYS.SPLIT_DOOR_0);
         assert(doorTex);
-
+      
         const mCode =
           doorTex.WallMapIdx |
           WALL_FLAGS_BIT_MASK.IS_SPLIT_DOOR |
           WALL_FLAGS_BIT_MASK.IS_DOOR_OPENABLE;
         const mCode1 = mCode;
-
+      
         const mPos = 1 + this.yWallMapWidth * 4;
         const mPos1 = 1 + this.yWallMapWidth * 5;
-
+      
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
-
+      
         {
           // init an active door
           const door = this.newDoor();
@@ -865,7 +865,7 @@ class Raycaster {
           door.Mpos = mPos;
           door.Mpos1 = mPos1;
           door.ColOffset = 0.4;
-          door.Speed = 0.005;
+          door.Speed = 0.01;
           door.Mcode = mCode;
           door.Mcode1 = mCode1;
         }
@@ -879,7 +879,7 @@ class Raycaster {
         this.yWallMap[4 + this.yWallMapWidth * 4] = tex.WallMapIdx;
 
         this.xWallMap[4 + this.xWallMapWidth * 4] = tex.WallMapIdx;
-        // this.xWallMap[2 + this.xWallMapWidth * 4] = tex.WallMapIdx;
+        this.xWallMap[3 + this.xWallMapWidth * 4] = tex.WallMapIdx;
 
         const doorTex = this.findTex(WALL_TEX_KEYS.SPLIT_DOOR_0);
         assert(doorTex);
@@ -1218,7 +1218,7 @@ class Raycaster {
     slice.IsSprite = false;
   }
 
-  private calcNextPos(side: number, steps: number): number {
+  private calcNextPos(side: number): number {
     return this.curMapPos[side] + this.step[side];
   }
 
@@ -1364,7 +1364,7 @@ class Raycaster {
         const wallCode = wallMaps[side][checkWallIdx];
         let isRayValid = true;
         if (!(wallCode & WALL_CODE_MASK)) {
-          const nextPos = this.calcNextPos(side, steps);
+          const nextPos = this.calcNextPos(side);
           isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
             this.advanceRay(side, nextPos);
@@ -1398,7 +1398,7 @@ class Raycaster {
 
         doorCheck: if (wallCode & WALL_DOOR_MASK) {
           // first check if the door in on the map edge (should not happen, if it's the case render as wall with Hit 0)
-          const nextPos = this.calcNextPos(side, steps);
+          const nextPos = this.calcNextPos(side);
           isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
             const perpHalfDist = 0.5 * deltaDist[side];
@@ -1441,7 +1441,7 @@ class Raycaster {
                   } else {
                     // same side, advance 1 more time (doors are 2 cells wide)
                     // eslint-disable-next-line @typescript-eslint/no-shadow
-                    const nextPos = this.calcNextPos(side, steps);
+                    const nextPos = this.calcNextPos(side);
                     isRayValid = this.isRayValid(side, nextPos, steps);
                     if (isRayValid) {
                       this.advanceRay(side, nextPos);
