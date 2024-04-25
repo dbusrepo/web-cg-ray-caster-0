@@ -160,15 +160,18 @@ class Raycaster {
   private lookDown: InputAction;
   private moveForward: InputAction;
   private moveBackward: InputAction;
-  private turnLeft: InputAction;
-  private turnRight: InputAction;
+  private strafeLeft: InputAction;
+  private strafeRight: InputAction;
   private raiseHeight: InputAction;
   private lowerHeight: InputAction;
 
-  private mouseMoveLeft: InputAction;
-  private mouseMoveRight: InputAction;
-  private mouseMoveUp: InputAction;
-  private mouseMoveDown: InputAction;
+  private turnLeft: InputAction;
+  private turnRight: InputAction;
+
+  // private mouseMoveLeft: InputAction;
+  // private mouseMoveRight: InputAction;
+  // private mouseMoveUp: InputAction;
+  // private mouseMoveDown: InputAction;
 
   private raycasterPtr: number;
   private borderWidthPtr: number;
@@ -295,6 +298,10 @@ class Raycaster {
     this.inputManager.mapToKey(key, action);
   }
 
+  private mapMouseToInputAction(code: MouseCodeEnum, action: InputAction) {
+    this.inputManager.mapToMouse(code, action);
+  }
+
   private initInput(inputManager: InputManager) {
     this.inputManager = inputManager;
 
@@ -312,6 +319,10 @@ class Raycaster {
       EnginePanelInputKeyCodeEnum.KEY_W,
       this.moveForward,
     );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.ARROW_UP,
+      this.moveForward,
+    );
 
     this.moveBackward = new InputAction(
       'MoveBackward',
@@ -321,12 +332,39 @@ class Raycaster {
       EnginePanelInputKeyCodeEnum.KEY_S,
       this.moveBackward,
     );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.ARROW_DOWN,
+      this.moveBackward,
+    );
+
+    this.strafeLeft = new InputAction('StrafeLeft', InputActionBehavior.NORMAL);
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.KEY_A,
+      this.strafeLeft,
+    );
+
+    this.strafeRight = new InputAction(
+      'StrafeRight',
+      InputActionBehavior.NORMAL,
+    );
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.KEY_D,
+      this.strafeRight,
+    );
 
     this.turnLeft = new InputAction('TurnLeft', InputActionBehavior.NORMAL);
-    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_A, this.turnLeft);
+    this.mapMouseToInputAction(MouseCodeEnum.MOVE_LEFT, this.turnLeft);
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.ARROW_LEFT,
+      this.turnLeft,
+    );
 
     this.turnRight = new InputAction('TurnRight', InputActionBehavior.NORMAL);
-    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_D, this.turnRight);
+    this.mapMouseToInputAction(MouseCodeEnum.MOVE_RIGHT, this.turnRight);
+    this.mapKeytoInputAction(
+      EnginePanelInputKeyCodeEnum.ARROW_RIGHT,
+      this.turnRight,
+    );
 
     this.raiseHeight = new InputAction(
       'RaiseHeight',
@@ -816,16 +854,16 @@ class Raycaster {
         assert(tex);
         this.xWallMap[1 + this.xWallMapWidth * 0] = tex.WallMapIdx;
         this.xWallMap[0] = 0; // test hole
-      
+
         const doorTex = this.findTex(WALL_TEX_KEYS.DOOR_0);
         assert(doorTex);
-      
+
         const mCode = doorTex.WallMapIdx | WALL_FLAGS_BIT_MASK.IS_SLIDE_DOOR;
         const mCode1 = mCode;
-      
+
         const mPos = 0 + this.yWallMapWidth * 0;
         const mPos1 = 0 + this.yWallMapWidth * 1;
-      
+
         // edge case door on y edge of map
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
@@ -835,28 +873,28 @@ class Raycaster {
         // y door
         const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
         assert(tex);
-      
+
         this.yWallMap[0 + this.yWallMapWidth * 4] = tex.WallMapIdx;
         this.yWallMap[2 + this.yWallMapWidth * 4] = tex.WallMapIdx;
-      
+
         this.xWallMap[1 + this.xWallMapWidth * 4] = tex.WallMapIdx;
         this.xWallMap[2 + this.xWallMapWidth * 4] = tex.WallMapIdx;
-      
+
         const doorTex = this.findTex(WALL_TEX_KEYS.SPLIT_DOOR_0);
         assert(doorTex);
-      
+
         const mCode =
           doorTex.WallMapIdx |
           WALL_FLAGS_BIT_MASK.IS_SPLIT_DOOR |
           WALL_FLAGS_BIT_MASK.IS_DOOR_OPENABLE;
         const mCode1 = mCode;
-      
+
         const mPos = 1 + this.yWallMapWidth * 4;
         const mPos1 = 1 + this.yWallMapWidth * 5;
-      
+
         this.yWallMap[mPos] = mCode;
         this.yWallMap[mPos1] = mCode1;
-      
+
         {
           // init an active door
           const door = this.newDoor();
@@ -1401,6 +1439,8 @@ class Raycaster {
           const nextPos = this.calcNextPos(side);
           isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
+            // check door wo walls around (should not happen)
+            // check if next int is a door or a wall, if not render as wall
             const perpHalfDist = 0.5 * deltaDist[side];
             let fDoorCoord = fWallX + perpHalfDist * rayDir[side ^ 1];
             if (fDoorCoord < 0 || fDoorCoord >= 1) {
@@ -2250,9 +2290,9 @@ class Raycaster {
   private updatePlayer(time: number) {
     const LOOKUP_OFFS = 15 * time;
     // const MOVE_SPEED = 0.01; // 0.009; // TODO:
-    const MOVE_SPEED = 0.005;
+    const MOVE_SPEED = 0.007;
     // const MOVE_SPEED = 0.002; // 0.009; // TODO:
-    const ROT_SPEED = 0.006; // TODO:
+    const ROT_SPEED = 0.005; // TODO:
 
     if (this.lookUp.isPressed()) {
       const yCenter = this.ProjYCenter + LOOKUP_OFFS;
@@ -2270,6 +2310,9 @@ class Raycaster {
       this.increasePlayerHeight(-1);
     }
 
+    // TODO:
+    // if (this.strafeLeft.isPressed()) {
+
     let turnSpeed = 0;
 
     if (this.turnLeft.isPressed()) {
@@ -2278,7 +2321,6 @@ class Raycaster {
     if (this.turnRight.isPressed()) {
       turnSpeed += time * ROT_SPEED;
     }
-
     this.rotatePlayer(turnSpeed);
 
     let moveSpeed = 0;

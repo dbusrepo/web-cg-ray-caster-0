@@ -8,6 +8,10 @@ enum EnginePanelInputKeyCodeEnum {
   KEY_Z = 'KeyZ',
   KEY_X = 'KeyX',
   KEY_C = 'KeyC',
+  ARROW_LEFT = 'ArrowLeft',
+  ARROW_RIGHT = 'ArrowRight',
+  ARROW_UP = 'ArrowUp',
+  ARROW_DOWN = 'ArrowDown',
 }
 
 type EnginePanelInputKeyCode = `${EnginePanelInputKeyCodeEnum}`;
