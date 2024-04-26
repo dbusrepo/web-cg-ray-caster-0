@@ -29,13 +29,18 @@ class Sprite {
   constructor(
     private viewWidth: number,
     private viewHeight: number,
+
+    // wasm ptr fields
+
+    private flagsPtr: number,
+    private visiblePtr: number,
+
     // private spritePtr: number,
     private posXPtr: number,
     private posYPtr: number,
     private posZPtr: number,
     private texIdxPtr: number,
-    //
-    private visiblePtr: number,
+
     private distancePtr: number,
     private startXPtr: number,
     private endXPtr: number,
@@ -169,6 +174,14 @@ class Sprite {
     gWasmView.setUint32(this.texIdxPtr, value, true);
   }
 
+  get Flags(): number {
+    return gWasmView.getUint16(this.flagsPtr, true);
+  }
+
+  set Flags(value: number) {
+    gWasmView.setUint16(this.flagsPtr, value, true);
+  }
+
   get Visible(): number {
     // u8 (asc) -> i32 (wasm)
     return gWasmView.getInt32(this.visiblePtr, true);
@@ -274,6 +287,7 @@ function getWasmSpritesView(raycaster: Raycaster): Sprite[] {
     const posYPtr = wasmEngineMod.getSpritePosYPtr(spritePtr);
     const posZPtr = wasmEngineMod.getSpritePosZPtr(spritePtr);
     const texIdxPtr = wasmEngineMod.getSpriteTexIdxPtr(spritePtr);
+    const flagsPtr = wasmEngineMod.getSpriteFlagsPtr(spritePtr);
     const visiblePtr = wasmEngineMod.getSpriteVisiblePtr(spritePtr);
     const distancePtr = wasmEngineMod.getSpriteDistancePtr(spritePtr);
     const startXPtr = wasmEngineMod.getSpriteStartXPtr(spritePtr);
@@ -287,11 +301,12 @@ function getWasmSpritesView(raycaster: Raycaster): Sprite[] {
     sprites[i] = new Sprite(
       viewWidth,
       viewHeight,
+      visiblePtr,
+      flagsPtr,
       posXPtr,
       posYPtr,
       posZPtr,
       texIdxPtr,
-      visiblePtr,
       distancePtr,
       startXPtr,
       endXPtr,

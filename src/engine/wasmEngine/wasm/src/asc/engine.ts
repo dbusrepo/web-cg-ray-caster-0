@@ -72,6 +72,7 @@ import {
   getSpriteEndYPtr,
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
+  getSpriteFlagsPtr,
 } from './raycaster/sprite';
 import {
   Door,
@@ -299,6 +300,7 @@ export {
   getSpriteEndYPtr,
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
+  getSpriteFlagsPtr,
 
   allocDoor,
   getDoorMposPtr,

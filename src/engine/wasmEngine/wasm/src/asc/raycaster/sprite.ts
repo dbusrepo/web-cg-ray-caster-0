@@ -4,12 +4,12 @@ import { ObjectAllocator, newObjectAllocator } from '../objectAllocator';
 import { logi } from '../importVars';
 
 @final @unmanaged class Sprite {
+  private visible: u8; // 0: invisible, 1: visible
+  private flags: u16;
   private posX: f32;
   private posY: f32;
   private posZ: f32; // height wrt floor (0 on floor level)
   private texIdx: u32;
-
-  private visible: u8; // 0: invisible, 1: visible
   private distance: f32;
   private startX: u32;
   private endX: u32;
@@ -21,12 +21,12 @@ import { logi } from '../importVars';
   private texStepY: f32;
 
   // active: u8; // 0: inactive, 1: active
-  // active, tx, ty, 
+  // active, tx, ty,
 
   get PosX(): f32 {
     return this.posX;
   }
-  
+
   set PosX(posX: f32) {
     this.posX = posX;
   }
@@ -61,6 +61,14 @@ import { logi } from '../importVars';
 
   set Visible(visible: u8) {
     this.visible = visible;
+  }
+
+  get Flags(): u16 {
+    return this.flags;
+  }
+
+  set Flags(flags: u16) {
+    this.flags = flags;
   }
 
   get Distance(): f32 {
@@ -206,7 +214,11 @@ function getSpriteTexStepYPtr(spritePtr: PTR_T): PTR_T {
   return spritePtr + offsetof<Sprite>("texStepY");
 }
 
-export { 
+function getSpriteFlagsPtr(spritePtr: PTR_T): PTR_T {
+  return spritePtr + offsetof<Sprite>("flags");
+}
+
+export {
   Sprite,
   newSprite,
   getSpritePosXPtr,
@@ -223,4 +235,5 @@ export {
   getSpriteEndYPtr,
   getSpriteTexYPtr,
   getSpriteTexStepYPtr,
+  getSpriteFlagsPtr,
 };

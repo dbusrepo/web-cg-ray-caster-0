@@ -153,7 +153,7 @@ function getDoorSpeedPtr(doorPtr: PTR_T): PTR_T {
   return doorPtr + offsetof<Door>('speed');
 }
 
-export { 
+export {
   Door,
   newDoor,
   allocDoor,

@@ -146,6 +146,11 @@ const MIN_DIST_DOOR_ACT = 0.7;
 const DOOR_KEEP_OPEN_DIST = HALF_DOOR_EXT + MIN_DIST_DOOR_ACT;
 // const DOOR_COLL_MIN_DIST = HALF_DOOR_EXT + COLL_RADIUS;
 
+// Sprite flags
+const SPRITE_NO_COLLISION_OFFS = 0;
+const SPRITE_NO_COLLISION_MASK = 1 << SPRITE_NO_COLLISION_OFFS;
+const SPRITE_NO_COLLISION_FLAG = 1 << SPRITE_NO_COLLISION_OFFS;
+
 class Raycaster {
   private params: RaycasterParams;
 
@@ -626,6 +631,7 @@ class Raycaster {
         sprite.PosZ = 0;
         sprite.TexIdx = tex.WasmIdx;
         sprite.Visible = 1;
+        sprite.Flags = SPRITE_NO_COLLISION_FLAG;
       }
 
       {
@@ -2386,7 +2392,6 @@ class Raycaster {
   public checkCollisions() {
     this.checkXCollisions();
     this.checkYCollisions();
-    // sprite collisions
     this.checkSpriteCollisions();
   }
 
@@ -2459,6 +2464,11 @@ class Raycaster {
 
     for (let i = 0; i < sprites.length; i++) {
       const sprite = sprites[i];
+
+      if (sprite.Flags & SPRITE_NO_COLLISION_MASK) {
+        continue;
+      }
+
       const { PosX: spriteX, PosY: spriteY } = sprite;
 
       const dist = (playerX - spriteX) ** 2 + (playerY - spriteY) ** 2;
