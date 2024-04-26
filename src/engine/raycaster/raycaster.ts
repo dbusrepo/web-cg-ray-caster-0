@@ -1439,7 +1439,17 @@ class Raycaster {
           const nextPos = this.calcNextPos(side);
           isRayValid = this.isRayValid(side, nextPos, steps);
           if (isRayValid) {
-            // check door wo walls around (should not happen)
+            // to solve a vis error when rendering doors in a not well defined map with x/y doors without adjacent y/x walls
+            const nextPosWallIdx =
+              wallMapOffs[side] +
+              this.wallMapIncOffs[side] +
+              checkWallIdxOffs[side];
+            if (!(wallMaps[side][nextPosWallIdx] & WALL_DOOR_MASK)) {
+              // the door rendering would not be correct, advance the ray
+              this.advanceRay(side, nextPos);
+              continue;
+            }
+            // ok now continue with the checks
             // check if next int is a door or a wall, if not render as wall
             const perpHalfDist = 0.5 * deltaDist[side];
             let fDoorCoord = fWallX + perpHalfDist * rayDir[side ^ 1];
