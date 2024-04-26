@@ -849,7 +849,7 @@ class Raycaster {
     // test map doors
     {
       {
-        // edge cases y door
+        // y door edge case
         const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
         assert(tex);
         this.xWallMap[1 + this.xWallMapWidth * 0] = tex.WallMapIdx;
@@ -914,6 +914,7 @@ class Raycaster {
         const tex = this.findTex(WALL_TEX_KEYS.GREYSTONE);
         assert(tex);
 
+        this.yWallMap[4 + this.yWallMapWidth * 3] = tex.WallMapIdx;
         this.yWallMap[4 + this.yWallMapWidth * 4] = tex.WallMapIdx;
 
         this.xWallMap[4 + this.xWallMapWidth * 4] = tex.WallMapIdx;
@@ -1048,7 +1049,7 @@ class Raycaster {
       }
 
       {
-        // edge case x door
+        // x door edge case
         const tex = this.findTex(WALL_TEX_KEYS.REDBRICK);
         assert(tex);
 
