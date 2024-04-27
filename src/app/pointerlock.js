@@ -50,7 +50,7 @@ async function requestPointerLock(element) {
   const options = { limit: 10, delay: 200, firstAttemptDelay: 0 };
   const retrier = new Retrier(options);
   return retrier.resolve(exec).then(
-    (result) => {}, // console.log('ALL OK: ', result),
+    (_res) => {}, // console.log('ALL OK: ', result),
     (error) => console.error(error), // After 5 attempts logs: "Rejected!"
   );
 }
