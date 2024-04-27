@@ -1,4 +1,4 @@
-// import assert from 'assert';
+import assert from 'assert';
 import type { WasmNullPtr } from '../wasmEngine/wasmRun';
 import { WasmRun, WASM_NULL_PTR } from '../wasmEngine/wasmRun';
 import type { WasmModules, WasmEngineModule } from '../wasmEngine/wasmLoader';
@@ -646,6 +646,40 @@ class Renderer {
     }
   }
 
+  private renderWallBlock(
+    prevTop: number,
+    prevBot: number,
+    prevTexX: number,
+    prevTexY: number,
+    prevStepY: number,
+    prevBuf32: Uint32Array | null,
+    prevLg2Pitch: number,
+    startRectX: number,
+    x: number,
+  ) {
+    if (x <= startRectX) {
+      return;
+    }
+    const { frameBuf32, frameStride, frameRowPtrs } = this;
+
+    for (
+      let framePtr = frameRowPtrs[prevTop],
+        frameLimitPtr = frameRowPtrs[prevBot + 1],
+        yOffs = (prevTexX << prevLg2Pitch) + prevTexY;
+      framePtr < frameLimitPtr;
+      framePtr += frameStride, yOffs += prevStepY
+    ) {
+      const color = prevBuf32![yOffs | 0];
+      for (
+        let pixelPtr = framePtr + startRectX, pixelLimitPtr = framePtr + x; // + x;
+        pixelPtr < pixelLimitPtr;
+        pixelPtr++
+      ) {
+        frameBuf32[pixelPtr] = color;
+      }
+    }
+  }
+
   private renderWallsFloorsHorz() {
     const {
       frameBuf32,
@@ -713,8 +747,19 @@ class Renderer {
 
     let prevWallBottom = maxWallBottom;
 
+    let prevTop = -1;
+    let prevBot = -1;
+    let prevTexX = -1;
+    let prevTexY = -1;
+    let prevStepY = -1;
+    let prevBuf32: Uint32Array | null = null;
+    let prevLg2Pitch = -1;
+
+    const startX = 0;
+    let startRectX = startX;
+
     // render walls vertically
-    for (let x = 0; x < vpWidth; x++) {
+    for (let x = startX; x < vpWidth; x++) {
       let {
         Hit: hit,
         Top: top,
@@ -735,44 +780,81 @@ class Renderer {
       }
 
       // const colPtr = startFramePtr + x;
-      let framePtr = frameRowPtrs[minWallTop] + x;
-
       // for (let y = minWallTop; y < top; y++) {
       for (
-        const topWallPtr = frameRowPtrs[top] + x;
+        let framePtr = frameRowPtrs[minWallTop] + x,
+          topWallPtr = frameRowPtrs[top] + x;
         framePtr < topWallPtr;
         framePtr += frameStride
       ) {
         frameBuf32[framePtr] = CEIL_COLOR;
       }
-      // assert(framePtr === colPtr + top * frameStride);
 
-      if (renderWall) {
-        const frameLimitPtr = frameRowPtrs[bottom + 1] + x;
-        if (hit) {
-          const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
-
+      if (!(renderWall && hit)) {
+        // when no render wall or not hit render the wall slices rect buffer columns
+        if (prevTop !== -1) {
+          this.renderWallBlock(
+            prevTop,
+            prevBot,
+            prevTexX,
+            prevTexY,
+            prevStepY,
+            prevBuf32,
+            prevLg2Pitch,
+            startRectX,
+            x,
+          );
+          prevTop = -1;
+        }
+        startRectX = x + 1;
+        if (renderWall) {
+          // assert(!hit);
           for (
-            let yOffs = (texX << lg2Pitch) + texY;
-            framePtr < frameLimitPtr;
-            framePtr += frameStride, yOffs += texStepY
-          ) {
-            const color = mipPixels[yOffs | 0];
-            frameBuf32[framePtr] = color;
-          }
-        } else {
-          // no hit untextured wall
-          for (
-            const color = NO_HIT_WALL_SIDES_COL[side];
+            let framePtr = frameRowPtrs[top] + x,
+              frameLimitPtr = frameRowPtrs[bottom + 1] + x,
+              color = NO_HIT_WALL_SIDES_COL[side];
             framePtr < frameLimitPtr;
             framePtr += frameStride
           ) {
             frameBuf32[framePtr] = color;
           }
         }
-        // assert(framePtr === colPtr + (bottom + 1) * frameStride);
+      } else {
+        // assert(renderWall && hit);
+        if (
+          !(
+            prevTop === -1 ||
+            (top === prevTop &&
+              bottom === prevBot &&
+              texX === prevTexX &&
+              texY === prevTexY &&
+              image.Buf32 === prevBuf32)
+          )
+        ) {
+          this.renderWallBlock(
+            prevTop,
+            prevBot,
+            prevTexX,
+            prevTexY,
+            prevStepY,
+            prevBuf32,
+            prevLg2Pitch,
+            startRectX,
+            x,
+          );
+          startRectX = x;
+        }
+
+        prevTop = top;
+        prevBot = bottom;
+        prevTexX = texX;
+        prevTexY = texY;
+        prevStepY = texStepY;
+        prevBuf32 = image.Buf32;
+        prevLg2Pitch = image.Lg2Pitch;
       }
 
+      // process floor spans under wall slice
       let nr = prevWallBottom - bottom;
 
       if (nr > 0) {

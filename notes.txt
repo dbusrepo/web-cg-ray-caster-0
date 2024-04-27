@@ -363,3 +363,26 @@ private waitWorkers() {
 https://github.com/iamturns/create-exposed-app/blob/master/package.json
 
 // const isDoorCellClosed = wallMap[door.Mpos] === door.Mcode;
+
+this.player.DirX = 1;
+this.player.DirY = 0;
+this.player.PlaneX = 0;
+this.player.PlaneY = 0.66; // FOV 2*atan(0.66) ~ 60 deg
+
+
+// to see green lines where the walls are columns buffered:
+for (
+  let pixelPtr = framePtr + startRectX, pixelLimitPtr = framePtr + startRectX + 1; // + x;
+  pixelPtr < pixelLimitPtr;
+  pixelPtr++
+) {
+  frameBuf32[pixelPtr] = color;
+}
+for (
+  let pixelPtr = framePtr + startRectX + 1, pixelLimitPtr = framePtr + x;
+  pixelPtr < pixelLimitPtr;
+  pixelPtr++
+) {
+  // green
+  frameBuf32[pixelPtr] = 0xff00ff00;
+}
