@@ -19,9 +19,9 @@ const NO_HIT_WALL_SIDES_COL = [
 ];
 
 type RendererOptions = {
-  isFloorTextured : boolean;
-  vertFloor : boolean;
-  back2Front : boolean;
+  isFloorTextured: boolean;
+  vertFloor: boolean;
+  back2Front: boolean;
 };
 
 class Renderer {
@@ -664,6 +664,7 @@ class Renderer {
       // MapWidth: mapWidth,
       ProjYCenter: projYCenter,
       MinWallTop: minWallTop,
+      // MaxWallTop: maxWallTop, // TODO: use ceil horz floor rend
       MinWallBottom: minWallBottom,
       MaxWallBottom: maxWallBottom,
       WallSlicesOccludedBySprites: wallSlicesOccludedBySprites,
@@ -725,21 +726,29 @@ class Renderer {
         Side: side,
       } = wallSlices[x];
 
+      let renderWall = true;
+
+      if (wallSlicesOccludedBySprites[x]) {
+        top = spritesTop[x];
+        bottom = spritesBottom[x];
+        renderWall = false;
+      }
+
       // const colPtr = startFramePtr + x;
       let framePtr = frameRowPtrs[minWallTop] + x;
-      const isWallSliceOccludedBySprite = wallSlicesOccludedBySprites[x];
-      top = isWallSliceOccludedBySprite ? spritesTop[x] : top;
-      let frameLimitPtr = frameRowPtrs[top] + x;
 
-      // render ceil
       // for (let y = minWallTop; y < top; y++) {
-      for (; framePtr < frameLimitPtr; framePtr += frameStride) {
+      for (
+        const topWallPtr = frameRowPtrs[top] + x;
+        framePtr < topWallPtr;
+        framePtr += frameStride
+      ) {
         frameBuf32[framePtr] = CEIL_COLOR;
       }
       // assert(framePtr === colPtr + top * frameStride);
 
-      if (!isWallSliceOccludedBySprite) {
-        frameLimitPtr = frameRowPtrs[bottom + 1] + x;
+      if (renderWall) {
+        const frameLimitPtr = frameRowPtrs[bottom + 1] + x;
         if (hit) {
           const { Buf32: mipPixels, Lg2Pitch: lg2Pitch } = image;
 
@@ -762,9 +771,6 @@ class Renderer {
           }
         }
         // assert(framePtr === colPtr + (bottom + 1) * frameStride);
-      } else {
-        // framePtr = frameLimitPtr;
-        bottom = spritesBottom[x];
       }
 
       let nr = prevWallBottom - bottom;
