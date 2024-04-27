@@ -151,6 +151,8 @@ const SPRITE_NO_COLLISION_OFFS = 0;
 const SPRITE_NO_COLLISION_MASK = 1 << SPRITE_NO_COLLISION_OFFS;
 const SPRITE_NO_COLLISION_FLAG = 1 << SPRITE_NO_COLLISION_OFFS;
 
+const IGNORE_COLLISIONS = false;
+
 class Raycaster {
   private params: RaycasterParams;
 
@@ -342,9 +344,17 @@ class Raycaster {
       this.moveBackward,
     );
 
+    this.turnLeft = new InputAction('TurnLeft', InputActionBehavior.NORMAL);
+    this.mapMouseToInputAction(MouseCodeEnum.MOVE_LEFT, this.turnLeft);
+    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_A, this.turnLeft);
+
+    this.turnRight = new InputAction('TurnRight', InputActionBehavior.NORMAL);
+    this.mapMouseToInputAction(MouseCodeEnum.MOVE_RIGHT, this.turnRight);
+    this.mapKeytoInputAction(EnginePanelInputKeyCodeEnum.KEY_D, this.turnRight);
+
     this.strafeLeft = new InputAction('StrafeLeft', InputActionBehavior.NORMAL);
     this.mapKeytoInputAction(
-      EnginePanelInputKeyCodeEnum.KEY_A,
+      EnginePanelInputKeyCodeEnum.ARROW_LEFT,
       this.strafeLeft,
     );
 
@@ -353,22 +363,8 @@ class Raycaster {
       InputActionBehavior.NORMAL,
     );
     this.mapKeytoInputAction(
-      EnginePanelInputKeyCodeEnum.KEY_D,
-      this.strafeRight,
-    );
-
-    this.turnLeft = new InputAction('TurnLeft', InputActionBehavior.NORMAL);
-    this.mapMouseToInputAction(MouseCodeEnum.MOVE_LEFT, this.turnLeft);
-    this.mapKeytoInputAction(
-      EnginePanelInputKeyCodeEnum.ARROW_LEFT,
-      this.turnLeft,
-    );
-
-    this.turnRight = new InputAction('TurnRight', InputActionBehavior.NORMAL);
-    this.mapMouseToInputAction(MouseCodeEnum.MOVE_RIGHT, this.turnRight);
-    this.mapKeytoInputAction(
       EnginePanelInputKeyCodeEnum.ARROW_RIGHT,
-      this.turnRight,
+      this.strafeRight,
     );
 
     this.raiseHeight = new InputAction(
@@ -2306,19 +2302,21 @@ class Raycaster {
 
   private updatePlayer(time: number) {
     const LOOKUP_OFFS = 15 * time;
-    // const MOVE_SPEED = 0.01; // 0.009; // TODO:
+    // const MOVE_SPEED = 0.01; // 0.009;
     const MOVE_SPEED = 0.007;
-    // const MOVE_SPEED = 0.002; // 0.009; // TODO:
-    const ROT_SPEED = 0.005; // TODO:
+    // const MOVE_SPEED = 0.002; // 0.009;
+    const ROT_SPEED = 0.006;
 
     if (this.lookUp.isPressed()) {
       const yCenter = this.ProjYCenter + LOOKUP_OFFS;
       this.ProjYCenter = Math.min(yCenter, (this.viewport.Height * 2) / 3);
     }
+
     if (this.lookDown.isPressed()) {
       const yCenter = this.ProjYCenter - LOOKUP_OFFS;
       this.ProjYCenter = Math.max(yCenter, this.viewport.Height / 3);
     }
+
     if (this.raiseHeight.isPressed()) {
       this.increasePlayerHeight(1);
     }
@@ -2327,36 +2325,54 @@ class Raycaster {
       this.increasePlayerHeight(-1);
     }
 
-    // TODO:
-    // if (this.strafeLeft.isPressed()) {
+    {
+      let turnSpeed = 0;
 
-    let turnSpeed = 0;
-
-    if (this.turnLeft.isPressed()) {
-      turnSpeed -= time * ROT_SPEED;
-    }
-    if (this.turnRight.isPressed()) {
-      turnSpeed += time * ROT_SPEED;
-    }
-    this.rotatePlayer(turnSpeed);
-
-    let moveSpeed = 0;
-
-    if (this.moveForward.isPressed()) {
-      moveSpeed += time * MOVE_SPEED;
+      if (this.turnLeft.isPressed()) {
+        turnSpeed -= time * ROT_SPEED;
+      }
+      if (this.turnRight.isPressed()) {
+        turnSpeed += time * ROT_SPEED;
+      }
+      this.rotatePlayer(turnSpeed);
     }
 
-    if (this.moveBackward.isPressed()) {
-      moveSpeed -= time * MOVE_SPEED;
-    }
+    {
+      const speed = time * MOVE_SPEED;
+      const speedX = this.player.DirX * speed;
+      const speedY = this.player.DirY * speed;
+      let velX = 0;
+      let velY = 0;
 
-    if (moveSpeed) {
-      const velX = this.player.DirX * moveSpeed;
-      const velY = this.player.DirY * moveSpeed;
-      // const posX = this.player.PosX + velX;
-      // const posY = this.player.PosY + velY;
-      // this.movePlayer(posX, posY);
-      collideAndSlide(this, velX, velY);
+      if (this.moveForward.isPressed()) {
+        velX += speedX;
+        velY += speedY;
+      }
+
+      if (this.moveBackward.isPressed()) {
+        velX -= speedX;
+        velY -= speedY;
+      }
+
+      if (this.strafeLeft.isPressed()) {
+        velX += speedY;
+        velY -= speedX;
+      }
+
+      if (this.strafeRight.isPressed()) {
+        velX -= speedY;
+        velY += speedX;
+      }
+
+      if (velX || velY) {
+        if (IGNORE_COLLISIONS) {
+          const posX = this.player.PosX + velX;
+          const posY = this.player.PosY + velY;
+          this.movePlayer(posX, posY);
+        } else {
+          collideAndSlide(this, velX, velY);
+        }
+      }
     }
   }
 
