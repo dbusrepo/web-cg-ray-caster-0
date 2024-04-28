@@ -542,6 +542,7 @@ self.onmessage = ({ data: { command, params } }) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       commands[commandKey](params) as void;
     } catch (ex) {
+      console.error('error executing command in app worker message handler');
       console.error(ex);
     }
   }
