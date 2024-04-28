@@ -300,16 +300,16 @@ class Renderer {
               floorMip = textures[floorTexIdx].getMipmap(0).Image;
               prevFloorMapIdx = floorMapIdx;
             }
-            const mip = floorMip!;
+            const mip = floorMip;
             const u = floorX - floorXidx;
             const v = floorY - floorYidx;
             // assert(floorX >= 0 && floorX < 1);
             // assert(floorY >= 0 && floorY < 1);
-            const floorMipX = u * mip.Width;
-            const floorMipY = v * mip.Height;
-            const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+            const floorMipX = u * mip!.Width;
+            const floorMipY = v * mip!.Height;
+            const mipOffs = (floorMipX << mip!.Lg2Pitch) | floorMipY;
             // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
-            const color = mip.Buf32[mipOffs];
+            const color = mip!.Buf32[mipOffs];
             frameBuf32[framePtr] = color;
           }
         }
@@ -465,16 +465,16 @@ class Renderer {
               floorMip = textures[floorTexIdx].getMipmap(0).Image;
               prevFloorMapIdx = floorMapIdx;
             }
-            const mip = floorMip!;
+            const mip = floorMip;
             const u = floorX - floorXidx;
             const v = floorY - floorYidx;
             // assert(floorX >= 0 && floorX < 1);
             // assert(floorY >= 0 && floorY < 1);
-            const floorMipX = u * mip.Width;
-            const floorMipY = v * mip.Height;
-            const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+            const floorMipX = u * mip!.Width;
+            const floorMipY = v * mip!.Height;
+            const mipOffs = (floorMipX << mip!.Lg2Pitch) | floorMipY;
             // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
-            const color = mip.Buf32[mipOffs];
+            const color = mip!.Buf32[mipOffs];
             frameBuf32[framePtr] = color;
           }
         }
@@ -556,16 +556,16 @@ class Renderer {
             floorMipmap = textures[floorTexIdx].getMipmap(0).Image;
             prevFloorMapIdx = floorMapIdx;
           }
-          const mip = floorMipmap!;
+          const mip = floorMipmap;
           const u = floorX - floorXidx;
           const v = floorY - floorYidx;
           // assert(u >= 0 && u < 1);
           // assert(v >= 0 && v < 1);
-          const floorMipX = u * mip.Width;
-          const floorMipY = v * mip.Height;
-          const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+          const floorMipX = u * mip!.Width;
+          const floorMipY = v * mip!.Height;
+          const mipOffs = (floorMipX << mip!.Lg2Pitch) | floorMipY;
           // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
-          const color = mip.Buf32[mipOffs];
+          const color = mip!.Buf32[mipOffs];
           frameBuf32[frameRowPtr] = color;
         }
         frameRowPtr++;
@@ -626,16 +626,16 @@ class Renderer {
               floorMipmap = textures[floorTexIdx].getMipmap(0).Image;
               prevFloorMapIdx = floorMapIdx;
             }
-            const mip = floorMipmap!;
+            const mip = floorMipmap;
             const u = floorX - floorXidx;
             const v = floorY - floorYidx;
             // assert(u >= 0 && u < 1);
             // assert(v >= 0 && v < 1);
-            const floorMipX = u * mip.Width;
-            const floorMipY = v * mip.Height;
-            const mipOffs = (floorMipX << mip.Lg2Pitch) | floorMipY;
+            const floorMipX = u * mip!.Width;
+            const floorMipY = v * mip!.Height;
+            const mipOffs = (floorMipX << mip!.Lg2Pitch) | floorMipY;
             // assert(mipOffs >= 0 && mipOffs < floorMip.Buf32.length);
-            const color = mip.Buf32[mipOffs];
+            const color = mip!.Buf32[mipOffs];
             frameBuf32[frameRowPtr] = color;
           }
         }
