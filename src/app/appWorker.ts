@@ -536,11 +536,13 @@ const commands = {
 };
 
 self.onmessage = ({ data: { command, params } }) => {
-  if (commands.hasOwnProperty(command)) {
+  const commandKey = command as keyof typeof commands;
+  if (commands.hasOwnProperty(commandKey)) {
     try {
-      commands[command as keyof typeof commands](params);
-    } catch (err) {
-      console.error(err);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      commands[commandKey](params) as void;
+    } catch (ex) {
+      console.error(ex);
     }
   }
 };
