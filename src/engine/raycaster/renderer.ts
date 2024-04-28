@@ -657,25 +657,21 @@ class Renderer {
     startRectX: number,
     x: number,
   ) {
-    if (x <= startRectX) {
-      return;
-    }
     const { frameBuf32, frameStride, frameRowPtrs } = this;
 
     for (
-      let framePtr = frameRowPtrs[prevTop],
-        frameLimitPtr = frameRowPtrs[prevBot + 1],
-        yOffs = (prevTexX << prevLg2Pitch) + prevTexY;
-      framePtr < frameLimitPtr;
-      framePtr += frameStride, yOffs += prevStepY
+      let startPixelPtr = frameRowPtrs[prevTop] + startRectX,
+        rowLimitPixelPtr = frameRowPtrs[prevBot + 1] + startRectX,
+        yOffs = (prevTexX << prevLg2Pitch) + prevTexY,
+        numPixelsPerRow = x - startRectX;
+      startPixelPtr !== rowLimitPixelPtr;
+      startPixelPtr += frameStride, yOffs += prevStepY
     ) {
       const color = prevBuf32![yOffs | 0];
-      for (
-        let pixelPtr = framePtr + startRectX, pixelLimitPtr = framePtr + x; // + x;
-        pixelPtr < pixelLimitPtr;
-        pixelPtr++
-      ) {
-        frameBuf32[pixelPtr] = color;
+      let pixelPtr = startPixelPtr;
+      let numPixels = numPixelsPerRow;
+      while (numPixels--) {
+        frameBuf32[pixelPtr++] = color;
       }
     }
   }
