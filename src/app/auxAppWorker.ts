@@ -40,8 +40,8 @@ class AuxAppWorker {
     this.params = params;
     await this.initWasmRun();
     this.frameColorRGBAWasm = getFrameColorRGBAWasmView(this.wasmEngineModule);
-    await this.initRaycaster();
     this.initFrameBuf();
+    this.initRaycaster();
   }
 
   private async initWasmRun() {
@@ -66,13 +66,13 @@ class AuxAppWorker {
     this.frameStrideBytes = this.wasmRun.FrameStrideBytes;
   }
 
-  private async initRaycaster() {
+  private initRaycaster() {
     this.raycaster = new Raycaster();
     const raycasterParams: RaycasterParams = {
       wasmRun: this.wasmRun,
       frameColorRGBAWasm: this.frameColorRGBAWasm,
     };
-    await this.raycaster.initGraphics(raycasterParams);
+    this.raycaster.initGraphics(raycasterParams);
   }
 
   async run() {
@@ -134,3 +134,4 @@ type AuxAppWorkerDesc = {
 
 export type { AuxAppWorkerParams, AuxAppWorkerDesc };
 export { AuxAppWorkerCommandEnum };
+
